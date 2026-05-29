@@ -10,23 +10,16 @@ from .views import (
     MyProfileView,
     ApproveMemberView,
     DeactivateMemberView,
+    LegacyImportView,
+
 )
 
 urlpatterns = [
-    # Password setup (first login — no auth required)
     path("set-password/", SetInitialPasswordView.as_view(), name="set-password"),
-
-    # Admin create user
     path("users/", CreateUserView.as_view(), name="user-create"),
-
-    # My own profile
     path("me/", MyProfileView.as_view(), name="my-profile"),
-
-    # Staff ID registry (Admin only)
     path("staff-ids/", StaffIDRegistryListCreateView.as_view(), name="staff-id-list"),
     path("staff-ids/<int:pk>/", StaffIDRegistryDetailView.as_view(), name="staff-id-detail"),
-
-    # Member management
     path("members/", MemberListCreateView.as_view(), name="member-list"),
     path("members/summary/", MemberSummaryListView.as_view(), name="member-summary"),
     path("members/<int:pk>/", MemberDetailView.as_view(), name="member-detail"),
