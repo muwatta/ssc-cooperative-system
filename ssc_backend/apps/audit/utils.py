@@ -1,8 +1,3 @@
-"""SSC Cooperative — Audit Utilities
-
-Helper functions to log actions throughout the application.
-"""
-
 from .models import AuditLog
 
 
@@ -17,20 +12,7 @@ def log_action(
     new_values=None,
     request_ip=None,
 ):
-    """
-    Create an audit log entry.
-
-    Args:
-        user: User object who performed the action
-        action: Action type from AuditLog.ACTION_CHOICES
-        description: Human-readable description of what happened
-        object_type: Django model name (e.g., 'MemberProfile')
-        object_id: Primary key of the affected object
-        object_name: Human-readable name of affected object
-        old_values: Dict of previous values (for updates)
-        new_values: Dict of new values (for updates)
-        request_ip: Client IP address if available
-    """
+    
     user_role = ""
     if user:
         if hasattr(user, "get_role_display"):
@@ -53,7 +35,6 @@ def log_action(
 
 
 def get_client_ip(request):
-    """Extract client IP from request."""
     x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
     if x_forwarded_for:
         ip = x_forwarded_for.split(",")[0]

@@ -1,5 +1,3 @@
-"""SSC Cooperative — Audit URLs"""
-
 from django.urls import path
 from .views import AuditLogListView, ObjectAuditLogView, UserAuditLogView
 

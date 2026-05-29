@@ -20,7 +20,7 @@ export default function InvestmentsPage() {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [hijriMonth, setHijriMonth] = useState(1);
-  const [hijriYear, setHijriYear] = useState(1446);
+  const [hijriYear, setHijriYear] = useState(1447);
   const [distHijriMonth, setDistHijriMonth] = useState(1);
   const [distHijriYear, setDistHijriYear] = useState(1446);
 

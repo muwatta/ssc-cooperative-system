@@ -1,5 +1,3 @@
-"""SSC Cooperative — Audit Views"""
-
 from rest_framework import generics, filters, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -12,11 +10,6 @@ from .serializers import AuditLogSerializer
 
 
 class AuditLogListView(generics.ListAPIView):
-    """
-    GET /api/v1/audit/logs/
-    List all audit logs (admin only).
-    Filterable by user, action, object_type, and date range.
-    """
 
     serializer_class = AuditLogSerializer
     permission_classes = [IsAdminOrCommittee]
@@ -27,10 +20,6 @@ class AuditLogListView(generics.ListAPIView):
 
 
 class ObjectAuditLogView(APIView):
-    """
-    GET /api/v1/audit/logs/object/<object_type>/<object_id>/
-    List all audit logs for a specific object (e.g., a member profile, loan application).
-    """
 
     permission_classes = [IsAuthenticated]
 
@@ -49,7 +38,6 @@ class ObjectAuditLogView(APIView):
         return Response(serializer.data)
 
     def paginate_queryset(self, queryset):
-        """Simple pagination helper"""
         from rest_framework.pagination import PageNumberPagination
 
         paginator = PageNumberPagination()
@@ -57,7 +45,6 @@ class ObjectAuditLogView(APIView):
         return paginator.paginate_queryset(queryset, self.request)
 
     def get_paginated_response(self, data):
-        """Simple paginated response helper"""
         from rest_framework.pagination import PageNumberPagination
 
         paginator = PageNumberPagination()
@@ -65,11 +52,6 @@ class ObjectAuditLogView(APIView):
 
 
 class UserAuditLogView(generics.ListAPIView):
-    """
-    GET /api/v1/audit/logs/user/<user_id>/
-    List all actions by a specific user (for user accountability tracking).
-    Only admins or the user themselves can view.
-    """
 
     serializer_class = AuditLogSerializer
     permission_classes = [IsAdminOrCommittee]

@@ -18,7 +18,6 @@ urlpatterns = [
     path("change-requests/<int:pk>/reject/",  RejectSavingsChangeView.as_view(),         name="change-request-reject"),
     path("dues/",                          DuesCycleListCreateView.as_view(),            name="dues-list"),
     path("dues/<int:pk>/post/",            PostDuesCycleView.as_view(),                  name="dues-post"),
-    path("summary/",                       SavingsSummaryView.as_view(),   name="savings-summary"),
     path("ledger/<int:member_id>/export/", LedgerExportView.as_view(),     name="ledger-export"),
 
 ]

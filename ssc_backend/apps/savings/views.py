@@ -24,7 +24,6 @@ from .services import (
 
 
 class PostSavingsView(APIView):
-    """POST /api/v1/savings/post/ — Admin posts monthly savings"""
     permission_classes = [IsAdmin]
 
     def post(self, request):
@@ -297,3 +296,7 @@ class PostDuesCycleView(APIView):
             "failed": len(result["failures"]),
             "failures": result["failures"],
         })
+
+class LedgerExportView(APIView):
+    def get(self, request):
+        return Response({"message": "Export not implemented yet"})

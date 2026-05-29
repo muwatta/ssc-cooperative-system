@@ -1,58 +1,218 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 import { membersApi, savingsApi } from "@/api/services";
 import { PageHeader } from "@/components/common";
-import type { MemberProfile, MemberBalance, SavingsLedgerEntry } from "@/types";
+import type { MemberProfile } from "@/types";
 
+function formatNaira(value: string | number) {
+  const n = Number(value);
+  return Number.isNaN(n)
+    ? "₦0.00"
+    : `₦${n.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function InfoRow({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | number | null;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2 border-b border-gray-50 py-2 last:border-0">
+      <span className="text-xs uppercase tracking-wide text-gray-400">
+        {label}
+      </span>
+      <span className="text-sm font-medium text-gray-800">{value || "—"}</span>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mb-6">
+      <h3 className="mb-3 px-1 text-xs font-semibold uppercase tracking-widest text-gray-400">
+        {title}
+      </h3>
+      <div className="card px-4 py-2">{children}</div>
+    </div>
+  );
+}
+
+// ── Approve modal ─────────────────────────────────────────────────
+function ApproveModal({
+  member,
+  onClose,
+}: {
+  member: MemberProfile;
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const [error, setError] = useState("");
+  const {
+    register,
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm({
+    defaultValues: {
+      approved_by_name: "",
+      officer_in_charge: "",
+      approval_date: new Date().toISOString().split("T")[0],
+      approved_monthly_contribution: member.approved_monthly_contribution,
+    },
+  });
+
+  const mutation = useMutation({
+    mutationFn: (data: any) => membersApi.approve(member.id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["member", String(member.id)] });
+      qc.invalidateQueries({ queryKey: ["members"] });
+      qc.invalidateQueries({ queryKey: ["members-pending-count"] });
+      onClose();
+    },
+    onError: (e: any) =>
+      setError(e?.response?.data?.error || "Approval failed."),
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="card w-full max-w-md">
+        <div className="card-header flex items-center justify-between">
+          <h2 className="font-semibold">Approve Membership</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="card-body">
+          {error && (
+            <div className="mb-4 rounded-lg border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-700">
+              {error}
+            </div>
+          )}
+          <p className="mb-4 text-sm text-gray-500">
+            Approving <strong>{member.full_name}</strong> ({member.file_number}
+            ). This activates their account and allows savings posting.
+          </p>
+          <form
+            onSubmit={handleSubmit((d) => mutation.mutate(d))}
+            className="space-y-4"
+          >
+            <div>
+              <label className="label">Approved By (Chairman Name) *</label>
+              <input
+                {...register("approved_by_name", { required: true })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Officer in Charge *</label>
+              <input
+                {...register("officer_in_charge", { required: true })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Approval Date *</label>
+              <input
+                {...register("approval_date", { required: true })}
+                type="date"
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">
+                Approved Monthly Contribution (₦) *
+              </label>
+              <input
+                {...register("approved_monthly_contribution", {
+                  required: true,
+                })}
+                type="number"
+                step="0.01"
+                min="1000"
+                className="input"
+              />
+              <p className="mt-1 text-xs text-gray-400">Minimum ₦1,000</p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn-secondary flex-1"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn-primary flex-1"
+              >
+                {isSubmitting ? "Approving..." : "Approve Member"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────
 export default function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const [member, setMember] = useState<MemberProfile | null>(null);
-  const [balance, setBalance] = useState<MemberBalance | null>(null);
-  const [recentLedger, setRecentLedger] = useState<SavingsLedgerEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [balanceLoading, setBalanceLoading] = useState(false);
-  const [error, setError] = useState("");
+  const qc = useQueryClient();
+  const [showApprove, setShowApprove] = useState(false);
+  const [showDeactivate, setShowDeactivate] = useState(false);
+  const [activeTab, setActiveTab] = useState<"profile" | "savings">("profile");
 
-  useEffect(() => {
-    if (!id) return;
-    const loadMember = async () => {
-      try {
-        const response = await membersApi.get(Number(id));
-        setMember(response.data);
-      } catch {
-        setError("Unable to load member details. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const {
+    data: member,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["member", id],
+    queryFn: () => membersApi.get(Number(id)).then((r) => r.data),
+    enabled: !!id,
+  });
 
-    loadMember();
-  }, [id]);
+  const { data: balance } = useQuery({
+    queryKey: ["balance", id],
+    queryFn: () => savingsApi.getBalance(Number(id)).then((r) => r.data),
+    enabled: !!id && member?.membership_status === "active",
+  });
 
-  useEffect(() => {
-    if (!member) return;
-    const loadBalance = async () => {
-      setBalanceLoading(true);
-      try {
-        const balanceResponse = await savingsApi.getBalance(member.id);
-        setBalance(balanceResponse.data);
+  const { data: ledger } = useQuery({
+    queryKey: ["ledger", id],
+    queryFn: () => savingsApi.getLedger(Number(id)).then((r) => r.data),
+    enabled: activeTab === "savings" && !!id,
+  });
 
-        const ledgerResponse = await savingsApi.getLedger(member.id, {
-          page: 1,
-        });
-        setRecentLedger(ledgerResponse.data.results.slice(0, 5));
-      } catch {
-        // Silently handle balance fetch failures - not critical for viewing profile
-      } finally {
-        setBalanceLoading(false);
-      }
-    };
+  const deactivateMutation = useMutation({
+    mutationFn: () => membersApi.deactivate(Number(id)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["member", id] });
+      qc.invalidateQueries({ queryKey: ["members"] });
+      setShowDeactivate(false);
+    },
+  });
 
-    loadBalance();
-  }, [member]);
-
-  if (loading) {
-    return <div className="text-gray-600">Loading member...</div>;
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+      </div>
+    );
   }
 
   if (error || !member) {
@@ -62,221 +222,316 @@ export default function MemberDetailPage() {
           title="Member details"
           back={{ to: "/members", label: "Back to Members" }}
         />
-        <div className="text-danger-700">{error || "Member not found."}</div>
+        <p className="text-danger-700">
+          {error ? "Unable to load member." : "Member not found."}
+        </p>
       </div>
     );
   }
 
-  const formatNaira = (value: string | number) => {
-    const amount = Number(value);
-    return Number.isNaN(amount)
-      ? "₦0.00"
-      : `₦${amount.toLocaleString("en-NG", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}`;
+  const STATUS_COLOR: Record<string, string> = {
+    active: "badge-success",
+    pending: "badge-warning",
+    inactive: "badge-gray",
+    exited: "badge-danger",
   };
 
   return (
-    <div className="card p-6 space-y-6">
+    <div className="max-w-4xl">
       <PageHeader
         title={member.full_name}
-        subtitle={`Profile details for ${member.staff_id}`}
+        subtitle={`${member.file_number} · ${member.staff_id}`}
         back={{ to: "/members", label: "Back to Members" }}
       />
 
-      {/* Available Balance Section */}
-      {balanceLoading ? (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <p className="text-sm text-blue-700">
-            Loading balance information...
-          </p>
-        </div>
-      ) : balance ? (
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-            <p className="text-sm font-semibold text-green-700">
-              Total Savings
-            </p>
-            <p className="text-2xl font-bold text-green-900 mt-2">
-              {formatNaira(balance.total_savings)}
-            </p>
+      {/* Header card */}
+      <div className="card mb-6">
+        <div className="card-body">
+          <div className="flex items-start gap-4">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary-100 text-2xl font-bold text-primary-700">
+              {member.full_name.charAt(0)}
+            </div>
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-xl font-bold text-gray-900">
+                  {member.full_name}
+                </h1>
+                <span className={STATUS_COLOR[member.membership_status]}>
+                  {member.membership_status.charAt(0).toUpperCase() +
+                    member.membership_status.slice(1)}
+                </span>
+                {member.is_legacy && (
+                  <span className="badge-gray text-xs">Legacy</span>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-gray-500">
+                {member.designation} ·{" "}
+                {member.school_branch.charAt(0).toUpperCase() +
+                  member.school_branch.slice(1)}{" "}
+                Branch
+              </p>
+            </div>
+            {/* Action buttons */}
+            <div className="flex shrink-0 gap-2">
+              {member.membership_status === "pending" && (
+                <button
+                  onClick={() => setShowApprove(true)}
+                  className="btn-primary text-sm"
+                >
+                  ✓ Approve
+                </button>
+              )}
+              {member.membership_status === "active" && (
+                <button
+                  onClick={() => setShowDeactivate(true)}
+                  className="btn-secondary text-sm text-danger-600"
+                >
+                  Deactivate
+                </button>
+              )}
+            </div>
           </div>
-          <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
-            <p className="text-sm font-semibold text-orange-700">
-              Committed (Surety)
-            </p>
-            <p className="text-2xl font-bold text-orange-900 mt-2">
-              {formatNaira(balance.suretyship_committed)}
-            </p>
-          </div>
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <p className="text-sm font-semibold text-blue-700">
-              Available Balance
-            </p>
-            <p className="text-2xl font-bold text-blue-900 mt-2">
-              {formatNaira(balance.available_balance)}
-            </p>
-          </div>
-        </div>
-      ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Identity</h2>
-          <p>
-            <strong className="text-gray-600">File number:</strong>{" "}
-            {member.file_number}
-          </p>
-          <p>
-            <strong className="text-gray-600">Staff ID:</strong>{" "}
-            {member.staff_id}
-          </p>
-          <p>
-            <strong className="text-gray-600">Role:</strong> {member.role}
-          </p>
-          <p>
-            <strong className="text-gray-600">Status:</strong>{" "}
-            {member.membership_status}
-          </p>
-        </div>
+          {/* Balance strip */}
+          {balance && (
+            <div className="mt-4 grid grid-cols-3 gap-4 border-t border-gray-100 pt-4">
+              <div>
+                <p className="text-xs text-gray-400">Total Savings</p>
+                <p className="font-bold text-gray-900">
+                  {formatNaira(balance.total_savings)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">Suretyship Locked</p>
+                <p className="font-bold text-warning-700">
+                  {formatNaira(balance.suretyship_committed)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">Available Balance</p>
+                <p className="font-bold text-primary-700">
+                  {formatNaira(balance.available_balance)}
+                </p>
+              </div>
+            </div>
+          )}
 
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">School</h2>
-          <p>
-            <strong className="text-gray-600">Branch:</strong>{" "}
-            {member.school_branch}
-          </p>
-          <p>
-            <strong className="text-gray-600">Designation:</strong>{" "}
-            {member.designation}
-          </p>
-          <p>
-            <strong className="text-gray-600">Joined:</strong>{" "}
-            {member.date_joined_school}
-          </p>
-          <p>
-            <strong className="text-gray-600">Monthly Income:</strong> ₦
-            {member.monthly_income}
-          </p>
+          {/* Eligibility */}
+          <div className="mt-3 flex flex-wrap gap-4 text-xs">
+            <span
+              className={
+                member.consecutive_savings_months >= 6
+                  ? "text-success-700"
+                  : "text-warning-700"
+              }
+            >
+              {member.consecutive_savings_months >= 6 ? "✓" : "✗"}{" "}
+              {member.consecutive_savings_months}/6 savings months
+            </span>
+            <span
+              className={
+                member.is_loan_eligible ? "text-success-700" : "text-gray-400"
+              }
+            >
+              {member.is_loan_eligible
+                ? "✓ Loan eligible"
+                : "✗ Not loan eligible"}
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-lg border border-gray-200 p-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Contact</h2>
-          <p>
-            <strong className="text-gray-600">Primary phone:</strong>{" "}
-            {member.phone_primary}
-          </p>
-          <p>
-            <strong className="text-gray-600">Secondary phone:</strong>{" "}
-            {member.phone_secondary || "—"}
-          </p>
-          <p>
-            <strong className="text-gray-600">Email:</strong>{" "}
-            {member.email_address || "—"}
-          </p>
-          <p>
-            <strong className="text-gray-600">Address:</strong>{" "}
-            {member.residential_address}
-          </p>
-        </div>
-
-        <div className="rounded-lg border border-gray-200 p-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Origin</h2>
-          <p>
-            <strong className="text-gray-600">State of origin:</strong>{" "}
-            {member.state_of_origin}
-          </p>
-          <p>
-            <strong className="text-gray-600">LGA:</strong>{" "}
-            {member.local_government_area}
-          </p>
-          <p>
-            <strong className="text-gray-600">Gender:</strong> {member.gender}
-          </p>
-          <p>
-            <strong className="text-gray-600">DOB:</strong>{" "}
-            {member.date_of_birth}
-          </p>
-        </div>
+      {/* Tabs */}
+      <div className="mb-6 flex w-fit gap-1 rounded-lg bg-gray-100 p-1">
+        {(["profile", "savings"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${
+              activeTab === tab
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {tab === "profile" ? "👤 Profile" : "₦ Savings"}
+          </button>
+        ))}
       </div>
 
-      <div className="rounded-lg border border-gray-200 p-4">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">
-          Next of Kin
-        </h2>
-        <p>
-          <strong className="text-gray-600">Name:</strong>{" "}
-          {member.next_of_kin_name}
-        </p>
-        <p>
-          <strong className="text-gray-600">Phone:</strong>{" "}
-          {member.next_of_kin_phone}
-        </p>
-        <p>
-          <strong className="text-gray-600">Relationship:</strong>{" "}
-          {member.next_of_kin_relationship}
-        </p>
-        <p>
-          <strong className="text-gray-600">Work place:</strong>{" "}
-          {member.next_of_kin_place_of_work || "—"}
-        </p>
-        <p className="mt-3">
-          <strong className="text-gray-600">Address:</strong>{" "}
-          {member.next_of_kin_address}
-        </p>
-      </div>
+      {/* Profile tab */}
+      {activeTab === "profile" && (
+        <div className="grid grid-cols-1 gap-0 md:grid-cols-2 md:gap-6">
+          <div>
+            <Section title="Personal">
+              <InfoRow label="Full Name" value={member.full_name} />
+              <InfoRow label="Gender" value={member.gender} />
+              <InfoRow label="Marital Status" value={member.marital_status} />
+              <InfoRow label="Date of Birth" value={member.date_of_birth} />
+              <InfoRow label="Place of Birth" value={member.place_of_birth} />
+              <InfoRow label="State of Origin" value={member.state_of_origin} />
+              <InfoRow label="LGA" value={member.local_government_area} />
+            </Section>
+            <Section title="Contact">
+              <InfoRow label="Primary Phone" value={member.phone_primary} />
+              <InfoRow label="Secondary Phone" value={member.phone_secondary} />
+              <InfoRow label="Email" value={member.email_address} />
+              <InfoRow
+                label="Social Media"
+                value={member.social_media_handle}
+              />
+              <InfoRow label="Residential" value={member.residential_address} />
+              <InfoRow
+                label="Permanent Home"
+                value={member.permanent_home_address}
+              />
+            </Section>
+          </div>
+          <div>
+            <Section title="School Details">
+              <InfoRow label="Branch" value={member.school_branch} />
+              <InfoRow label="Designation" value={member.designation} />
+              <InfoRow label="Date Joined" value={member.date_joined_school} />
+            </Section>
+            <Section title="Financial">
+              <InfoRow
+                label="Monthly Income"
+                value={formatNaira(member.monthly_income)}
+              />
+              <InfoRow
+                label="Monthly Contribution"
+                value={formatNaira(member.approved_monthly_contribution)}
+              />
+              <InfoRow
+                label="Consecutive Months"
+                value={`${member.consecutive_savings_months} months`}
+              />
+            </Section>
+            <Section title="Next of Kin">
+              <InfoRow label="Name" value={member.next_of_kin_name} />
+              <InfoRow
+                label="Relationship"
+                value={member.next_of_kin_relationship}
+              />
+              <InfoRow label="Phone" value={member.next_of_kin_phone} />
+              <InfoRow label="Address" value={member.next_of_kin_address} />
+              <InfoRow
+                label="Place of Work"
+                value={member.next_of_kin_place_of_work}
+              />
+            </Section>
+            {member.approved_by_name && (
+              <Section title="Approval">
+                <InfoRow label="Approved By" value={member.approved_by_name} />
+                <InfoRow label="Officer" value={member.officer_in_charge} />
+                <InfoRow
+                  label="Approval Date"
+                  value={member.approval_date || undefined}
+                />
+              </Section>
+            )}
+          </div>
+        </div>
+      )}
 
-      {/* Recent Activity Section */}
-      <div className="rounded-lg border border-gray-200 p-4">
-        <h2 className="text-sm font-semibold text-gray-700 mb-4">
-          Recent Activity (Savings Ledger)
-        </h2>
-        {recentLedger.length === 0 ? (
-          <p className="text-sm text-gray-500">No recent activity found.</p>
-        ) : (
+      {/* Savings tab */}
+      {activeTab === "savings" && (
+        <div className="card">
+          <div className="card-header">
+            <h2 className="font-semibold text-gray-900">Savings Ledger</h2>
+          </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="border-b border-gray-200 text-xs text-gray-600 font-semibold uppercase">
+            <table className="table">
+              <thead>
                 <tr>
-                  <th className="px-2 py-2">Date</th>
-                  <th className="px-2 py-2">Hijri</th>
-                  <th className="px-2 py-2">Type</th>
-                  <th className="px-2 py-2">Debit</th>
-                  <th className="px-2 py-2">Credit</th>
-                  <th className="px-2 py-2">Balance</th>
+                  <th>Islamic Date</th>
+                  <th>Gregorian</th>
+                  <th>Type</th>
+                  <th>Details</th>
+                  <th>Credit</th>
+                  <th>Debit</th>
+                  <th>Balance</th>
+                  <th>Verified By</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
-                {recentLedger.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-gray-50">
-                    <td className="px-2 py-2 text-gray-700">
-                      {entry.gregorian_date}
-                    </td>
-                    <td className="px-2 py-2 text-gray-700">
-                      {entry.hijri_display}
-                    </td>
-                    <td className="px-2 py-2 text-gray-700 capitalize">
-                      {entry.entry_type.replace("_", " ")}
-                    </td>
-                    <td className="px-2 py-2 text-gray-700">
-                      {entry.debit ? formatNaira(entry.debit) : "—"}
-                    </td>
-                    <td className="px-2 py-2 text-gray-700">
-                      {entry.credit ? formatNaira(entry.credit) : "—"}
-                    </td>
-                    <td className="px-2 py-2 font-semibold text-blue-700">
-                      {formatNaira(entry.balance)}
+              <tbody>
+                {!ledger?.results?.length ? (
+                  <tr>
+                    <td colSpan={8} className="py-12 text-center text-gray-400">
+                      No ledger entries yet.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  ledger.results.map((entry) => (
+                    <tr key={entry.id}>
+                      <td className="font-medium">{entry.hijri_display}</td>
+                      <td className="text-xs text-gray-400">
+                        {entry.gregorian_date}
+                      </td>
+                      <td className="text-xs capitalize">
+                        {entry.entry_type.replace(/_/g, " ")}
+                      </td>
+                      <td className="max-w-xs truncate text-sm text-gray-600">
+                        {entry.details}
+                      </td>
+                      <td className="font-medium text-success-700">
+                        {entry.credit ? formatNaira(entry.credit) : "—"}
+                      </td>
+                      <td className="font-medium text-danger-700">
+                        {entry.debit ? formatNaira(entry.debit) : "—"}
+                      </td>
+                      <td className="font-bold">
+                        {formatNaira(entry.balance)}
+                      </td>
+                      <td className="text-xs text-gray-400">
+                        {entry.verified_by_name}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Approve modal */}
+      {showApprove && (
+        <ApproveModal member={member} onClose={() => setShowApprove(false)} />
+      )}
+
+      {/* Deactivate confirm */}
+      {showDeactivate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="card w-full max-w-sm">
+            <div className="card-body">
+              <h3 className="mb-2 font-semibold text-gray-900">
+                Deactivate Member
+              </h3>
+              <p className="mb-6 text-sm text-gray-500">
+                This will deactivate <strong>{member.full_name}</strong>'s
+                account and prevent login. Their records are preserved.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeactivate(false)}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => deactivateMutation.mutate()}
+                  disabled={deactivateMutation.isPending}
+                  className="btn-danger flex-1"
+                >
+                  {deactivateMutation.isPending
+                    ? "Deactivating..."
+                    : "Deactivate"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
