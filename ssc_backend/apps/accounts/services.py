@@ -35,6 +35,7 @@ def import_legacy_members(
     created = 0
     skipped = 0
     errors = []
+    created_user_ids = []
     seq = start_seq
     preview_rows = []
 
@@ -155,12 +156,18 @@ def import_legacy_members(
                         member_data["approval_date"] = None
 
                 MemberProfile.objects.create(user=user, **member_data)
+                created_user_ids.append(user.id)
                 created += 1
 
         except Exception as e:
             errors.append({"row": idx, "error": str(e)})
 
-    result = {"created": created, "skipped": skipped, "errors": errors}
+    result = {
+        "created": created,
+        "skipped": skipped,
+        "errors": errors,
+        "created_user_ids": created_user_ids,
+    }
     if dry_run:
         result["preview"] = preview_rows
     return result

@@ -58,24 +58,43 @@ class StaffIDRegistrySerializer(serializers.ModelSerializer):
 # FIRST LOGIN — Password Setup
 
 class SetInitialPasswordSerializer(serializers.Serializer):
-    staff_id = serializers.CharField()
+    staff_id = serializers.CharField(required=False, allow_blank=True)
+    token = serializers.CharField(required=False, allow_blank=True)
     password = serializers.CharField(min_length=8, write_only=True)
     password_confirm = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
         if attrs["password"] != attrs["password_confirm"]:
             raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
+        if not attrs.get("staff_id") and not attrs.get("token"):
+            raise serializers.ValidationError(
+                {"non_field_errors": "Either staff_id or token is required."}
+            )
         return attrs
 
     def save(self):
-        staff_id = self.validated_data["staff_id"]
         password = self.validated_data["password"]
-        try:
-            user = User.objects.get(staff_id=staff_id, is_first_login=True)
-        except User.DoesNotExist:
-            raise serializers.ValidationError(
-                {"staff_id": "No pending first-login account found for this Staff ID."}
-            )
+        token = self.validated_data.get("token")
+        staff_id = self.validated_data.get("staff_id")
+
+        if token:
+            from .models import Invitation
+
+            invitation = Invitation.get_by_token(token)
+            if invitation is None:
+                raise serializers.ValidationError({"token": "Invalid or expired invitation token."})
+            user = invitation.user
+            if not user.is_first_login:
+                raise serializers.ValidationError({"token": "This invitation has already been used."})
+            invitation.mark_completed()
+        else:
+            try:
+                user = User.objects.get(staff_id=staff_id, is_first_login=True)
+            except User.DoesNotExist:
+                raise serializers.ValidationError(
+                    {"staff_id": "No pending first-login account found for this Staff ID."}
+                )
+
         user.set_password(password)
         user.is_first_login = False
         user.save(update_fields=["password", "is_first_login", "updated_at"])

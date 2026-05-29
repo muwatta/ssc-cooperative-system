@@ -26,6 +26,7 @@ from .permissions import (
 )
 from apps.audit.utils import log_action, get_client_ip
 from .services import import_legacy_members
+from .email_service import send_bulk_invitations
 # Authentication views (login/logout, password setup)
 
 class SSCTokenObtainPairView(TokenObtainPairView):
@@ -342,4 +343,20 @@ class LegacyImportView(APIView):
             resp['Content-Disposition'] = 'attachment; filename="import-errors.csv"'
             return resp
 
+        return Response(summary)
+
+
+class SendInvitationsView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        user_ids = request.data.get('user_ids', [])
+        frontend_url = request.data.get('frontend_url')
+        if not isinstance(user_ids, list) or not user_ids:
+            return Response(
+                {"error": "user_ids is required and must be a non-empty list."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        summary = send_bulk_invitations(user_ids, frontend_url=frontend_url)
         return Response(summary)

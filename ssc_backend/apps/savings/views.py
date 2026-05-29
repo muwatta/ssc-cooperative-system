@@ -160,16 +160,16 @@ class MyBalanceView(APIView):
         return Response(MemberBalanceSerializer(balance).data)
 
 
+# apps/savings/views.py - Make sure this view exists
 class MyLedgerView(generics.ListAPIView):
     serializer_class = SavingsLedgerSerializer
 
     def get_queryset(self):
         try:
             profile = self.request.user.member_profile
-            return SavingsLedger.objects.filter(member=profile).order_by("hijri_year", "hijri_month")
+            return SavingsLedger.objects.filter(member=profile).order_by("-hijri_year", "-hijri_month")
         except Exception:
             return SavingsLedger.objects.none()
-
 
 # Savings Change Requests
 

@@ -11,6 +11,7 @@ from .views import (
     ApproveMemberView,
     DeactivateMemberView,
     LegacyImportView,
+    SendInvitationsView,
 
 )
 
@@ -26,4 +27,5 @@ urlpatterns = [
     path("members/<int:pk>/approve/", ApproveMemberView.as_view(), name="member-approve"),
     path("members/<int:pk>/deactivate/", DeactivateMemberView.as_view(), name="member-deactivate"),
     path("members/legacy-import/", LegacyImportView.as_view(), name="member-legacy-import"),
+    path("members/invitations/send/", SendInvitationsView.as_view(), name="member-invitations-send"),
 ]

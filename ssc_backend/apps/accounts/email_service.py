@@ -4,7 +4,6 @@ Supports console backend for development and SMTP for production.
 """
 
 from django.core.mail import send_mail
-from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils.html import strip_tags
 from typing import List, Dict, Any
@@ -57,7 +56,10 @@ def send_password_invitation(user, invitation, frontend_url: str = None) -> bool
 
     subject = "SSC Cooperative — Set Your Password"
     text_message = strip_tags(html_message)
-    recipient_email = user.email_address or f"{user.staff_id}@ssc.internal"
+    recipient_email = user.email_address
+
+    if not recipient_email:
+        return False
 
     try:
         send_mail(

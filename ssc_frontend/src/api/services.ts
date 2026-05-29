@@ -37,7 +37,8 @@ export const authApi = {
     }),
 
   setInitialPassword: (data: {
-    staff_id: string;
+    staff_id?: string;
+    token?: string;
     password: string;
     password_confirm: string;
   }) => api.post("/accounts/set-password/", data),
@@ -101,10 +102,13 @@ export const membersApi = {
     fd.append("file", file);
     fd.append("dry_run", dry_run ? "1" : "0");
     if (opts?.field_map) fd.append("field_map", JSON.stringify(opts.field_map));
-    if (opts?.staff_id_template) fd.append("staff_id_template", opts.staff_id_template);
-    if (opts?.create_registry) fd.append("create_registry", opts.create_registry ? "1" : "0");
+    if (opts?.staff_id_template)
+      fd.append("staff_id_template", opts.staff_id_template);
+    if (opts?.create_registry)
+      fd.append("create_registry", opts.create_registry ? "1" : "0");
     if (opts?.start_seq) fd.append("start_seq", String(opts.start_seq));
-    if (opts?.download_errors) fd.append("download_errors", opts.download_errors ? "1" : "0");
+    if (opts?.download_errors)
+      fd.append("download_errors", opts.download_errors ? "1" : "0");
     return api.post("/accounts/members/legacy-import/", fd, {
       headers: { "Content-Type": "multipart/form-data" },
       responseType: opts?.download_errors ? "blob" : undefined,
@@ -176,7 +180,7 @@ export const savingsApi = {
       params,
       responseType: "blob",
     }),
-    
+
   // Post monthly savings entry (Admin only)
   postSavings: (data: {
     member: number;
