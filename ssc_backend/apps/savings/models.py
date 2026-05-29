@@ -147,7 +147,7 @@ class TermlyDuesCycle(models.Model):
     Admin creates a cycle, sets amount and target members.
     Posting debits all selected members' savings.
     """
-    name        = models.CharField(max_length=100, help_text="e.g. 'First Term 1445'")
+    name        = models.CharField(max_length=100, help_text="e.g. 'First Term 1446'")
     amount      = models.DecimalField(max_digits=12, decimal_places=2)
     description = models.CharField(max_length=255, blank=True, default="")
 

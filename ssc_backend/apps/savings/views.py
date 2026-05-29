@@ -72,7 +72,10 @@ class MemberLedgerView(generics.ListAPIView):
         return qs
 
 class MemberBalanceView(APIView):
-    permission_classes = [IsAdminOrCommitteeOrHOS]
+    
+    def get_permissions(self):
+        from rest_framework.permissions import IsAuthenticated
+        return [IsAuthenticated()]
 
     def get(self, request, member_id):
         try:
@@ -80,22 +83,14 @@ class MemberBalanceView(APIView):
         except MemberProfile.DoesNotExist:
             return Response({"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        if request.user.role == "staff":
+        # Allow if admin/committee OR the user is viewing their own balance
+        if request.user.role not in ("admin", "committee"):
             if member.user != request.user:
                 return Response({"error": "Access denied."}, status=status.HTTP_403_FORBIDDEN)
 
-        try:
-            balance = get_or_create_balance(member)
-        except ProgrammingError:
-            balance = MemberBalance(
-                member=member,
-                total_savings=Decimal("0.00"),
-                suretyship_committed=Decimal("0.00"),
-                updated_at=None,
-            )
-
+        balance = get_or_create_balance(member)
         return Response(MemberBalanceSerializer(balance).data)
-
+    
 
 class SavingsSummaryView(APIView):
     permission_classes = [IsAuthenticated]

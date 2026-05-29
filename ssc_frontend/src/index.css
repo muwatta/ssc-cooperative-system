@@ -50,7 +50,7 @@
            focus:ring-gray-400;
   }
 
-  /* ── Form inputs ── */
+  /* Form inputs */
   .input {
     @apply w-full px-3 py-2 rounded-lg border border-gray-300 text-sm
            bg-white placeholder-gray-400
@@ -67,7 +67,7 @@
     @apply text-xs text-danger-500 mt-1;
   }
 
-  /* ── Cards ── */
+  /* Cards */
   .card {
     @apply bg-white rounded-xl border border-gray-200 shadow-sm;
   }
@@ -78,7 +78,7 @@
     @apply px-6 py-4;
   }
 
-  /* ── Badges ── */
+  /* Badges */
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
@@ -88,7 +88,7 @@
   .badge-gray    { @apply badge bg-gray-100 text-gray-700; }
   .badge-primary { @apply badge bg-primary-50 text-primary-700; }
 
-  /* ── Table ── */
+  /* Table */
   .table-container {
     @apply w-full overflow-x-auto rounded-xl border border-gray-200;
   }
@@ -108,11 +108,26 @@
     @apply hover:bg-gray-50 transition-colors;
   }
 
-  /* ── Page header ── */
+  /* Page header */
   .page-title {
     @apply text-2xl font-bold text-gray-900;
   }
   .page-subtitle {
     @apply text-sm text-gray-500 mt-1;
   }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
 }
