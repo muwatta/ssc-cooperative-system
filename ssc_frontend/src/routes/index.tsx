@@ -22,6 +22,7 @@ import CreateUserPage from "@/pages/admin/CreateUserPage";
 import StaffIDRegistryPage from "@/pages/admin/StaffIDRegistryPage";
 import PostSavingsPage from "@/pages/admin/PostSavingsPage";
 import PostDuesPage from "@/pages/admin/PostDuesPage";
+import LegacyImportPage from "@/pages/admin/LegacyImportPage";
 
 // Committee pages 
 import LoanQueuePage from "@/pages/committee/LoanQueuePage";
@@ -63,6 +64,7 @@ const router = createBrowserRouter([
             element: <RequireRole roles={["admin"]} />,
             children: [
               { path: "/members", element: <MembersListPage /> },
+                  { path: "/members/import", element: <LegacyImportPage /> },
               { path: "/members/add", element: <AddMemberPage /> },
               { path: "/members/:id", element: <MemberDetailPage /> },
               { path: "/users/create", element: <CreateUserPage /> },

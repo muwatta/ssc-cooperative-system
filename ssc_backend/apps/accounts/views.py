@@ -374,9 +374,39 @@ class LegacyImportView(APIView):
     def post(self, request):
         csv_file = request.FILES.get('file')
         dry_run = request.data.get('dry_run') in ("true", "1", True)
+        download_errors = request.data.get('download_errors') in ("true", "1", True)
+        staff_id_template = request.data.get('staff_id_template') or "S{seq:04d}"
+        create_registry = request.data.get('create_registry') in ("true", "1", True)
+        field_map = None
+        import json
+        if request.data.get('field_map'):
+            try:
+                field_map = json.loads(request.data.get('field_map'))
+            except Exception:
+                return Response({"error": "Invalid field_map JSON."}, status=status.HTTP_400_BAD_REQUEST)
+
         if not csv_file:
             return Response({"error": "CSV file is required (field name: file)."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Stream the uploaded file into the service
-        summary = import_legacy_members(csv_file, dry_run=dry_run)
+        summary = import_legacy_members(
+            csv_file,
+            dry_run=dry_run,
+            field_map=field_map,
+            staff_id_template=staff_id_template,
+            create_staff_id_registry=create_registry,
+        )
+
+        # If requested and there are errors, return CSV attachment
+        if download_errors and summary.get('errors'):
+            import io, csv
+            buf = io.StringIO()
+            writer = csv.writer(buf)
+            writer.writerow(['row', 'error'])
+            for e in summary['errors']:
+                writer.writerow([e.get('row'), e.get('error')])
+            resp = Response(buf.getvalue(), content_type='text/csv')
+            resp['Content-Disposition'] = 'attachment; filename="import-errors.csv"'
+            return resp
+
         return Response(summary)

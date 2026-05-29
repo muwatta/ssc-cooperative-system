@@ -1,5 +1,5 @@
 import csv
-from typing import IO, Dict, Any
+from typing import IO, Dict, Any, Optional
 from django.db import transaction
 from datetime import datetime
 
@@ -7,16 +7,24 @@ from .models import User, MemberProfile, generate_file_number
 from .models import Role
 
 
-def _next_staff_id(start_seq: int):
+def _next_staff_id(start_seq: int, template: str = "S{seq:04d}"):
     seq = start_seq
     while True:
-        candidate = f"S00-{seq:04d}"
+        candidate = template.format(seq=seq)
         if not User.objects.filter(staff_id=candidate).exists():
             return candidate, seq
         seq += 1
 
 
-def import_legacy_members(file_obj: IO, *, start_seq: int = 9000, dry_run: bool = False):
+def import_legacy_members(
+    file_obj: IO,
+    *,
+    start_seq: int = 9000,
+    dry_run: bool = False,
+    field_map: Optional[Dict[str, str]] = None,
+    staff_id_template: str = "S{seq:04d}",
+    create_staff_id_registry: bool = False,
+):
     """
     Import legacy members from a CSV file-like object.
     CSV must have columns matching MemberProfile fields where possible.
@@ -35,6 +43,14 @@ def import_legacy_members(file_obj: IO, *, start_seq: int = 9000, dry_run: bool 
             # collect preview rows
             if len(preview_rows) < 5:
                 preview_rows.append(row)
+
+            # apply field mapping if provided
+            if field_map:
+                mapped = {}
+                for target_field, csv_col in field_map.items():
+                    mapped[target_field] = row.get(csv_col)
+                # make mapped row available as row
+                row = mapped
             # Required minimal fields
             full_name = row.get("full_name") or row.get("name")
             phone_primary = row.get("phone_primary") or row.get("phone")
@@ -73,7 +89,7 @@ def import_legacy_members(file_obj: IO, *, start_seq: int = 9000, dry_run: bool 
                 file_number, _file_sequence = generate_file_number()
 
             # Create user staff_id
-            staff_id, seq = _next_staff_id(seq)
+            staff_id, seq = _next_staff_id(seq, template=staff_id_template)
             seq += 1
 
             # Prepare member data
@@ -124,6 +140,12 @@ def import_legacy_members(file_obj: IO, *, start_seq: int = 9000, dry_run: bool 
                 )
                 user.set_unusable_password()
                 user.save()
+
+                # Optionally add staff id to registry so legacy users can be used to create logins
+                if create_staff_id_registry:
+                    from .models import StaffIDRegistry
+
+                    StaffIDRegistry.objects.get_or_create(staff_id=staff_id, defaults={"is_active": True, "created_by": None})
 
                 # For approval_date if provided, try parse
                 if member_data.get("approval_date"):

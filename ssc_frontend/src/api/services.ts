@@ -86,12 +86,28 @@ export const membersApi = {
   ) => api.post<MemberProfile>(`/accounts/members/${id}/approve/`, data),
 
   deactivate: (id: number) => api.post(`/accounts/members/${id}/deactivate/`),
-  importLegacy: (file: File, dry_run = true) => {
+  importLegacy: (
+    file: File,
+    dry_run = true,
+    opts?: {
+      field_map?: Record<string, string>;
+      staff_id_template?: string;
+      create_registry?: boolean;
+      start_seq?: number;
+      download_errors?: boolean;
+    },
+  ) => {
     const fd = new FormData();
     fd.append("file", file);
     fd.append("dry_run", dry_run ? "1" : "0");
+    if (opts?.field_map) fd.append("field_map", JSON.stringify(opts.field_map));
+    if (opts?.staff_id_template) fd.append("staff_id_template", opts.staff_id_template);
+    if (opts?.create_registry) fd.append("create_registry", opts.create_registry ? "1" : "0");
+    if (opts?.start_seq) fd.append("start_seq", String(opts.start_seq));
+    if (opts?.download_errors) fd.append("download_errors", opts.download_errors ? "1" : "0");
     return api.post("/accounts/members/legacy-import/", fd, {
       headers: { "Content-Type": "multipart/form-data" },
+      responseType: opts?.download_errors ? "blob" : undefined,
     });
   },
 };

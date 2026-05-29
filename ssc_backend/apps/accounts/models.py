@@ -2,6 +2,9 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.core.validators import RegexValidator
+from django.utils import timezone
+from datetime import timedelta
+import secrets
 
 
 #────────────────
@@ -317,3 +320,81 @@ class MemberProfile(models.Model):
     def is_surety_eligible(self):
         """SRS Section 6.2 — same tenure requirement as loan eligibility"""
         return self.is_loan_eligible
+
+
+class Invitation(models.Model):
+    """
+    Track password-reset invitation emails sent to users.
+    Contains a secure token that expires after a set period.
+    """
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="invitations",
+    )
+    token = models.CharField(
+        max_length=64,
+        unique=True,
+        help_text="Secure token for password reset link",
+    )
+    email_sent_at = models.DateTimeField(auto_now_add=True)
+    email_expires_at = models.DateTimeField(
+        help_text="Token expires at this timestamp",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("sent", "Sent"),
+            ("opened", "Opened"),
+            ("completed", "Password Set"),
+            ("expired", "Expired"),
+        ],
+        default="sent",
+    )
+    clicked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "ssc_invitations"
+        verbose_name = "Invitation"
+        verbose_name_plural = "Invitations"
+        ordering = ["-email_sent_at"]
+
+    def __str__(self):
+        return f"Invitation for {self.user.staff_id} ({self.status})"
+
+    @classmethod
+    def create_for_user(cls, user, expires_in_days=7):
+        """Generate a new invitation token for a user."""
+        token = secrets.token_urlsafe(48)
+        expires_at = timezone.now() + timedelta(days=expires_in_days)
+        invitation = cls.objects.create(
+            user=user,
+            token=token,
+            email_expires_at=expires_at,
+        )
+        return invitation
+
+    @classmethod
+    def get_by_token(cls, token):
+        """Retrieve and validate an invitation by token."""
+        try:
+            inv = cls.objects.get(token=token)
+            if inv.email_expires_at < timezone.now():
+                inv.status = "expired"
+                inv.save(update_fields=["status"])
+                return None
+            return inv
+        except cls.DoesNotExist:
+            return None
+
+    def mark_opened(self):
+        """Mark invitation as opened when user clicks the link."""
+        self.clicked_at = timezone.now()
+        self.status = "opened"
+        self.save(update_fields=["clicked_at", "status"])
+
+    def mark_completed(self):
+        """Mark invitation as completed after user sets password."""
+        self.status = "completed"
+        self.save(update_fields=["status"])
