@@ -36,7 +36,7 @@ const api: AxiosInstance = axios.create({
   timeout: 15000,
 });
 
-// ── Request interceptor — attach access token
+// ── Request interceptor
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = tokenStorage.getAccess();

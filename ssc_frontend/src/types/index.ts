@@ -253,13 +253,31 @@ export interface LoanApplication {
   application_hijri_display: string;
   created_at: string;
   updated_at: string;
+  sureties: {
+    id: number;
+    layer: number;
+    surety_file_number: string;
+    surety_name: string;
+    amount_guaranteed: number;
+    current_liability: number;
+    status: string;
+  }[];
 }
-
 export interface LoanEligibilityResponse {
   eligible: boolean;
   reasons: string[];
   max_borrowable: string;
   consecutive_months: number;
+}
+
+export interface Repayment {
+  id: number;
+  hijri_display: string;
+  amount: number;
+  balance_before: number;
+  balance_after: number;
+  verified_by_name: string;
+  created_at: string;
 }
 
 export type SuretyStatus =

@@ -19,7 +19,7 @@ export default function MembersListPage() {
   const [branchFilter, setBranchFilter] = useState("");
 
   // Success message passed from AddMemberPage on redirect
-  const successMsg = (location.state as any)?.success;
+  const successMsg = (location.state as { success?: string })?.success;
 
   const [skeletonVisible, setSkeletonVisible] = useState(true);
   const loadStartRef = useRef<number>(Date.now());
@@ -37,6 +37,14 @@ export default function MembersListPage() {
         .then((r) => r.data),
   });
 
+  // Pending count for badge — separate lightweight query
+  const { data: pendingData, isLoading: isLoadingPending } = useQuery({
+    queryKey: ["members-pending-count"],
+    queryFn: () =>
+      membersApi.list({ membership_status: "pending" }).then((r) => r.data),
+  });
+  const pendingCount = pendingData?.count ?? 0;
+
   useEffect(() => {
     let timeout: number | undefined;
 
@@ -52,21 +60,16 @@ export default function MembersListPage() {
     if (elapsed >= 2000) {
       setSkeletonVisible(false);
     } else {
-      timeout = window.setTimeout(() => setSkeletonVisible(false), 2000 - elapsed);
+      timeout = window.setTimeout(
+        () => setSkeletonVisible(false),
+        2000 - elapsed,
+      );
     }
 
     return () => {
       if (timeout) window.clearTimeout(timeout);
     };
   }, [isLoading]);
-
-  // Pending count for badge — separate lightweight query
-  const { data: pendingData } = useQuery({
-    queryKey: ["members-pending-count"],
-    queryFn: () =>
-      membersApi.list({ membership_status: "pending" }).then((r) => r.data),
-  });
-  const pendingCount = pendingData?.count ?? 0;
 
   const totalPages = Math.ceil((data?.count ?? 0) / 50);
   const hasFilters = !!(search || statusFilter || branchFilter);
@@ -78,7 +81,7 @@ export default function MembersListPage() {
         <div>
           <h1 className="text-xl font-bold text-gray-900 md:text-2xl">
             All Members
-            {pendingCount > 0 && (
+            {pendingCount > 0 && !isLoadingPending && (
               <span className="ml-3 inline-block rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-semibold text-yellow-700">
                 {pendingCount} pending
               </span>
@@ -105,6 +108,7 @@ export default function MembersListPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
+        {/* Search input */}
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
             🔍
@@ -121,35 +125,51 @@ export default function MembersListPage() {
             className="input w-64 pl-9"
           />
         </div>
-        <select
-          className="input w-auto"
-          value={statusFilter}
-          aria-label="Filter by status"
-          onChange={(e) => {
-            setStatusFilter(e.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="pending">Pending</option>
-          <option value="inactive">Inactive</option>
-          <option value="exited">Exited</option>
-        </select>
-        <select
-          className="input w-auto"
-          value={branchFilter}
-          aria-label="Filter by branch"
-          onChange={(e) => {
-            setBranchFilter(e.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="">All Branches</option>
-          <option value="primary">Primary</option>
-          <option value="college">College</option>
-          <option value="other">Other</option>
-        </select>
+
+        {/* Status Filter with label */}
+        <div className="flex items-center gap-2">
+          <label
+            htmlFor="status-filter"
+            className="text-sm font-medium text-gray-700 whitespace-nowrap"
+          >
+            Status:
+          </label>
+          <select
+            id="status-filter"
+            className="input w-32"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="pending">Pending</option>
+            <option value="inactive">Inactive</option>
+            <option value="exited">Exited</option>
+          </select>
+        </div>
+
+        {/* Branch Filter with label */}
+        <div className="flex items-center gap-2">
+          <label
+            htmlFor="branch-filter"
+            className="text-sm font-medium text-gray-700 whitespace-nowrap"
+          >
+            Branch:
+          </label>
+          <select
+            id="branch-filter"
+            className="input w-36"
+            value={branchFilter}
+            onChange={(e) => setBranchFilter(e.target.value)}
+          >
+            <option value="">All Branches</option>
+            <option value="primary">Primary</option>
+            <option value="college">College</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        {/* Clear button */}
         {hasFilters && (
           <button
             onClick={() => {
@@ -164,7 +184,7 @@ export default function MembersListPage() {
           </button>
         )}
       </div>
-
+      
       {/* Error */}
       {error && (
         <div className="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700">

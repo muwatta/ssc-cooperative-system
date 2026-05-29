@@ -29,20 +29,10 @@ from .services import import_legacy_members
 # Authentication views (login/logout, password setup)
 
 class SSCTokenObtainPairView(TokenObtainPairView):
-    """
-    POST /api/v1/auth/login/
-    Login with Staff ID + password.
-    Returns access token, refresh token, and SSC user data.
-    """
     serializer_class = SSCTokenObtainPairSerializer
 
 
 class LogoutView(APIView):
-    """
-    POST /api/v1/auth/logout/
-    Blacklists the refresh token so it can't be reused.
-    Body: { "refresh": "<refresh_token>" }
-    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -67,11 +57,6 @@ class LogoutView(APIView):
 
 
 class SetInitialPasswordView(APIView):
-    """
-    POST /api/v1/accounts/set-password/
-    Called on first login. No auth required (user has no password yet).
-    Body: { "staff_id": "S43-0094", "password": "...", "password_confirm": "..." }
-    """
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -89,11 +74,6 @@ class SetInitialPasswordView(APIView):
 
 
 class StaffIDRegistryListCreateView(generics.ListCreateAPIView):
-    """
-    GET  /api/v1/accounts/staff-ids/     — List all registered Staff IDs
-    POST /api/v1/accounts/staff-ids/     — Add a new Staff ID to registry
-    Admin only.
-    """
     queryset = StaffIDRegistry.objects.all().order_by("staff_id")
     serializer_class = StaffIDRegistrySerializer
     permission_classes = [IsAdmin]
@@ -105,12 +85,6 @@ class StaffIDRegistryListCreateView(generics.ListCreateAPIView):
 
 
 class StaffIDRegistryDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    GET    /api/v1/accounts/staff-ids/<id>/   — Retrieve
-    PATCH  /api/v1/accounts/staff-ids/<id>/   — Update (e.g. deactivate)
-    DELETE /api/v1/accounts/staff-ids/<id>/   — Remove from registry
-    Admin only.
-    """
     queryset = StaffIDRegistry.objects.all()
     serializer_class = StaffIDRegistrySerializer
     permission_classes = [IsAdmin]
@@ -132,13 +106,7 @@ class StaffIDRegistryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 # ADMIN: Create User (Admin only)
 
-
 class CreateUserView(generics.CreateAPIView):
-    """
-    POST /api/v1/accounts/users/
-    Admin creates a user (staff/committee/admin). Requires Staff ID already in registry.
-    Body: { "staff_id": "S43-0002", "role": "staff", "password": "Temp@2026!", "is_first_login": false }
-    """
     serializer_class = CreateUserSerializer
     permission_classes = [IsAdmin]
 
@@ -151,10 +119,6 @@ class CreateUserView(generics.CreateAPIView):
 
 
 class MemberListCreateView(generics.ListCreateAPIView):
-    """
-    GET  /api/v1/accounts/members/   — List members (Admin/Committee/HOS)
-    POST /api/v1/accounts/members/   — Create member (Admin only)
-    """
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["membership_status", "school_branch"]
     search_fields = ["file_number", "full_name", "user__staff_id"]
@@ -183,12 +147,6 @@ class MemberListCreateView(generics.ListCreateAPIView):
 
 
 class MemberDetailView(generics.RetrieveUpdateAPIView):
-    """
-    GET   /api/v1/accounts/members/<id>/   — Get member detail
-    PATCH /api/v1/accounts/members/<id>/   — Update member (Admin only)
-
-    Staff can only access their own record (enforced in get_queryset).
-    """
     serializer_class = MemberProfileSerializer
 
     def get_queryset(self):
@@ -205,11 +163,6 @@ class MemberDetailView(generics.RetrieveUpdateAPIView):
 
 
 class MemberSummaryListView(generics.ListAPIView):
-    """
-    GET /api/v1/accounts/members/summary/
-    Lightweight list for dropdowns — surety search, loan form fields.
-    Active members only.
-    """
     serializer_class = MemberProfileSummarySerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter]
@@ -229,11 +182,6 @@ class MemberSummaryListView(generics.ListAPIView):
 
 
 class MyProfileView(APIView):
-    """
-    GET /api/v1/accounts/me/
-    POST /api/v1/accounts/me/  - create the current user's profile if missing.
-    PATCH /api/v1/accounts/me/ - update the current user's own profile.
-    """
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
@@ -297,11 +245,6 @@ class MyProfileView(APIView):
 
 
 class ApproveMemberView(APIView):
-    """
-    POST /api/v1/accounts/members/<id>/approve/
-    Admin approves a pending membership application.
-    Sets status to Active and records approval details.
-    """
     permission_classes = [IsAdmin]
 
     def post(self, request, pk):
@@ -341,11 +284,6 @@ class ApproveMemberView(APIView):
 
 
 class DeactivateMemberView(APIView):
-    """
-    POST /api/v1/accounts/members/<id>/deactivate/
-    Admin deactivates a member account.
-    Also deactivates their User login.
-    """
     permission_classes = [IsAdmin]
 
     def post(self, request, pk):
@@ -364,11 +302,6 @@ class DeactivateMemberView(APIView):
 
 
 class LegacyImportView(APIView):
-    """
-    POST /api/v1/accounts/members/legacy-import/
-    Admin only. Accepts multipart form with `file` (CSV). Optional `dry_run` boolean.
-    Returns a summary of created/skipped/errors.
-    """
     permission_classes = [IsAdmin]
 
     def post(self, request):
@@ -388,7 +321,7 @@ class LegacyImportView(APIView):
         if not csv_file:
             return Response({"error": "CSV file is required (field name: file)."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Stream the uploaded file into the service
+        # Streaming the uploaded file into the service
         summary = import_legacy_members(
             csv_file,
             dry_run=dry_run,
