@@ -86,6 +86,14 @@ export const membersApi = {
   ) => api.post<MemberProfile>(`/accounts/members/${id}/approve/`, data),
 
   deactivate: (id: number) => api.post(`/accounts/members/${id}/deactivate/`),
+  importLegacy: (file: File, dry_run = true) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("dry_run", dry_run ? "1" : "0");
+    return api.post("/accounts/members/legacy-import/", fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 };
 
 // STAFF ID REGISTRY

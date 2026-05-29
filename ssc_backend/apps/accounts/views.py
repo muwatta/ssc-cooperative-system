@@ -25,6 +25,7 @@ from .permissions import (
     IsProfileOwnerOrAdmin,
 )
 from apps.audit.utils import log_action, get_client_ip
+from .services import import_legacy_members
 # Authentication views (login/logout, password setup)
 
 class SSCTokenObtainPairView(TokenObtainPairView):
@@ -360,3 +361,22 @@ class DeactivateMemberView(APIView):
             profile.user.save(update_fields=["is_active"])
 
         return Response({"message": f"{profile.file_number} deactivated."}, status=status.HTTP_200_OK)
+
+
+class LegacyImportView(APIView):
+    """
+    POST /api/v1/accounts/members/legacy-import/
+    Admin only. Accepts multipart form with `file` (CSV). Optional `dry_run` boolean.
+    Returns a summary of created/skipped/errors.
+    """
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        csv_file = request.FILES.get('file')
+        dry_run = request.data.get('dry_run') in ("true", "1", True)
+        if not csv_file:
+            return Response({"error": "CSV file is required (field name: file)."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Stream the uploaded file into the service
+        summary = import_legacy_members(csv_file, dry_run=dry_run)
+        return Response(summary)
