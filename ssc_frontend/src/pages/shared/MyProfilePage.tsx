@@ -1,320 +1,624 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "react-router-dom";
-import { loansApi } from "@/api/services";
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { membersApi } from "@/api/services";
 import { useAuth } from "@/context/AuthContext";
+import type {
+  MemberProfile,
+  MaritalStatus,
+  Gender,
+  SchoolBranch,
+} from "@/types";
 
-// Simple helper functions
-const formatNaira = (amount: number) => {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
-    minimumFractionDigits: 2,
-  }).format(amount || 0);
-};
+interface ProfileForm {
+  full_name: string;
+  phone_primary: string;
+  phone_secondary: string;
+  marital_status: MaritalStatus;
+  gender: Gender;
+  date_of_birth: string;
+  place_of_birth: string;
+  school_branch: SchoolBranch;
+  designation: string;
+  date_joined_school: string;
+  monthly_income: string;
+  approved_monthly_contribution: string;
+  residential_address: string;
+  permanent_home_address: string;
+  email_address: string;
+  social_media_handle: string;
+  state_of_origin: string;
+  local_government_area: string;
+  next_of_kin_name: string;
+  next_of_kin_address: string;
+  next_of_kin_phone: string;
+  next_of_kin_relationship: string;
+  next_of_kin_place_of_work: string;
+}
 
-const EmptyState = ({ icon, title }: { icon: string; title: string }) => (
-  <div className="text-center py-8">
-    <div className="text-4xl mb-2">{icon}</div>
-    <p className="text-gray-500">{title}</p>
-  </div>
-);
+export default function MyProfilePage() {
+  const { user, updateUser } = useAuth();
+  const [profile, setProfile] = useState<MemberProfile | null>(null);
+  const [profileMissing, setProfileMissing] = useState(false);
+  const [serverMessage, setServerMessage] = useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-const PageLoader = () => (
-  <div className="flex justify-center items-center py-12">
-    <div className="text-gray-500">Loading...</div>
-  </div>
-);
-
-type Surety = {
-  id: number;
-  layer: number;
-  surety_file_number: string;
-  surety_name: string;
-  amount_guaranteed: number;
-  current_liability: number;
-  status: string;
-};
-
-type Loan = {
-  id: number;
-  applicant_name: string;
-  amount_applied: number;
-  status: string;
-  proposed_duration_months: number;
-  outstanding_balance: number;
-  repayment_start_hijri_month?: number;
-  repayment_start_hijri_year?: number;
-  sureties?: Surety[];
-};
-
-type Repayment = {
-  id: number;
-  hijri_display: string;
-  amount: number;
-  balance_before: number;
-  balance_after: number;
-  verified_by_name: string;
-  created_at: string;
-};
-
-export default function LoanDetailPage() {
-  const { id } = useParams();
-  const qc = useQueryClient();
-  const { isAdmin, isCommittee } = useAuth();
-  const loanId = id ? Number(id) : null;
-
-  const [showRepayment, setShowRepayment] = useState(false);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-
-  const { data: loan, isLoading } = useQuery({
-    queryKey: ["loan", loanId],
-    enabled: !!loanId,
-    queryFn: async () => {
-      const res = await loansApi.get(loanId!);
-      return res.data as Loan;
-    },
-  });
-
-  const { data: repayments = [], isLoading: isLoadingReps } = useQuery({
-    queryKey: ["loan-repayments", loanId],
-    enabled: !!loanId,
-    queryFn: async () => {
-      try {
-        const res = await loansApi.repaymentHistory(loanId!);
-        return (res.data || []) as Repayment[];
-      } catch {
-        return [] as Repayment[];
-      }
-    },
-  });
-
-  const repaymentsList = repayments as Repayment[];
-  const totalRecs = repaymentsList.length;
-  const pageCount = Math.max(1, Math.ceil(totalRecs / pageSize));
-  const pagedReps = repaymentsList.slice(
-    (page - 1) * pageSize,
-    page * pageSize,
-  );
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ProfileForm>();
 
   useEffect(() => {
-    setPage(1);
-  }, [repayments, pageSize]);
+    const loadProfile = async () => {
+      try {
+        const response = await membersApi.me();
+        if (!response.data) {
+          setProfile(null);
+          setProfileMissing(true);
+          setServerMessage(
+            "No profile found. Complete the form below to create your member profile.",
+          );
+          setIsError(false);
+          reset({
+            full_name: user?.full_name ?? "",
+            phone_primary: "",
+            phone_secondary: "",
+            marital_status: "single",
+            gender: "male",
+            date_of_birth: "",
+            place_of_birth: "",
+            school_branch: "primary",
+            designation: "",
+            date_joined_school: "",
+            monthly_income: "",
+            approved_monthly_contribution: "5000",
+            residential_address: "",
+            permanent_home_address: "",
+            email_address: "",
+            social_media_handle: "",
+            state_of_origin: "",
+            local_government_area: "",
+            next_of_kin_name: "",
+            next_of_kin_address: "",
+            next_of_kin_phone: "",
+            next_of_kin_relationship: "",
+            next_of_kin_place_of_work: "",
+          });
+          return;
+        }
 
-  const exportCsv = () => {
-    if (!repaymentsList.length) return;
-    const headers = [
-      "hijri",
-      "amount",
-      "balance_before",
-      "balance_after",
-      "posted_by",
-      "posted_at",
-    ];
-    const rows = repaymentsList.map((r) => [
-      r.hijri_display,
-      r.amount,
-      r.balance_before,
-      r.balance_after,
-      r.verified_by_name,
-      r.created_at,
-    ]);
-    const csv = [headers, ...rows]
-      .map((r) =>
-        r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","),
-      )
-      .join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `loan-${loanId}-repayments.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+        setProfile(response.data);
+        reset({
+          full_name: response.data.full_name,
+          phone_primary: response.data.phone_primary,
+          phone_secondary: response.data.phone_secondary,
+          marital_status: response.data.marital_status,
+          gender: response.data.gender,
+          date_of_birth: response.data.date_of_birth,
+          place_of_birth: response.data.place_of_birth,
+          school_branch: response.data.school_branch,
+          designation: response.data.designation,
+          date_joined_school: response.data.date_joined_school,
+          monthly_income: response.data.monthly_income,
+          approved_monthly_contribution:
+            response.data.approved_monthly_contribution,
+          residential_address: response.data.residential_address,
+          permanent_home_address: response.data.permanent_home_address,
+          email_address: response.data.email_address,
+          social_media_handle: response.data.social_media_handle,
+          state_of_origin: response.data.state_of_origin,
+          local_government_area: response.data.local_government_area,
+          next_of_kin_name: response.data.next_of_kin_name,
+          next_of_kin_address: response.data.next_of_kin_address,
+          next_of_kin_phone: response.data.next_of_kin_phone,
+          next_of_kin_relationship: response.data.next_of_kin_relationship,
+          next_of_kin_place_of_work: response.data.next_of_kin_place_of_work,
+        });
+      } catch (error) {
+        const axiosError = error as any;
+        if (axiosError?.response?.status === 404) {
+          setProfile(null);
+          setProfileMissing(true);
+          setServerMessage(
+            "No profile found. Complete the form below to create your member profile.",
+          );
+          setIsError(false);
+          reset({
+            full_name: user?.full_name ?? "",
+            phone_primary: "",
+            phone_secondary: "",
+            marital_status: "single",
+            gender: "male",
+            date_of_birth: "",
+            place_of_birth: "",
+            school_branch: "primary",
+            designation: "",
+            date_joined_school: "",
+            monthly_income: "",
+            approved_monthly_contribution: "5000",
+            residential_address: "",
+            permanent_home_address: "",
+            email_address: "",
+            social_media_handle: "",
+            state_of_origin: "",
+            local_government_area: "",
+            next_of_kin_name: "",
+            next_of_kin_address: "",
+            next_of_kin_phone: "",
+            next_of_kin_relationship: "",
+            next_of_kin_place_of_work: "",
+          });
+        } else {
+          setServerMessage("Unable to load profile. Please try again later.");
+          setIsError(true);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [reset, user]);
+
+  const onSubmit = async (data: ProfileForm) => {
+    setServerMessage(null);
+    setIsError(false);
+
+    try {
+      const response = profileMissing
+        ? await membersApi.createMe(data)
+        : await membersApi.updateMe(data);
+
+      setProfile(response.data);
+      setProfileMissing(false);
+      updateUser({ full_name: response.data.full_name });
+      setServerMessage(
+        profileMissing
+          ? "Profile created successfully."
+          : "Profile updated successfully.",
+      );
+      reset(response.data);
+    } catch (error: any) {
+      console.error("Error:", error?.response?.data);
+      const errorMessage =
+        error?.response?.data?.approved_monthly_contribution?.[0] ||
+        error?.response?.data?.detail ||
+        Object.values(error?.response?.data || {}).flat()[0] ||
+        (profileMissing
+          ? "Failed to create profile. Please check your details and try again."
+          : "Failed to update profile. Please check your details and try again.");
+      setServerMessage(errorMessage);
+      setIsError(true);
+    }
   };
 
-  const invalidateRepayments = () => {
-    qc.invalidateQueries({ queryKey: ["loan-repayments", loanId] });
-    qc.invalidateQueries({ queryKey: ["loan", loanId] });
-  };
-
-  if (isLoading) return <PageLoader />;
-  if (!loan) return <EmptyState icon="🔍" title="Loan not found" />;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-gray-600">Loading your profile...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-3xl mx-auto p-4">
-      {/* Header */}
+    <div className="card p-6 max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Loan #{loan.id}</h1>
-        <p className="text-gray-600">Applicant: {loan.applicant_name}</p>
-        {(isAdmin || isCommittee) && loan.status === "active" && (
-          <button
-            onClick={() => setShowRepayment(true)}
-            className="mt-3 bg-blue-600 text-white px-4 py-2 rounded"
-          >
-            Post Repayment
-          </button>
-        )}
+        <h1 className="text-2xl font-semibold">My Profile</h1>
+        <p className="text-sm text-gray-500">
+          Update your personal and contact details here.
+        </p>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <p className="text-sm text-gray-600">Amount Applied</p>
-          <p className="font-bold text-lg">
-            {formatNaira(loan.amount_applied)}
-          </p>
+      {serverMessage && (
+        <div
+          className={`mb-6 rounded-lg px-4 py-3 text-sm ${
+            isError
+              ? "bg-danger-50 text-danger-700 border border-danger-200"
+              : "bg-success-50 text-success-700 border border-success-200"
+          }`}
+        >
+          {serverMessage}
         </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <p className="text-sm text-gray-600">Status</p>
-          <p className="font-bold text-lg">{loan.status.toUpperCase()}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <p className="text-sm text-gray-600">Duration</p>
-          <p className="font-bold text-lg">
-            {loan.proposed_duration_months} months
-          </p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <p className="text-sm text-gray-600">Outstanding</p>
-          <p className="font-bold text-lg">
-            {formatNaira(loan.outstanding_balance || 0)}
-          </p>
-        </div>
-      </div>
+      )}
 
-      {/* Sureties Table */}
-      <div className="bg-white rounded-lg shadow mb-6">
-        <div className="p-4 border-b">
-          <h3 className="font-semibold">Sureties</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="p-3 text-left">Layer</th>
-                <th className="p-3 text-left">Member</th>
-                <th className="p-3 text-left">Guaranteed</th>
-                <th className="p-3 text-left">Remaining</th>
-                <th className="p-3 text-left">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loan.sureties && loan.sureties.length > 0 ? (
-                loan.sureties.map((s) => (
-                  <tr key={s.id} className="border-t">
-                    <td className="p-3">#{s.layer}</td>
-                    <td className="p-3">
-                      {s.surety_file_number} — {s.surety_name}
-                    </td>
-                    <td className="p-3">{formatNaira(s.amount_guaranteed)}</td>
-                    <td className="p-3">{formatNaira(s.current_liability)}</td>
-                    <td className="p-3">{s.status}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-gray-500">
-                    No sureties attached
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Repayments Table */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-4 border-b flex justify-between items-center">
-          <h3 className="font-semibold">Repayment History</h3>
-          <button
-            onClick={exportCsv}
-            className="bg-gray-200 px-3 py-1 rounded text-sm"
-          >
-            Export CSV
-          </button>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="p-3 text-left">Hijri Date</th>
-                <th className="p-3 text-left">Amount</th>
-                <th className="p-3 text-left">Before</th>
-                <th className="p-3 text-left">After</th>
-                <th className="p-3 text-left">Posted By</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoadingReps ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center">
-                    Loading...
-                  </td>
-                </tr>
-              ) : repaymentsList.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-gray-500">
-                    No repayments posted yet
-                  </td>
-                </tr>
-              ) : (
-                pagedReps.map((r) => (
-                  <tr key={r.id} className="border-t">
-                    <td className="p-3">{r.hijri_display}</td>
-                    <td className="p-3">{formatNaira(r.amount)}</td>
-                    <td className="p-3">{formatNaira(r.balance_before)}</td>
-                    <td className="p-3">{formatNaira(r.balance_after)}</td>
-                    <td className="p-3">{r.verified_by_name}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {totalRecs > 0 && (
-          <div className="p-4 border-t flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <span className="text-sm">Show</span>
-              <select
-                value={pageSize}
-                onChange={(e) => setPageSize(Number(e.target.value))}
-                className="border rounded px-2 py-1"
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-              </select>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1 border rounded disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <span className="px-3 py-1">
-                Page {page} of {pageCount}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-                disabled={page === pageCount}
-                className="px-3 py-1 border rounded disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="mb-4">
+            <label htmlFor="staff_id" className="label">
+              Staff ID
+            </label>
+            <input
+              id="staff_id"
+              className="input bg-gray-100"
+              value={profile?.staff_id ?? user?.staff_id ?? ""}
+              disabled
+            />
           </div>
-        )}
-      </div>
+          <div className="mb-4">
+            <label htmlFor="file_number" className="label">
+              SSC File Number
+            </label>
+            <input
+              id="file_number"
+              className="input bg-gray-100"
+              value={profile?.file_number ?? "Not assigned yet"}
+              disabled
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="mb-4">
+            <label htmlFor="full_name" className="label">
+              Full Name
+            </label>
+            <input
+              id="full_name"
+              {...register("full_name", { required: "Full name is required" })}
+              className={`input ${errors.full_name ? "input-error" : ""}`}
+            />
+            {errors.full_name && (
+              <p className="field-error">{errors.full_name.message}</p>
+            )}
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="phone_primary" className="label">
+              Phone
+            </label>
+            <input
+              id="phone_primary"
+              {...register("phone_primary", {
+                required: "Phone number is required",
+              })}
+              className={`input ${errors.phone_primary ? "input-error" : ""}`}
+            />
+            {errors.phone_primary && (
+              <p className="field-error">{errors.phone_primary.message}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="mb-4">
+            <label htmlFor="phone_secondary" className="label">
+              Secondary Phone
+            </label>
+            <input
+              id="phone_secondary"
+              {...register("phone_secondary")}
+              className="input"
+            />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="email_address" className="label">
+              Email Address
+            </label>
+            <input
+              id="email_address"
+              {...register("email_address")}
+              className="input"
+              type="email"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="mb-4">
+            <label htmlFor="marital_status" className="label">
+              Marital Status
+            </label>
+            <select
+              id="marital_status"
+              aria-label="Marital Status"
+              title="Marital Status"
+              {...register("marital_status")}
+              className="input"
+            >
+              <option value="single">Single</option>
+              <option value="married">Married</option>
+              <option value="divorced">Divorced</option>
+              <option value="widowed">Widowed</option>
+            </select>
+          </div>
+          <div className="mb-4">
+            <label htmlFor="gender" className="label">
+              Gender
+            </label>
+            <select
+              id="gender"
+              aria-label="Gender"
+              title="Gender"
+              {...register("gender")}
+              className="input"
+            >
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="mb-4">
+            <label htmlFor="date_of_birth" className="label">
+              Date of Birth
+            </label>
+            <input
+              id="date_of_birth"
+              {...register("date_of_birth", {
+                required: "Date of birth is required",
+              })}
+              className={`input ${errors.date_of_birth ? "input-error" : ""}`}
+              type="date"
+            />
+            {errors.date_of_birth && (
+              <p className="field-error">{errors.date_of_birth.message}</p>
+            )}
+          </div>
+          <div className="mb-4">
+            <label htmlFor="place_of_birth" className="label">
+              Place of Birth
+            </label>
+            <input
+              id="place_of_birth"
+              {...register("place_of_birth", {
+                required: "Place of birth is required",
+              })}
+              className={`input ${errors.place_of_birth ? "input-error" : ""}`}
+            />
+            {errors.place_of_birth && (
+              <p className="field-error">{errors.place_of_birth.message}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="mb-4">
+            <label htmlFor="school_branch" className="label">
+              School Branch
+            </label>
+            <select
+              id="school_branch"
+              aria-label="School Branch"
+              title="School Branch"
+              {...register("school_branch")}
+              className="input"
+            >
+              <option value="primary">Primary</option>
+              <option value="college">College</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div className="mb-4">
+            <label htmlFor="designation" className="label">
+              Designation
+            </label>
+            <input
+              id="designation"
+              {...register("designation")}
+              className="input"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="mb-4">
+            <label htmlFor="date_joined_school" className="label">
+              Date Joined School
+            </label>
+            <input
+              id="date_joined_school"
+              {...register("date_joined_school")}
+              className="input"
+              type="date"
+            />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="monthly_income" className="label">
+              Monthly Income
+            </label>
+            <input
+              id="monthly_income"
+              {...register("monthly_income", {
+                required: "Monthly income is required",
+              })}
+              className={`input ${errors.monthly_income ? "input-error" : ""}`}
+              type="number"
+              step="0.01"
+            />
+            {errors.monthly_income && (
+              <p className="field-error">{errors.monthly_income.message}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="approved_monthly_contribution" className="label">
+            Proposed Monthly Contribution (₦)
+          </label>
+          <input
+            id="approved_monthly_contribution"
+            {...register("approved_monthly_contribution", {
+              required: "Monthly contribution is required",
+              min: 1000,
+            })}
+            type="number"
+            step="1000"
+            className={`input ${errors.approved_monthly_contribution ? "input-error" : ""}`}
+          />
+          <p className="text-xs text-gray-500 mt-1">Minimum ₦1,000</p>
+          {errors.approved_monthly_contribution && (
+            <p className="field-error">
+              {errors.approved_monthly_contribution.message}
+            </p>
+          )}
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="mb-4">
+            <label htmlFor="residential_address" className="label">
+              Residential Address
+            </label>
+            <textarea
+              id="residential_address"
+              {...register("residential_address", {
+                required: "Residential address is required",
+              })}
+              className={`input h-24 resize-none ${errors.residential_address ? "input-error" : ""}`}
+            />
+            {errors.residential_address && (
+              <p className="field-error">
+                {errors.residential_address.message}
+              </p>
+            )}
+          </div>
+          <div className="mb-4">
+            <label htmlFor="permanent_home_address" className="label">
+              Permanent Home Address
+            </label>
+            <textarea
+              id="permanent_home_address"
+              {...register("permanent_home_address", {
+                required: "Permanent address is required",
+              })}
+              className={`input h-24 resize-none ${errors.permanent_home_address ? "input-error" : ""}`}
+            />
+            {errors.permanent_home_address && (
+              <p className="field-error">
+                {errors.permanent_home_address.message}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="mb-4">
+            <label htmlFor="state_of_origin" className="label">
+              State of Origin
+            </label>
+            <input
+              id="state_of_origin"
+              {...register("state_of_origin", {
+                required: "State of origin is required",
+              })}
+              className={`input ${errors.state_of_origin ? "input-error" : ""}`}
+            />
+            {errors.state_of_origin && (
+              <p className="field-error">{errors.state_of_origin.message}</p>
+            )}
+          </div>
+          <div className="mb-4">
+            <label htmlFor="local_government_area" className="label">
+              Local Government Area
+            </label>
+            <input
+              id="local_government_area"
+              {...register("local_government_area", {
+                required: "LGA is required",
+              })}
+              className={`input ${errors.local_government_area ? "input-error" : ""}`}
+            />
+            {errors.local_government_area && (
+              <p className="field-error">
+                {errors.local_government_area.message}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="mb-4">
+            <label htmlFor="next_of_kin_name" className="label">
+              Next of Kin Name
+            </label>
+            <input
+              id="next_of_kin_name"
+              {...register("next_of_kin_name", {
+                required: "Next of kin name is required",
+              })}
+              className={`input ${errors.next_of_kin_name ? "input-error" : ""}`}
+            />
+            {errors.next_of_kin_name && (
+              <p className="field-error">{errors.next_of_kin_name.message}</p>
+            )}
+          </div>
+          <div className="mb-4">
+            <label htmlFor="next_of_kin_phone" className="label">
+              Next of Kin Phone
+            </label>
+            <input
+              id="next_of_kin_phone"
+              {...register("next_of_kin_phone", {
+                required: "Next of kin phone is required",
+              })}
+              className={`input ${errors.next_of_kin_phone ? "input-error" : ""}`}
+            />
+            {errors.next_of_kin_phone && (
+              <p className="field-error">{errors.next_of_kin_phone.message}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="mb-4">
+            <label htmlFor="next_of_kin_relationship" className="label">
+              Next of Kin Relationship
+            </label>
+            <input
+              id="next_of_kin_relationship"
+              {...register("next_of_kin_relationship", {
+                required: "Relationship is required",
+              })}
+              className={`input ${errors.next_of_kin_relationship ? "input-error" : ""}`}
+            />
+            {errors.next_of_kin_relationship && (
+              <p className="field-error">
+                {errors.next_of_kin_relationship.message}
+              </p>
+            )}
+          </div>
+          <div className="mb-4">
+            <label htmlFor="next_of_kin_place_of_work" className="label">
+              Next of Kin Place of Work
+            </label>
+            <input
+              id="next_of_kin_place_of_work"
+              {...register("next_of_kin_place_of_work")}
+              className="input"
+            />
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <label htmlFor="next_of_kin_address" className="label">
+            Next of Kin Address
+          </label>
+          <textarea
+            id="next_of_kin_address"
+            {...register("next_of_kin_address", {
+              required: "Next of kin address is required",
+            })}
+            className={`input h-24 resize-none ${errors.next_of_kin_address ? "input-error" : ""}`}
+          />
+          {errors.next_of_kin_address && (
+            <p className="field-error">{errors.next_of_kin_address.message}</p>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="btn-primary w-full py-2.5"
+        >
+          {isSubmitting
+            ? "Saving..."
+            : profileMissing
+              ? "Create Profile"
+              : "Save Profile"}
+        </button>
+      </form>
     </div>
   );
 }
