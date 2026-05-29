@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import { loansApi, suretiesApi } from "@/api/services";
 import {
   PageHeader,
@@ -39,6 +40,7 @@ export default function MyLoansPage() {
   });
 
   const activeLoan = loans?.results?.find((l) => l.status === "active");
+  const { isAdmin, isCommittee } = useAuth();
 
   return (
     <div>
@@ -88,13 +90,14 @@ export default function MyLoansPage() {
           <table className="table">
             <thead>
               <tr>
-                <th>#</th>
-                <th>Amount</th>
-                <th>Purpose</th>
-                <th>Applied</th>
-                <th>Status</th>
-                <th>Outstanding</th>
-              </tr>
+                  <th>#</th>
+                  <th>Amount</th>
+                  <th>Purpose</th>
+                  <th>Applied</th>
+                  <th>Status</th>
+                  <th>Outstanding</th>
+                  <th>Action</th>
+                </tr>
             </thead>
             <tbody>
               {isLoading ? (
@@ -135,6 +138,18 @@ export default function MyLoansPage() {
                       {l.status === "active"
                         ? formatNaira(l.outstanding_balance)
                         : "—"}
+                    </td>
+                    <td>
+                      {(isAdmin || isCommittee) ? (
+                        <button
+                          className="btn-secondary btn-sm"
+                          onClick={() => navigate(`/loans/${l.id}`)}
+                        >
+                          View
+                        </button>
+                      ) : (
+                        <span className="text-sm text-gray-600">—</span>
+                      )}
                     </td>
                   </tr>
                 ))

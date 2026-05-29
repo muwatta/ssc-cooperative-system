@@ -11,6 +11,7 @@ import {
   Modal,
   ErrorAlert,
 } from "@/components/common";
+import RepaymentModal from "@/components/loans/RepaymentModal";
 import type { LoanApplication } from "@/types";
 
 function CommitteeDecisionModal({
@@ -183,7 +184,7 @@ export default function LoanQueuePage() {
   const [selectedLoan, setSelectedLoan] = useState<LoanApplication | null>(
     null,
   );
-  const [modalType, setModalType] = useState<"committee" | "hos" | null>(null);
+  const [modalType, setModalType] = useState<"committee" | "hos" | "repayment" | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
 
   const { data, isLoading } = useQuery({
@@ -292,6 +293,17 @@ export default function LoanQueuePage() {
                         HOS Approve
                       </button>
                     )}
+                    {loan.status === "active" && (
+                      <button
+                        onClick={() => {
+                          setSelectedLoan(loan);
+                          setModalType("repayment");
+                        }}
+                        className="btn-primary text-xs px-2 py-1"
+                      >
+                        Post Repayment
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))
@@ -330,6 +342,28 @@ export default function LoanQueuePage() {
         {selectedLoan && (
           <HOSApprovalModal
             loan={selectedLoan}
+            onClose={() => {
+              setSelectedLoan(null);
+              setModalType(null);
+            }}
+          />
+        )}
+      </Modal>
+
+      <Modal
+        open={!!selectedLoan && modalType === "repayment"}
+        title="Post Loan Repayment"
+        onClose={() => {
+          setSelectedLoan(null);
+          setModalType(null);
+        }}
+      >
+        {selectedLoan && (
+          <RepaymentModal
+            loanId={selectedLoan.id}
+            outstanding={selectedLoan.outstanding_balance}
+            defaultMonth={selectedLoan.repayment_start_hijri_month || 1}
+            defaultYear={selectedLoan.repayment_start_hijri_year || new Date().getFullYear()}
             onClose={() => {
               setSelectedLoan(null);
               setModalType(null);
