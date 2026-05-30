@@ -36,8 +36,14 @@ class MemberBalanceSerializer(serializers.ModelSerializer):
 
 
 class PostSavingsSerializer(serializers.Serializer):
-    """Admin posts monthly savings for a member — SRS S3"""
-    member      = serializers.IntegerField(help_text="MemberProfile pk")
+    """Admin posts monthly savings for one or more members — SRS S3"""
+    member      = serializers.IntegerField(required=False, help_text="MemberProfile pk")
+    member_ids  = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        allow_empty=True,
+        help_text="List of MemberProfile pks for bulk savings posting.",
+    )
     amount      = serializers.DecimalField(max_digits=12, decimal_places=2)
     hijri_month = serializers.IntegerField(min_value=1, max_value=12)
     hijri_year  = serializers.IntegerField(min_value=1400)
@@ -49,13 +55,42 @@ class PostSavingsSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         from apps.accounts.models import MemberProfile, MembershipStatus
-        try:
-            member = MemberProfile.objects.get(pk=attrs["member"])
-        except MemberProfile.DoesNotExist:
-            raise serializers.ValidationError({"member": "Member not found."})
-        if member.membership_status != MembershipStatus.ACTIVE:
-            raise serializers.ValidationError({"member": "Member is not active."})
-        attrs["_member"] = member
+
+        selected_member = attrs.get("member")
+        selected_member_ids = attrs.get("member_ids", []) or []
+
+        if not selected_member and not selected_member_ids:
+            raise serializers.ValidationError(
+                "Please provide a member or one or more member IDs for bulk savings posting."
+            )
+
+        members = []
+        if selected_member:
+            try:
+                member = MemberProfile.objects.get(pk=selected_member)
+            except MemberProfile.DoesNotExist:
+                raise serializers.ValidationError({"member": "Member not found."})
+            if member.membership_status != MembershipStatus.ACTIVE:
+                raise serializers.ValidationError({"member": "Member is not active."})
+            members.append(member)
+
+        for member_id in set(selected_member_ids):
+            if selected_member and member_id == selected_member:
+                continue
+            try:
+                member = MemberProfile.objects.get(pk=member_id)
+            except MemberProfile.DoesNotExist:
+                raise serializers.ValidationError({"member_ids": f"Member {member_id} not found."})
+            if member.membership_status != MembershipStatus.ACTIVE:
+                raise serializers.ValidationError({"member_ids": f"Member {member_id} is not active."})
+            members.append(member)
+
+        if not members:
+            raise serializers.ValidationError(
+                "No valid members were selected for savings posting."
+            )
+
+        attrs["_members"] = members
         return attrs
 
 

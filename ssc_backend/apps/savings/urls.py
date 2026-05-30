@@ -4,6 +4,7 @@ from .views import (
     MyBalanceView, MyLedgerView, SavingsSummaryView,
     SavingsChangeRequestListCreateView, ApproveSavingsChangeView, RejectSavingsChangeView,
     DuesCycleListCreateView, PostDuesCycleView, LedgerExportView,
+    BulkSavingsReportView,
 )
 
 urlpatterns = [
@@ -19,5 +20,6 @@ urlpatterns = [
     path("dues/",                          DuesCycleListCreateView.as_view(),            name="dues-list"),
     path("dues/<int:pk>/post/",            PostDuesCycleView.as_view(),                  name="dues-post"),
     path("ledger/<int:member_id>/export/", LedgerExportView.as_view(),     name="ledger-export"),
+    path("reports/export/",               BulkSavingsReportView.as_view(),              name="bulk-savings-report"),
 
 ]

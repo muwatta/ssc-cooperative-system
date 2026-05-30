@@ -1,6 +1,9 @@
 from decimal import Decimal
+import csv
+import io
 from django.db.models import Count, Sum
 from django.db.utils import ProgrammingError
+from django.http import HttpResponse
 from rest_framework import generics, status, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -30,16 +33,23 @@ class PostSavingsView(APIView):
         serializer = PostSavingsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         d = serializer.validated_data
-        member = d["_member"]
+        members = d["_members"]
 
-        entry = post_savings_entry(
-            member=member,
-            amount=d["amount"],
-            hijri_month=d["hijri_month"],
-            hijri_year=d["hijri_year"],
-            posted_by=request.user,
-        )
-        return Response(SavingsLedgerSerializer(entry).data, status=status.HTTP_201_CREATED)
+        entries = []
+        for member in members:
+            entries.append(
+                post_savings_entry(
+                    member=member,
+                    amount=d["amount"],
+                    hijri_month=d["hijri_month"],
+                    hijri_year=d["hijri_year"],
+                    posted_by=request.user,
+                )
+            )
+
+        if len(entries) == 1:
+            return Response(SavingsLedgerSerializer(entries[0]).data, status=status.HTTP_201_CREATED)
+        return Response(SavingsLedgerSerializer(entries, many=True).data, status=status.HTTP_201_CREATED)
 
 
 class MemberLedgerView(generics.ListAPIView):
@@ -293,5 +303,266 @@ class PostDuesCycleView(APIView):
         })
 
 class LedgerExportView(APIView):
+    permission_classes = [IsAdminOrCommitteeOrHOS]
+
+    def get(self, request, member_id):
+        try:
+            member = MemberProfile.objects.get(pk=member_id)
+        except MemberProfile.DoesNotExist:
+            return Response({"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        qs = SavingsLedger.objects.filter(member_id=member_id).order_by(
+            "hijri_year", "hijri_month", "created_at"
+        )
+
+        date_from = request.query_params.get("date_from")
+        date_to = request.query_params.get("date_to")
+        hijri_month = request.query_params.get("hijri_month")
+        hijri_year = request.query_params.get("hijri_year")
+
+        if date_from:
+            qs = qs.filter(gregorian_date__gte=date_from)
+        if date_to:
+            qs = qs.filter(gregorian_date__lte=date_to)
+        if hijri_month:
+            try:
+                qs = qs.filter(hijri_month=int(hijri_month))
+            except ValueError:
+                pass
+        if hijri_year:
+            try:
+                qs = qs.filter(hijri_year=int(hijri_year))
+            except ValueError:
+                pass
+
+        export_format = request.query_params.get("format", "csv").lower()
+
+        if export_format == "pdf":
+            try:
+                from reportlab.lib.pagesizes import letter
+                from reportlab.pdfgen import canvas
+            except ImportError:
+                return Response(
+                    {"error": "PDF export requires reportlab. Please install it."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            buffer = io.BytesIO()
+            page_width, page_height = letter
+            pdf = canvas.Canvas(buffer, pagesize=letter)
+            y = page_height - 72
+            pdf.setFont("Helvetica-Bold", 14)
+            pdf.drawString(72, y, "Savings Ledger Export")
+            pdf.setFont("Helvetica", 10)
+            y -= 18
+            pdf.drawString(72, y, f"Member: {member.file_number} — {member.full_name}")
+            y -= 14
+            pdf.drawString(72, y, f"Export date: {timezone.localdate().isoformat()}")
+            y -= 24
+
+            headers = ["Hijri", "Type", "Details", "Credit", "Debit", "Balance", "Date"]
+            col_x = [72, 130, 200, 340, 400, 460, 520]
+            for idx, header in enumerate(headers):
+                pdf.drawString(col_x[idx], y, header)
+            y -= 16
+            pdf.setFont("Helvetica", 9)
+
+            for entry in qs:
+                if y < 72:
+                    pdf.showPage()
+                    y = page_height - 72
+                    pdf.setFont("Helvetica", 9)
+
+                pdf.drawString(col_x[0], y, entry.hijri_display)
+                pdf.drawString(col_x[1], y, entry.entry_type.replace("_", " "))
+                pdf.drawString(col_x[2], y, entry.details[:24])
+                pdf.drawRightString(col_x[3] + 36, y, f"{entry.credit or 0:.2f}")
+                pdf.drawRightString(col_x[4] + 36, y, f"{entry.debit or 0:.2f}")
+                pdf.drawRightString(col_x[5] + 40, y, f"{entry.balance:.2f}")
+                pdf.drawString(col_x[6], y, entry.gregorian_date.isoformat())
+                y -= 14
+
+            pdf.save()
+            buffer.seek(0)
+            response = HttpResponse(buffer.read(), content_type="application/pdf")
+            response["Content-Disposition"] = (
+                f'attachment; filename="savings-ledger-{member.file_number}.pdf"'
+            )
+            return response
+
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow([
+            "hijri_month", "hijri_year", "hijri_display", "entry_type",
+            "details", "credit", "debit", "balance", "gregorian_date",
+        ])
+        for entry in qs:
+            writer.writerow([
+                entry.hijri_month,
+                entry.hijri_year,
+                entry.hijri_display,
+                entry.entry_type,
+                entry.details,
+                str(entry.credit or ""),
+                str(entry.debit or ""),
+                str(entry.balance),
+                entry.gregorian_date.isoformat(),
+            ])
+
+        response = HttpResponse(buffer.getvalue(), content_type="text/csv")
+        response["Content-Disposition"] = (
+            f'attachment; filename="savings-ledger-{member.file_number}.csv"'
+        )
+        return response
+
+
+class BulkSavingsReportView(APIView):
+    permission_classes = [IsAdminOrCommitteeOrHOS]
+
     def get(self, request):
-        return Response({"message": "Export not implemented yet"})
+        qs = SavingsLedger.objects.select_related("member").order_by(
+            "member__file_number", "hijri_year", "hijri_month", "created_at"
+        )
+
+        member_id = request.query_params.get("member_id")
+        member_ids = request.query_params.get("member_ids")
+        date_from = request.query_params.get("date_from")
+        date_to = request.query_params.get("date_to")
+        hijri_month = request.query_params.get("hijri_month")
+        hijri_year = request.query_params.get("hijri_year")
+        entry_type = request.query_params.get("entry_type")
+
+        if member_id:
+            try:
+                qs = qs.filter(member_id=int(member_id))
+            except ValueError:
+                pass
+        if member_ids:
+            try:
+                ids = [int(i) for i in member_ids.split(",") if i.strip().isdigit()]
+                if ids:
+                    qs = qs.filter(member_id__in=ids)
+            except ValueError:
+                pass
+        if date_from:
+            qs = qs.filter(gregorian_date__gte=date_from)
+        if date_to:
+            qs = qs.filter(gregorian_date__lte=date_to)
+        if hijri_month:
+            try:
+                qs = qs.filter(hijri_month=int(hijri_month))
+            except ValueError:
+                pass
+        if hijri_year:
+            try:
+                qs = qs.filter(hijri_year=int(hijri_year))
+            except ValueError:
+                pass
+        if entry_type:
+            qs = qs.filter(entry_type=entry_type)
+
+        export_format = request.query_params.get("format", "csv").lower()
+
+        if export_format == "pdf":
+            try:
+                from reportlab.lib.pagesizes import letter
+                from reportlab.pdfgen import canvas
+            except ImportError:
+                return Response(
+                    {"error": "PDF export requires reportlab. Please install it."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            buffer = io.BytesIO()
+            page_width, page_height = letter
+            pdf = canvas.Canvas(buffer, pagesize=letter)
+            y = page_height - 72
+            pdf.setFont("Helvetica-Bold", 14)
+            pdf.drawString(72, y, "Bulk Savings Report")
+            pdf.setFont("Helvetica", 10)
+            y -= 18
+            filters_description = []
+            if member_id:
+                filters_description.append(f"Member ID: {member_id}")
+            if member_ids:
+                filters_description.append(f"Member IDs: {member_ids}")
+            if entry_type:
+                filters_description.append(f"Entry Type: {entry_type}")
+            if date_from:
+                filters_description.append(f"From: {date_from}")
+            if date_to:
+                filters_description.append(f"To: {date_to}")
+            if filters_description:
+                pdf.drawString(72, y, "; ".join(filters_description))
+                y -= 14
+            pdf.drawString(72, y, f"Generated: {timezone.localdate().isoformat()}")
+            y -= 24
+
+            headers = [
+                "File #", "Member", "Hijri", "Type", "Credit", "Debit", "Balance", "Date",
+            ]
+            col_x = [72, 130, 260, 330, 400, 460, 520, 580]
+            for idx, header in enumerate(headers):
+                pdf.drawString(col_x[idx], y, header)
+            y -= 16
+            pdf.setFont("Helvetica", 8)
+
+            for entry in qs:
+                if y < 72:
+                    pdf.showPage()
+                    y = page_height - 72
+                    pdf.setFont("Helvetica", 8)
+
+                pdf.drawString(col_x[0], y, entry.member.file_number)
+                pdf.drawString(col_x[1], y, entry.member.full_name[:18])
+                pdf.drawString(col_x[2], y, entry.hijri_display)
+                pdf.drawString(col_x[3], y, entry.entry_type.replace("_", " "))
+                pdf.drawRightString(col_x[4] + 40, y, f"{entry.credit or 0:.2f}")
+                pdf.drawRightString(col_x[5] + 40, y, f"{entry.debit or 0:.2f}")
+                pdf.drawRightString(col_x[6] + 40, y, f"{entry.balance:.2f}")
+                pdf.drawString(col_x[7], y, entry.gregorian_date.isoformat())
+                y -= 12
+
+            pdf.save()
+            buffer.seek(0)
+            response = HttpResponse(buffer.read(), content_type="application/pdf")
+            response["Content-Disposition"] = (
+                f'attachment; filename="bulk-savings-report.pdf"'
+            )
+            return response
+
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow([
+            "member_file_number",
+            "member_name",
+            "hijri_month",
+            "hijri_year",
+            "hijri_display",
+            "entry_type",
+            "details",
+            "credit",
+            "debit",
+            "balance",
+            "gregorian_date",
+        ])
+        for entry in qs:
+            writer.writerow([
+                entry.member.file_number,
+                entry.member.full_name,
+                entry.hijri_month,
+                entry.hijri_year,
+                entry.hijri_display,
+                entry.entry_type,
+                entry.details,
+                str(entry.credit or ""),
+                str(entry.debit or ""),
+                str(entry.balance),
+                entry.gregorian_date.isoformat(),
+            ])
+
+        response = HttpResponse(buffer.getvalue(), content_type="text/csv")
+        response["Content-Disposition"] = (
+            'attachment; filename="bulk-savings-report.csv"'
+        )
+        return response
