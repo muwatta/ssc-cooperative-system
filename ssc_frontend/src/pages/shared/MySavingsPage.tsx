@@ -29,6 +29,7 @@ export default function MySavingsPage() {
   const [pageCount, setPageCount] = useState(1);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [downloadFormat, setDownloadFormat] = useState<"csv" | "pdf">("csv");
   const [error, setError] = useState("");
   const [summaryError, setSummaryError] = useState("");
   const [filters, setFilters] = useState({
@@ -181,21 +182,26 @@ export default function MySavingsPage() {
     setPage(1);
   };
 
-  const handleDownloadCsv = async () => {
+  const handleDownload = async (format: "csv" | "pdf") => {
     if (!profile) return;
     setDownloading(true);
+    setDownloadFormat(format);
     setError("");
 
     try {
       const params = buildFilters();
-      const response = await savingsApi.exportLedger(profile.id, params);
+      const response = await savingsApi.exportLedger(
+        profile.id,
+        params,
+        format,
+      );
       const blob = new Blob([response.data], {
-        type: "text/csv;charset=utf-8;",
+        type: format === "pdf" ? "application/pdf" : "text/csv;charset=utf-8;",
       });
       const url = window.URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `savings_ledger_${profile.file_number}.csv`;
+      anchor.download = `savings_ledger_${profile.file_number}.${format}`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -448,13 +454,30 @@ export default function MySavingsPage() {
                   </button>
                   <button
                     type="button"
+                    className="btn-secondary rounded-md px-4 py-2"
+                    onClick={() => window.print()}
+                  >
+                    Print
+                  </button>
+                  <button
+                    type="button"
                     className="btn-outline rounded-md px-4 py-2"
-                    onClick={handleDownloadCsv}
+                    onClick={() => handleDownload("csv")}
                     disabled={downloading}
                   >
-                    {downloading
-                      ? "Preparing download..."
+                    {downloading && downloadFormat === "csv"
+                      ? "Preparing CSV..."
                       : "Download CSV / Excel"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary rounded-md px-4 py-2"
+                    onClick={() => handleDownload("pdf")}
+                    disabled={downloading}
+                  >
+                    {downloading && downloadFormat === "pdf"
+                      ? "Preparing PDF..."
+                      : "Download PDF"}
                   </button>
                 </div>
               </div>

@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import clsx from "clsx";
 
-// Nav item 
+// Nav item
 interface NavItem {
   label: string;
   to: string;
@@ -25,6 +25,7 @@ function useNavItems(): NavItem[] {
     { label: "Members", to: "/members", icon: "👥" },
     { label: "Create User", to: "/users/create", icon: "➕" },
     { label: "Staff IDs", to: "/staff-ids", icon: "🪪" },
+    { label: "Loan Rules", to: "/loan-settings", icon: "⚙️" },
     { label: "Post Savings", to: "/savings/post", icon: "📥" },
     { label: "Post Dues", to: "/savings/dues", icon: "📋" },
   ];
