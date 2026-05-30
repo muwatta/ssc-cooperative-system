@@ -151,14 +151,24 @@ export default function LoanDetailPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Loan #{loan.id}</h1>
         <p className="text-gray-600">Applicant: {loan.applicant_name}</p>
-        {(isAdmin || isCommittee) && loan.status === "active" && (
+        <div className="flex flex-wrap gap-2 mt-3">
+          {(isAdmin || isCommittee) && loan.status === "active" && (
+            <button
+              onClick={() => setShowRepayment(true)}
+              className="mt-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Post Repayment
+            </button>
+          )}
           <button
-            onClick={() => setShowRepayment(true)}
-            className="mt-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            onClick={() => exportRepayments("pdf")}
+            disabled={isExporting}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+            title="Export loan repayment schedule as PDF"
           >
-            Post Repayment
+            📄 Export Schedule
           </button>
-        )}
+        </div>
       </div>
 
       {/* Summary Cards */}

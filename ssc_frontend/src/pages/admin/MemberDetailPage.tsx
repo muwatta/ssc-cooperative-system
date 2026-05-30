@@ -4,7 +4,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { membersApi, savingsApi } from "@/api/services";
 import { PageHeader } from "@/components/common";
-import type { MemberProfile } from "@/types";
+import { useAuth } from "@/context/AuthContext";
+import type { MemberProfile, Role } from "@/types";
+import api from "@/api/client";
 
 function formatNaira(value: string | number) {
   const n = Number(value);
@@ -102,7 +104,7 @@ function ApproveModal({
           )}
           <p className="mb-4 text-sm text-gray-500">
             Approving <strong>{member.full_name}</strong> ({member.file_number}
-            ). This activates their account and allows savings posting.
+            ).
           </p>
           <form
             onSubmit={handleSubmit((d) => mutation.mutate(d))}
@@ -168,12 +170,130 @@ function ApproveModal({
   );
 }
 
+// ── Change Role modal ─────────────────────────────────────────────
+function ChangeRoleModal({
+  member,
+  onClose,
+}: {
+  member: MemberProfile;
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const [selectedRole, setSelectedRole] = useState<Role>(member.role);
+  const [error, setError] = useState("");
+
+  const ROLE_LABELS: Record<Role, string> = {
+    staff: "Staff — standard member, view own records only",
+    committee: "Committee — can review loans, post repayments",
+    head_of_school: "Head of School — gives final loan approval",
+    admin: "Admin — full system control",
+  };
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      api.post(`/accounts/members/${member.id}/change-role/`, {
+        role: selectedRole,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["member", String(member.id)] });
+      qc.invalidateQueries({ queryKey: ["members"] });
+      onClose();
+    },
+    onError: (e: any) =>
+      setError(e?.response?.data?.error || "Failed to change role."),
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="card w-full max-w-md">
+        <div className="card-header flex items-center justify-between">
+          <h2 className="font-semibold">Change Role</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="card-body space-y-4">
+          {error && (
+            <div className="rounded-lg border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-700">
+              {error}
+            </div>
+          )}
+
+          <p className="text-sm text-gray-600">
+            Changing role for <strong>{member.full_name}</strong> (
+            {member.file_number}). Current role:{" "}
+            <span className="font-medium capitalize">
+              {member.role.replace(/_/g, " ")}
+            </span>
+          </p>
+
+          <div className="space-y-2">
+            {(["staff", "committee", "head_of_school", "admin"] as Role[]).map(
+              (role) => (
+                <label
+                  key={role}
+                  className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
+                    selectedRole === role
+                      ? "border-primary-400 bg-primary-50"
+                      : "border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="role"
+                    value={role}
+                    checked={selectedRole === role}
+                    onChange={() => setSelectedRole(role)}
+                    className="mt-0.5 accent-primary-600"
+                  />
+                  <div>
+                    <p className="text-sm font-medium capitalize text-gray-900">
+                      {role.replace(/_/g, " ")}
+                    </p>
+                    <p className="text-xs text-gray-400">{ROLE_LABELS[role]}</p>
+                  </div>
+                </label>
+              ),
+            )}
+          </div>
+
+          {selectedRole !== member.role && (
+            <div className="rounded-lg border border-warning-200 bg-warning-50 px-3 py-2 text-xs text-warning-700">
+              ⚠️ This will immediately change what {member.full_name} can access
+              in the system.
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <button onClick={onClose} className="btn-secondary flex-1">
+              Cancel
+            </button>
+            <button
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending || selectedRole === member.role}
+              className="btn-primary flex-1"
+            >
+              {mutation.isPending ? "Saving..." : "Confirm Role Change"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────
 export default function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
+  const { isAdmin } = useAuth();
+
   const [showApprove, setShowApprove] = useState(false);
   const [showDeactivate, setShowDeactivate] = useState(false);
+  const [showChangeRole, setShowChangeRole] = useState(false);
   const [activeTab, setActiveTab] = useState<"profile" | "savings">("profile");
 
   const {
@@ -236,6 +356,13 @@ export default function MemberDetailPage() {
     exited: "badge-danger",
   };
 
+  const ROLE_COLOR: Record<string, string> = {
+    admin: "bg-primary-100 text-primary-700",
+    committee: "bg-yellow-100 text-yellow-700",
+    head_of_school: "bg-green-100 text-green-700",
+    staff: "bg-gray-100 text-gray-600",
+  };
+
   return (
     <div className="max-w-4xl">
       <PageHeader
@@ -252,13 +379,19 @@ export default function MemberDetailPage() {
               {member.full_name.charAt(0)}
             </div>
             <div className="flex-1">
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl font-bold text-gray-900">
                   {member.full_name}
                 </h1>
                 <span className={STATUS_COLOR[member.membership_status]}>
                   {member.membership_status.charAt(0).toUpperCase() +
                     member.membership_status.slice(1)}
+                </span>
+                {/* Role badge */}
+                <span
+                  className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${ROLE_COLOR[member.role]}`}
+                >
+                  {member.role.replace(/_/g, " ")}
                 </span>
                 {member.is_legacy && (
                   <span className="badge-gray text-xs">Legacy</span>
@@ -271,25 +404,44 @@ export default function MemberDetailPage() {
                 Branch
               </p>
             </div>
+
             {/* Action buttons */}
-            <div className="flex shrink-0 gap-2">
-              {member.membership_status === "pending" && (
+            {isAdmin && (
+              <div className="flex shrink-0 flex-wrap gap-2">
+                {member.membership_status === "pending" && (
+                  <button
+                    onClick={() => setShowApprove(true)}
+                    className="btn-primary text-sm"
+                  >
+                    ✓ Approve
+                  </button>
+                )}
                 <button
-                  onClick={() => setShowApprove(true)}
-                  className="btn-primary text-sm"
+                  onClick={() => setShowChangeRole(true)}
+                  className="btn-secondary text-sm"
                 >
-                  ✓ Approve
+                  🔑 Change Role
                 </button>
-              )}
-              {member.membership_status === "active" && (
                 <button
-                  onClick={() => setShowDeactivate(true)}
-                  className="btn-secondary text-sm text-danger-600"
+                  onClick={() => {
+                    const url = `/api/v1/savings/${member.id}/ledger/export/?format=pdf`;
+                    window.open(url, "_blank");
+                  }}
+                  className="btn-secondary text-sm"
+                  title="Export savings ledger as PDF"
                 >
-                  Deactivate
+                  📄 Export PDF
                 </button>
-              )}
-            </div>
+                {member.membership_status === "active" && (
+                  <button
+                    onClick={() => setShowDeactivate(true)}
+                    className="btn-secondary text-sm text-danger-600"
+                  >
+                    Deactivate
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Balance strip */}
@@ -375,10 +527,6 @@ export default function MemberDetailPage() {
               <InfoRow label="Primary Phone" value={member.phone_primary} />
               <InfoRow label="Secondary Phone" value={member.phone_secondary} />
               <InfoRow label="Email" value={member.email_address} />
-              <InfoRow
-                label="Social Media"
-                value={member.social_media_handle}
-              />
               <InfoRow label="Residential" value={member.residential_address} />
               <InfoRow
                 label="Permanent Home"
@@ -494,12 +642,17 @@ export default function MemberDetailPage() {
         </div>
       )}
 
-      {/* Approve modal */}
+      {/* Modals */}
       {showApprove && (
         <ApproveModal member={member} onClose={() => setShowApprove(false)} />
       )}
+      {showChangeRole && (
+        <ChangeRoleModal
+          member={member}
+          onClose={() => setShowChangeRole(false)}
+        />
+      )}
 
-      {/* Deactivate confirm */}
       {showDeactivate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="card w-full max-w-sm">
@@ -509,7 +662,7 @@ export default function MemberDetailPage() {
               </h3>
               <p className="mb-6 text-sm text-gray-500">
                 This will deactivate <strong>{member.full_name}</strong>'s
-                account and prevent login. Their records are preserved.
+                account. Their records are preserved.
               </p>
               <div className="flex gap-3">
                 <button

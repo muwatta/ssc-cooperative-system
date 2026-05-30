@@ -31,7 +31,7 @@ export default function MyLoansPage() {
       queryClient.invalidateQueries({ queryKey: ["my-sureties"] });
     },
   });
-
+  
   const declineSurety = useMutation({
     mutationFn: (id: number) => suretiesApi.decline(id),
     onSuccess: () => {
