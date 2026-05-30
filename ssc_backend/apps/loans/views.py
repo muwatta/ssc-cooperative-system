@@ -1,11 +1,15 @@
 """SSC Cooperative — Loans Views"""
 
+from decimal import Decimal
+import csv
+import io
+from django.http import HttpResponse
+from django.utils import timezone
 from rest_framework import generics, status, filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
-from decimal import Decimal
 
 from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee, IsAdminOrCommitteeOrHOS, CanApproveLoan, CanGiveFinalLoanApproval
 from apps.accounts.models import MemberProfile
@@ -15,10 +19,11 @@ from .serializers import (
     LoanApplicationSerializer, SubmitLoanSerializer,
     CommitteeDecisionSerializer, PostRepaymentSerializer,
     LoanRepaymentLedgerSerializer, LoanEligibilitySerializer,
+    LoanSettingsSerializer,
 )
 from .services import (
     check_loan_eligibility, calculate_max_borrowable,
-    submit_loan_application, create_surety_records,
+    get_loan_configuration, submit_loan_application, create_surety_records,
     committee_approve_loan, committee_reject_loan,
     hos_approve_loan, post_repayment, handle_default_or_exit,
 )
@@ -36,13 +41,38 @@ class LoanEligibilityView(APIView):
 
         result    = check_loan_eligibility(profile)
         max_borrow = calculate_max_borrowable(profile)
+        config     = get_loan_configuration()
 
         return Response({
-            "eligible":           result["eligible"],
-            "reasons":            result["reasons"],
-            "max_borrowable":     str(max_borrow),
-            "consecutive_months": profile.consecutive_savings_months,
+            "eligible":                      result["eligible"],
+            "reasons":                       result["reasons"],
+            "max_borrowable":                str(max_borrow),
+            "consecutive_months":            profile.consecutive_savings_months,
+            "required_consecutive_months":   config.consecutive_savings_months_required,
+            "max_repayment_months":          config.max_repayment_months,
+            "loan_amount_ratio":             str(config.self_surety_ratio),
+            "max_sureties":                  config.max_sureties,
+            "min_loan_amount":               str(config.min_loan_amount),
+            "max_loan_amount":               str(config.max_loan_amount),
+            "require_no_active_loan":        config.require_no_active_loan,
+            "require_no_surety_liabilities": config.require_no_surety_liabilities,
         })
+
+
+class LoanSettingsView(APIView):
+    """GET/PATCH /api/v1/loans/settings/ — admin-configured loan rules"""
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        config = get_loan_configuration()
+        return Response(LoanSettingsSerializer(config).data)
+
+    def patch(self, request):
+        config = get_loan_configuration()
+        serializer = LoanSettingsSerializer(config, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class LoanApplicationListView(generics.ListAPIView):
@@ -208,6 +238,122 @@ class LoanRepaymentHistoryView(generics.ListAPIView):
 
     def get_queryset(self):
         return LoanRepaymentLedger.objects.filter(loan_id=self.kwargs["pk"]).order_by("hijri_year", "hijri_month")
+
+
+class LoanRepaymentExportView(APIView):
+    """GET /api/v1/loans/<id>/repayments/export/"""
+    permission_classes = [IsAdminOrCommitteeOrHOS]
+
+    def get(self, request, pk):
+        try:
+            loan = LoanApplication.objects.select_related("applicant").get(pk=pk)
+        except LoanApplication.DoesNotExist:
+            return Response({"error": "Loan not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        repayments = LoanRepaymentLedger.objects.filter(loan=loan).order_by("hijri_year", "hijri_month")
+        export_format = request.query_params.get("format", "csv").lower()
+
+        if export_format == "pdf":
+            try:
+                from reportlab.lib.pagesizes import letter
+                from reportlab.pdfgen import canvas
+            except ImportError:
+                return Response(
+                    {"error": "PDF export requires reportlab. Please install it."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            buffer = io.BytesIO()
+            page_width, page_height = letter
+            pdf = canvas.Canvas(buffer, pagesize=letter)
+            y = page_height - 72
+            pdf.setFont("Helvetica-Bold", 14)
+            pdf.drawString(72, y, "Loan Repayment Schedule")
+            pdf.setFont("Helvetica", 10)
+            y -= 18
+            pdf.drawString(
+                72,
+                y,
+                f"Loan ID: {loan.id} | Applicant: {loan.applicant_name} | Status: {loan.status}",
+            )
+            y -= 14
+            pdf.drawString(
+                72,
+                y,
+                f"Amount Applied: ₦{loan.amount_applied} | Outstanding: ₦{loan.outstanding_balance}",
+            )
+            y -= 14
+            if loan.repayment_start_hijri_year and loan.repayment_start_hijri_month:
+                pdf.drawString(
+                    72,
+                    y,
+                    f"Repayment Start: {loan.repayment_start_hijri_month}/{loan.repayment_start_hijri_year}",
+                )
+                y -= 14
+            if loan.repayment_end_hijri_year and loan.repayment_end_hijri_month:
+                pdf.drawString(
+                    72,
+                    y,
+                    f"Repayment End: {loan.repayment_end_hijri_month}/{loan.repayment_end_hijri_year}",
+                )
+                y -= 14
+            pdf.drawString(72, y, f"Export date: {timezone.localdate().isoformat()}")
+            y -= 24
+
+            headers = ["Hijri", "Amount", "Balance Before", "Balance After", "Posted By", "Posted At"]
+            col_x = [72, 150, 250, 350, 450, 540]
+            for idx, header in enumerate(headers):
+                pdf.drawString(col_x[idx], y, header)
+            y -= 16
+            pdf.setFont("Helvetica", 9)
+
+            for entry in repayments:
+                if y < 72:
+                    pdf.showPage()
+                    y = page_height - 72
+                    pdf.setFont("Helvetica", 9)
+
+                pdf.drawString(col_x[0], y, entry.hijri_display)
+                pdf.drawRightString(col_x[1] + 60, y, f"{entry.amount:.2f}")
+                pdf.drawRightString(col_x[2] + 60, y, f"{entry.balance_before:.2f}")
+                pdf.drawRightString(col_x[3] + 60, y, f"{entry.balance_after:.2f}")
+                pdf.drawString(col_x[4], y, entry.verified_by_name or "")
+                pdf.drawString(col_x[5], y, entry.created_at.isoformat() if hasattr(entry.created_at, 'isoformat') else str(entry.created_at))
+                y -= 14
+
+            pdf.save()
+            buffer.seek(0)
+            response = HttpResponse(buffer.read(), content_type="application/pdf")
+            response["Content-Disposition"] = (
+                f'attachment; filename="loan-{loan.id}-repayments.pdf"'
+            )
+            return response
+
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow([
+            "hijri_display",
+            "amount",
+            "balance_before",
+            "balance_after",
+            "verified_by_name",
+            "created_at",
+        ])
+        for entry in repayments:
+            writer.writerow([
+                entry.hijri_display,
+                str(entry.amount),
+                str(entry.balance_before),
+                str(entry.balance_after),
+                entry.verified_by_name,
+                entry.created_at.isoformat() if hasattr(entry.created_at, 'isoformat') else str(entry.created_at),
+            ])
+
+        response = HttpResponse(buffer.getvalue(), content_type="text/csv")
+        response["Content-Disposition"] = (
+            f'attachment; filename="loan-{loan.id}-repayments.csv"'
+        )
+        return response
 
 
 class LoanDetailView(generics.RetrieveAPIView):

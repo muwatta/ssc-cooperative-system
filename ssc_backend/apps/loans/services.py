@@ -9,12 +9,11 @@ from apps.savings.services import get_or_create_balance, post_debit_entry
 from apps.savings.models import LedgerEntryType
 from apps.sureties.services import create_surety_records
 from utils.hijri import hijri_month_display
-from .models import LoanApplication, LoanRepaymentLedger, LoanStatus
+from .models import LoanApplication, LoanRepaymentLedger, LoanStatus, LoanConfiguration
 
 
-MAX_REPAYMENT_MONTHS = 6   # SRS amended — 6 months max
-MAX_LOANS_PER_YEAR   = 4   # SRS Rule L4
-SELF_SURETY_RATIO    = Decimal("0.75")  # SRS Rule SR1
+def get_loan_configuration() -> LoanConfiguration:
+    return LoanConfiguration.get_solo()
 
 
 def check_loan_eligibility(member: MemberProfile) -> dict:
@@ -23,23 +22,30 @@ def check_loan_eligibility(member: MemberProfile) -> dict:
     Returns {"eligible": bool, "reasons": [str]}
     """
     reasons = []
+    config = get_loan_configuration()
 
-    # 1. 6 consecutive months savings
-    if member.consecutive_savings_months < 6:
-        remaining = 6 - member.consecutive_savings_months
-        reasons.append(f"Need {remaining} more consecutive savings month(s). Currently: {member.consecutive_savings_months}.")
+    # 1. configured consecutive savings requirement
+    if member.consecutive_savings_months < config.consecutive_savings_months_required:
+        remaining = config.consecutive_savings_months_required - member.consecutive_savings_months
+        reasons.append(
+            f"Need {remaining} more consecutive savings month(s). Currently: {member.consecutive_savings_months}."
+        )
 
-    # 2. No active loan
-    active_loan = LoanApplication.objects.filter(
-        applicant=member, status=LoanStatus.ACTIVE
-    ).exists()
-    if active_loan:
-        reasons.append("Member has an active loan. Must clear it before applying.")
+    # 2. Active loan requirement can be optionally enforced
+    if config.require_no_active_loan:
+        active_loan = LoanApplication.objects.filter(
+            applicant=member, status=LoanStatus.ACTIVE
+        ).exists()
+        if active_loan:
+            reasons.append("Member has an active loan. Must clear it before applying.")
 
-    # 3. No active suretyship liabilities
-    balance = get_or_create_balance(member)
-    if balance.suretyship_committed > Decimal("0.00"):
-        reasons.append(f"Member has ₦{balance.suretyship_committed} committed as surety. Must be released first.")
+    # 3. Surety liability requirement can be optionally enforced
+    if config.require_no_surety_liabilities:
+        balance = get_or_create_balance(member)
+        if balance.suretyship_committed > Decimal("0.00"):
+            reasons.append(
+                f"Member has ₦{balance.suretyship_committed} committed as surety. Must be released first."
+            )
 
     # 4. Max 4 loans per calendar year
     from django.utils import timezone
@@ -49,16 +55,19 @@ def check_loan_eligibility(member: MemberProfile) -> dict:
         created_at__year=current_year,
         status__in=[LoanStatus.ACTIVE, LoanStatus.APPROVED, LoanStatus.HOS_APPROVED, LoanStatus.COMPLETED]
     ).count()
-    if loans_this_year >= MAX_LOANS_PER_YEAR:
-        reasons.append(f"Maximum {MAX_LOANS_PER_YEAR} approved loans per year reached.")
+    if loans_this_year >= config.max_loans_per_year:
+        reasons.append(
+            f"Maximum {config.max_loans_per_year} approved loans per year reached."
+        )
 
     return {"eligible": len(reasons) == 0, "reasons": reasons}
 
 
 def calculate_max_borrowable(member: MemberProfile) -> Decimal:
-    """SRS Rule L1 — max 75% of available balance"""
+    """Loan borrowing limit based on available balance and configured ratio."""
+    config = get_loan_configuration()
     balance = get_or_create_balance(member)
-    return (balance.available_balance * SELF_SURETY_RATIO).quantize(Decimal("0.01"))
+    return (balance.available_balance * config.self_surety_ratio).quantize(Decimal("0.01"))
 
 
 @transaction.atomic
@@ -70,8 +79,11 @@ def submit_loan_application(member: MemberProfile, data: dict) -> LoanApplicatio
         raise ValueError(" | ".join(eligibility["reasons"]))
 
     duration = data.get("proposed_duration_months", 6)
-    if duration > MAX_REPAYMENT_MONTHS:
-        raise ValueError(f"Repayment duration cannot exceed {MAX_REPAYMENT_MONTHS} months.")
+    config = get_loan_configuration()
+    if duration > config.max_repayment_months:
+        raise ValueError(
+            f"Repayment duration cannot exceed {config.max_repayment_months} months."
+        )
 
     h_month, h_year = current_hijri()
 

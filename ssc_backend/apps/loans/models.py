@@ -21,6 +21,76 @@ class LoanStatus(models.TextChoices):
     DEFAULTED  = "defaulted",   "Defaulted"
 
 
+class LoanConfiguration(models.Model):
+    consecutive_savings_months_required = models.PositiveSmallIntegerField(
+        default=12,
+        help_text="Number of consecutive savings months required before loan eligibility.",
+    )
+    max_loans_per_year = models.PositiveSmallIntegerField(
+        default=4,
+        help_text="Maximum approved loans per calendar year.",
+    )
+    max_repayment_months = models.PositiveSmallIntegerField(
+        default=6,
+        help_text="Maximum allowed repayment duration in months.",
+    )
+    self_surety_ratio = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=Decimal("0.75"),
+        help_text="Fraction of available balance a member may borrow.",
+    )
+    max_sureties = models.PositiveSmallIntegerField(
+        default=5,
+        help_text="Maximum number of surety members allowed for a loan application.",
+    )
+    min_loan_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("1000.00"),
+        help_text="Minimum loan amount allowed.",
+    )
+    max_loan_amount = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Maximum loan amount allowed. Set 0 for no limit.",
+    )
+    require_no_active_loan = models.BooleanField(
+        default=True,
+        help_text="Require members to clear active loans before applying for a new loan.",
+    )
+    require_no_surety_liabilities = models.BooleanField(
+        default=True,
+        help_text="Require members to have no active surety liabilities before applying.",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "ssc_loan_configuration"
+
+    def __str__(self):
+        return "Loan settings"
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(
+            pk=1,
+            defaults={
+                "consecutive_savings_months_required": 12,
+                "max_loans_per_year": 4,
+                "max_repayment_months": 6,
+                "self_surety_ratio": Decimal("0.75"),
+                "max_sureties": 5,
+                "min_loan_amount": Decimal("1000.00"),
+                "max_loan_amount": Decimal("0.00"),
+                "require_no_active_loan": True,
+                "require_no_surety_liabilities": True,
+            },
+        )
+        return obj
+
+
 class LoanApplication(models.Model):
     """
     SRS Section 5.4 — mirrors physical SSC Ordinary Loan form exactly.
@@ -53,7 +123,7 @@ class LoanApplication(models.Model):
     # ── Repayment plan (SRS 5.3 — 6 months max) ──────────────────
     proposed_monthly_repayment = models.DecimalField(max_digits=12, decimal_places=2)
     proposed_duration_months   = models.PositiveSmallIntegerField(
-        help_text="Maximum 6 months (SRS amended)"
+        help_text="Maximum repayment duration in months, as configured by loan rules."
     )
 
     # Islamic repayment schedule dates

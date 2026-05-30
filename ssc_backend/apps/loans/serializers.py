@@ -2,8 +2,8 @@
 
 from rest_framework import serializers
 from decimal import Decimal
-from .models import LoanApplication, LoanRepaymentLedger, LoanStatus
-from .services import MAX_REPAYMENT_MONTHS, calculate_max_borrowable, check_loan_eligibility
+from .models import LoanApplication, LoanRepaymentLedger, LoanStatus, LoanConfiguration
+from .services import calculate_max_borrowable, check_loan_eligibility, get_loan_configuration
 from apps.sureties.serializers import SuretyRecordSerializer
 
 
@@ -45,7 +45,7 @@ class SubmitLoanSerializer(serializers.Serializer):
     home_address               = serializers.CharField()
     phone_numbers              = serializers.CharField(max_length=100)
     proposed_monthly_repayment = serializers.DecimalField(max_digits=12, decimal_places=2)
-    proposed_duration_months   = serializers.IntegerField(min_value=1, max_value=MAX_REPAYMENT_MONTHS)
+    proposed_duration_months   = serializers.IntegerField(min_value=1, max_value=120)
     date_of_last_loan          = serializers.DateField(required=False, allow_null=True)
     amount_outstanding_prev    = serializers.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     repayment_start_hijri_month = serializers.IntegerField(min_value=1, max_value=12)
@@ -63,13 +63,28 @@ class SubmitLoanSerializer(serializers.Serializer):
     )
 
     def validate_amount_applied(self, value):
-        if value <= Decimal("0.00"):
-            raise serializers.ValidationError("Loan amount must be greater than zero.")
+        config = get_loan_configuration()
+        if value < config.min_loan_amount:
+            raise serializers.ValidationError(
+                f"Loan amount must be at least ₦{config.min_loan_amount}."
+            )
+        if config.max_loan_amount > Decimal("0.00") and value > config.max_loan_amount:
+            raise serializers.ValidationError(
+                f"Loan amount cannot exceed ₦{config.max_loan_amount}."
+            )
         return value
 
     def validate_proposed_monthly_repayment(self, value):
         if value <= Decimal("0.00"):
             raise serializers.ValidationError("Monthly repayment must be greater than zero.")
+        return value
+
+    def validate_proposed_duration_months(self, value):
+        config = get_loan_configuration()
+        if value > config.max_repayment_months:
+            raise serializers.ValidationError(
+                f"Repayment duration cannot exceed {config.max_repayment_months} months."
+            )
         return value
 
     def validate_sureties(self, value):
@@ -84,8 +99,11 @@ class SubmitLoanSerializer(serializers.Serializer):
         except MemberProfile.DoesNotExist:
             raise serializers.ValidationError("No member profile found.")
 
-        if len(value) > 5:
-            raise serializers.ValidationError("Maximum 5 external sureties (SRS SR3).")
+        config = get_loan_configuration()
+        if len(value) > config.max_sureties:
+            raise serializers.ValidationError(
+                f"Maximum {config.max_sureties} external sureties allowed."
+            )
 
         seen = set()
         errors = []
@@ -139,7 +157,7 @@ class SubmitLoanSerializer(serializers.Serializer):
             max_amount = calculate_max_borrowable(profile)
             if attrs["amount_applied"] > max_amount:
                 raise serializers.ValidationError({
-                    "amount_applied": f"Maximum borrowable is ₦{max_amount} (75% of available balance)."
+                    "amount_applied": f"Maximum borrowable is ₦{max_amount} based on configured borrow ratio."
                 })
 
         return attrs
@@ -179,7 +197,31 @@ class LoanRepaymentLedgerSerializer(serializers.ModelSerializer):
 
 
 class LoanEligibilitySerializer(serializers.Serializer):
-    eligible          = serializers.BooleanField()
-    reasons           = serializers.ListField(child=serializers.CharField())
-    max_borrowable    = serializers.DecimalField(max_digits=14, decimal_places=2)
-    consecutive_months = serializers.IntegerField()
+    eligible                   = serializers.BooleanField()
+    reasons                    = serializers.ListField(child=serializers.CharField())
+    max_borrowable             = serializers.DecimalField(max_digits=14, decimal_places=2)
+    consecutive_months         = serializers.IntegerField()
+    required_consecutive_months = serializers.IntegerField()
+    max_repayment_months      = serializers.IntegerField()
+    loan_amount_ratio          = serializers.DecimalField(max_digits=4, decimal_places=2)
+    max_sureties               = serializers.IntegerField()
+    min_loan_amount            = serializers.DecimalField(max_digits=12, decimal_places=2)
+    max_loan_amount            = serializers.DecimalField(max_digits=14, decimal_places=2)
+    require_no_active_loan     = serializers.BooleanField()
+    require_no_surety_liabilities = serializers.BooleanField()
+
+
+class LoanSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LoanConfiguration
+        fields = [
+            "consecutive_savings_months_required",
+            "max_loans_per_year",
+            "max_repayment_months",
+            "self_surety_ratio",
+            "max_sureties",
+            "min_loan_amount",
+            "max_loan_amount",
+            "require_no_active_loan",
+            "require_no_surety_liabilities",
+        ]
