@@ -1,11 +1,10 @@
+import { useEffect, useState, ChangeEvent, FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { loansApi } from "@/api/services";
-import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import type { LoanApplication, Repayment } from "@/types";
 
-// Simple helper functions
 const formatNaira = (amount: string | number | null | undefined): string => {
   if (amount === null || amount === undefined) {
     return "₦0.00";
@@ -44,6 +43,13 @@ export default function LoanDetailPage() {
   const [showRepayment, setShowRepayment] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [repaymentAmount, setRepaymentAmount] = useState("");
+  const [repaymentHijriMonth, setRepaymentHijriMonth] = useState(1);
+  const [repaymentHijriYear, setRepaymentHijriYear] = useState(
+    new Date().getFullYear(),
+  );
+  const [isPostingRepayment, setIsPostingRepayment] = useState(false);
+  const [repaymentError, setRepaymentError] = useState<string | null>(null);
 
   const { data: loan, isLoading } = useQuery<LoanApplication>({
     queryKey: ["loan", loanId],
@@ -81,43 +87,59 @@ export default function LoanDetailPage() {
     setPage(1);
   }, [repayments, pageSize]);
 
-  const exportCsv = () => {
-    if (!repaymentsList.length) return;
-    const headers = [
-      "hijri",
-      "amount",
-      "balance_before",
-      "balance_after",
-      "posted_by",
-      "posted_at",
-    ];
-    const rows = repaymentsList.map((r) => [
-      r.hijri_display,
-      r.amount,
-      r.balance_before,
-      r.balance_after,
-      r.verified_by_name,
-      r.created_at,
-    ]);
-    const csv = [headers, ...rows]
-      .map((r) =>
-        r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","),
-      )
-      .join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `loan-${loanId}-repayments.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportRepayments = async (format: "csv" | "pdf") => {
+    if (!loanId || repaymentsList.length === 0) return;
+    setIsExporting(true);
+    try {
+      const res = await loansApi.exportRepayments(loanId, format);
+      const blob = new Blob([res.data], {
+        type: format === "pdf" ? "application/pdf" : "text/csv;charset=utf-8;",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `loan-${loanId}-repayments.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const invalidateRepayments = () => {
     qc.invalidateQueries({ queryKey: ["loan-repayments", loanId] });
     qc.invalidateQueries({ queryKey: ["loan", loanId] });
+  };
+
+  const handlePostRepayment = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!loanId) return;
+
+    setIsPostingRepayment(true);
+    setRepaymentError(null);
+
+    try {
+      await loansApi.postRepayment(loanId, {
+        amount: repaymentAmount,
+        hijri_month: repaymentHijriMonth,
+        hijri_year: repaymentHijriYear,
+      });
+      invalidateRepayments();
+      setShowRepayment(false);
+      setRepaymentAmount("");
+      setRepaymentHijriMonth(1);
+      setRepaymentHijriYear(new Date().getFullYear());
+    } catch (error) {
+      setRepaymentError(
+        "Unable to post repayment. Please check the values and try again.",
+      );
+    } finally {
+      setIsPostingRepayment(false);
+    }
   };
 
   if (isLoading) return <PageLoader />;
@@ -208,14 +230,30 @@ export default function LoanDetailPage() {
 
       {/* Repayments Table */}
       <div className="bg-white rounded-lg shadow">
-        <div className="p-4 border-b flex justify-between items-center">
+        <div className="p-4 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <h3 className="font-semibold">Repayment History</h3>
-          <button
-            onClick={exportCsv}
-            className="bg-gray-200 px-3 py-1 rounded text-sm hover:bg-gray-300"
-          >
-            Export CSV
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => window.print()}
+              className="bg-gray-200 px-3 py-1 rounded text-sm hover:bg-gray-300"
+            >
+              Print
+            </button>
+            <button
+              onClick={() => exportRepayments("csv")}
+              disabled={isExporting || repaymentsList.length === 0}
+              className="bg-gray-200 px-3 py-1 rounded text-sm hover:bg-gray-300 disabled:opacity-50"
+            >
+              Export CSV
+            </button>
+            <button
+              onClick={() => exportRepayments("pdf")}
+              disabled={isExporting || repaymentsList.length === 0}
+              className="bg-gray-200 px-3 py-1 rounded text-sm hover:bg-gray-300 disabled:opacity-50"
+            >
+              Export PDF
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -274,7 +312,6 @@ export default function LoanDetailPage() {
                 <option value="25">25</option>
                 <option value="50">50</option>
               </select>
-
             </div>
             <div className="flex gap-2">
               <button
@@ -304,34 +341,79 @@ export default function LoanDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
             <h2 className="text-xl font-semibold mb-4">Post Loan Repayment</h2>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const amount = formData.get("amount");
-                if (amount) {
-                  // Call API here
-                  alert(`Repayment of ₦${amount} posted successfully`);
-                  invalidateRepayments();
-                  setShowRepayment(false);
-                }
-              }}
-            >
-              <div className="mb-4">
-                <label className="block text-sm mb-1">Amount (₦)</label>
-                <input
-                  name="amount"
-                  type="number"
-                  className="w-full border rounded px-3 py-2"
-                  placeholder="Enter amount"
-                  required
-                  min={1}
-                  max={parseFloat(loan.outstanding_balance)}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Outstanding:{" "}
-                  {formatNaira(parseFloat(loan.outstanding_balance) || 0)}
-                </p>
+            <form onSubmit={handlePostRepayment}>
+              {repaymentError && (
+                <div className="mb-4 rounded-lg bg-danger-50 border border-danger-200 px-4 py-3 text-danger-700">
+                  {repaymentError}
+                </div>
+              )}
+              <div className="grid gap-4 md:grid-cols-2 mb-4">
+                <div>
+                  <label
+                    htmlFor="repayment-amount"
+                    className="block text-sm mb-1"
+                  >
+                    Amount (₦)
+                  </label>
+                  <input
+                    id="repayment-amount"
+                    value={repaymentAmount}
+                    onChange={(event) => setRepaymentAmount(event.target.value)}
+                    type="number"
+                    className="w-full border rounded px-3 py-2"
+                    placeholder="Enter amount"
+                    required
+                    min={0.01}
+                    step="0.01"
+                    max={parseFloat(loan.outstanding_balance) || undefined}
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="repayment-hijri-month"
+                    className="block text-sm mb-1"
+                  >
+                    Hijri Month
+                  </label>
+                  <input
+                    id="repayment-hijri-month"
+                    value={repaymentHijriMonth}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                      setRepaymentHijriMonth(Number(event.target.value))
+                    }
+                    type="number"
+                    className="w-full border rounded px-3 py-2"
+                    min={1}
+                    max={12}
+                    placeholder="1-12"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 mb-4">
+                <div>
+                  <label
+                    htmlFor="repayment-hijri-year"
+                    className="block text-sm mb-1"
+                  >
+                    Hijri Year
+                  </label>
+                  <input
+                    id="repayment-hijri-year"
+                    value={repaymentHijriYear}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                      setRepaymentHijriYear(Number(event.target.value))
+                    }
+                    type="number"
+                    className="w-full border rounded px-3 py-2"
+                    min={1}
+                    placeholder="1445"
+                    required
+                  />
+                </div>
+                <div className="pt-6 text-sm text-gray-500">
+                  Outstanding: {formatNaira(loan.outstanding_balance)}
+                </div>
               </div>
               <div className="flex gap-3">
                 <button
@@ -343,9 +425,10 @@ export default function LoanDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                  disabled={isPostingRepayment}
+                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
                 >
-                  Post Repayment
+                  {isPostingRepayment ? "Posting..." : "Post Repayment"}
                 </button>
               </div>
             </form>

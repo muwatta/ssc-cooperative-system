@@ -324,11 +324,13 @@ export default function ApplyLoanPage() {
                   Consecutive Savings Months
                 </p>
                 <p className="text-xl font-bold text-primary-700">
-                  {eligibility.consecutive_months} / 6
+                  {eligibility.consecutive_months} /{" "}
+                  {eligibility.required_consecutive_months}
                   <span className="ml-2 text-sm font-normal text-gray-500">
-                    {eligibility.consecutive_months >= 6
+                    {eligibility.consecutive_months >=
+                    eligibility.required_consecutive_months
                       ? "(Required met)"
-                      : "(Required: 6 months)"}
+                      : `(Required: ${eligibility.required_consecutive_months} months)`}
                   </span>
                 </p>
               </div>
