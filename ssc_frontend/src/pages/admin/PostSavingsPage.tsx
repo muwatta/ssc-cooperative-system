@@ -4,7 +4,6 @@ import { membersApi, savingsApi } from "@/api/services";
 import type { MemberSummary } from "@/types";
 
 interface FormData {
-  member: number;
   amount: number;
   hijri_month: number;
   hijri_year: number;
@@ -13,6 +12,8 @@ interface FormData {
 export default function PostSavingsPage() {
   const [members, setMembers] = useState<MemberSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("");
+  const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [serverMessage, setServerMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
 
@@ -61,22 +62,84 @@ export default function PostSavingsPage() {
     };
   }, []);
 
+  const visibleMembers = members.filter((m) => {
+    if (!filter) return true;
+    const q = filter.toLowerCase();
+    return (
+      m.file_number.toLowerCase().includes(q) ||
+      m.full_name.toLowerCase().includes(q)
+    );
+  });
+
   const onSubmit = async (data: FormData) => {
+    if (selectedMemberIds.length === 0) {
+      setServerMessage(
+        "Please select at least one member to post savings for.",
+      );
+      setIsError(true);
+      return;
+    }
+
     setServerMessage(null);
     setIsError(false);
 
     try {
-      await savingsApi.postSavings(data);
-      setServerMessage("Savings entry posted successfully.");
+      await savingsApi.postSavings({
+        member_ids: selectedMemberIds,
+        amount: data.amount,
+        hijri_month: data.hijri_month,
+        hijri_year: data.hijri_year,
+      });
+      setServerMessage(
+        selectedMemberIds.length > 1
+          ? "Savings entry posted successfully for selected members."
+          : "Savings entry posted successfully.",
+      );
       reset({
         amount: 0,
         hijri_month: data.hijri_month,
         hijri_year: data.hijri_year,
       });
+      setSelectedMemberIds([]);
     } catch {
       setServerMessage("Failed to post savings. Please try again.");
       setIsError(true);
     }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedMemberIds(visibleMembers.map((m) => m.id));
+    } else {
+      setSelectedMemberIds([]);
+    }
+  };
+
+  const handleCsvUpload = (file?: File | null) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result || "");
+      const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      // match by file_number or staff id if present in members list
+      const matchedIds: number[] = [];
+      const lookupByFile = new Map(members.map((m) => [m.file_number.toLowerCase(), m.id]));
+      const lookupByName = new Map(members.map((m) => [m.full_name.toLowerCase(), m.id]));
+      for (const line of lines) {
+        const key = line.toLowerCase();
+        if (lookupByFile.has(key)) matchedIds.push(lookupByFile.get(key)!);
+        else if (lookupByName.has(key)) matchedIds.push(lookupByName.get(key)!);
+      }
+      if (matchedIds.length === 0) {
+        setServerMessage("No matching members found in CSV.");
+        setIsError(true);
+      } else {
+        setSelectedMemberIds(Array.from(new Set([...selectedMemberIds, ...matchedIds])));
+        setServerMessage(`${matchedIds.length} members selected from CSV.`);
+        setIsError(false);
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -101,27 +164,60 @@ export default function PostSavingsPage() {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="flex items-center gap-4">
+          <input
+            placeholder="Search by file number or name"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="input flex-1"
+          />
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={visibleMembers.length > 0 && visibleMembers.every((m) => selectedMemberIds.includes(m.id))}
+              onChange={(e) => handleSelectAll(e.target.checked)}
+            />
+            <span className="text-sm">Select visible</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              onChange={(e) => handleCsvUpload(e.target.files ? e.target.files[0] : null)}
+              className="hidden"
+            />
+            <button type="button" className="btn-ghost">Upload CSV</button>
+          </label>
+        </div>
         <div>
-          <label className="label">Member</label>
+          <label htmlFor="member-select" className="label">
+            Member(s)
+          </label>
           <select
-            {...register("member", { required: "Please select a member" })}
-            className="input"
+            id="member-select"
+            multiple
+            value={selectedMemberIds.map(String)}
+            onChange={(event) =>
+              setSelectedMemberIds(
+                Array.from(event.target.selectedOptions, (option) => Number(option.value)),
+              )
+            }
+            className="input h-40"
             disabled={loading}
           >
-            <option value="">Select a member</option>
             {loading ? (
               <option disabled>Loading members...</option>
             ) : (
-              members.map((member) => (
+              visibleMembers.map((member) => (
                 <option key={member.id} value={member.id}>
                   {member.file_number} — {member.full_name}
                 </option>
               ))
             )}
           </select>
-          {errors.member && (
-            <p className="field-error">{errors.member.message}</p>
-          )}
+          <p className="text-xs text-gray-500 mt-2">
+            Hold Ctrl (Windows) or Cmd (Mac) to select multiple members.
+          </p>
           {!loading && members.length === 0 && (
             <p className="field-error">No members found</p>
           )}
