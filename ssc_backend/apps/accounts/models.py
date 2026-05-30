@@ -287,7 +287,7 @@ class MemberProfile(models.Model):
     # ── Consecutive savings tracker (SRS M1, M2, S5) ───────────────
     consecutive_savings_months = models.PositiveIntegerField(
         default=0,
-        help_text="Resets to 0 when a month is missed. 6 required for loan/surety eligibility."
+        help_text="Resets to 0 when a month is missed. Requirement is governed by admin-configured loan rules.",
     )
 
     # ── Timestamps
@@ -311,9 +311,12 @@ class MemberProfile(models.Model):
         Actual check also queries savings and loans — done in the view/serializer layer.
         This property covers only what's on the profile itself.
         """
+        from apps.loans.services import get_loan_configuration
+
+        config = get_loan_configuration()
         return (
             self.membership_status == MembershipStatus.ACTIVE
-            and self.consecutive_savings_months >= 6
+            and self.consecutive_savings_months >= config.consecutive_savings_months_required
         )
 
     @property

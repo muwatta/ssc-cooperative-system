@@ -12,6 +12,8 @@ class Command(BaseCommand):
         parser.add_argument('--staff-id-template', type=str, default='S{seq:04d}', help='Template for generated staff IDs, use {seq} placeholder')
         parser.add_argument('--create-registry', action='store_true', help='Create StaffIDRegistry entries for generated staff IDs')
         parser.add_argument('--field-map', type=str, help='JSON string mapping target_field->csv_column')
+        parser.add_argument('--send-invitations', action='store_true', help='Send onboarding invitation emails to created users after import')
+        parser.add_argument('--frontend-url', type=str, help='Frontend base URL to include in invitation links')
 
     def handle(self, *args, **options):
         path = options['csv_path']
@@ -35,6 +37,8 @@ class Command(BaseCommand):
                     field_map=field_map,
                     staff_id_template=options.get('staff_id_template'),
                     create_staff_id_registry=options.get('create_registry'),
+                    send_invitations=options.get('send_invitations'),
+                    frontend_url=options.get('frontend_url'),
                 )
         except FileNotFoundError:
             raise CommandError(f"File not found: {path}")

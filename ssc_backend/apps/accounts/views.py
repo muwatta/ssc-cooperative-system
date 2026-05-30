@@ -309,6 +309,8 @@ class LegacyImportView(APIView):
         csv_file = request.FILES.get('file')
         dry_run = request.data.get('dry_run') in ("true", "1", True)
         download_errors = request.data.get('download_errors') in ("true", "1", True)
+        send_invitations = request.data.get('send_invitations') in ("true", "1", True)
+        frontend_url = request.data.get('frontend_url') or None
         staff_id_template = request.data.get('staff_id_template') or "S{seq:04d}"
         create_registry = request.data.get('create_registry') in ("true", "1", True)
         field_map = None
@@ -318,6 +320,12 @@ class LegacyImportView(APIView):
                 field_map = json.loads(request.data.get('field_map'))
             except Exception:
                 return Response({"error": "Invalid field_map JSON."}, status=status.HTTP_400_BAD_REQUEST)
+
+        start_seq = request.data.get('start_seq')
+        try:
+            start_seq = int(start_seq) if start_seq is not None else 9000
+        except (TypeError, ValueError):
+            return Response({"error": "Invalid start_seq value."}, status=status.HTTP_400_BAD_REQUEST)
 
         if not csv_file:
             return Response({"error": "CSV file is required (field name: file)."}, status=status.HTTP_400_BAD_REQUEST)
@@ -329,6 +337,9 @@ class LegacyImportView(APIView):
             field_map=field_map,
             staff_id_template=staff_id_template,
             create_staff_id_registry=create_registry,
+            start_seq=start_seq,
+            send_invitations=send_invitations,
+            frontend_url=frontend_url,
         )
 
         # If requested and there are errors, return CSV attachment
