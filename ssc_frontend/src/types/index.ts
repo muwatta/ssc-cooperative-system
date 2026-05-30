@@ -268,6 +268,26 @@ export interface LoanEligibilityResponse {
   reasons: string[];
   max_borrowable: string;
   consecutive_months: number;
+  required_consecutive_months: number;
+  max_repayment_months: number;
+  loan_amount_ratio: string;
+  max_sureties: number;
+  min_loan_amount: string;
+  max_loan_amount: string;
+  require_no_active_loan: boolean;
+  require_no_surety_liabilities: boolean;
+}
+
+export interface LoanSettings {
+  consecutive_savings_months_required: number;
+  max_loans_per_year: number;
+  max_repayment_months: number;
+  self_surety_ratio: number;
+  max_sureties: number;
+  min_loan_amount: number;
+  max_loan_amount: number;
+  require_no_active_loan: boolean;
+  require_no_surety_liabilities: boolean;
 }
 
 export interface Repayment {

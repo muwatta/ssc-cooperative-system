@@ -175,15 +175,40 @@ export const savingsApi = {
       date_from?: string;
       date_to?: string;
     },
+    format: "csv" | "pdf" = "csv",
   ) =>
     api.get<Blob>(`/savings/ledger/${memberId}/export/`, {
-      params,
+      params: {
+        ...params,
+        format,
+      },
+      responseType: "blob",
+    }),
+
+  exportBulkReport: (
+    params?: {
+      member_id?: number;
+      member_ids?: string;
+      hijri_month?: number;
+      hijri_year?: number;
+      date_from?: string;
+      date_to?: string;
+      entry_type?: string;
+    },
+    format: "csv" | "pdf" = "csv",
+  ) =>
+    api.get<Blob>(`/savings/reports/export/`, {
+      params: {
+        ...params,
+        format,
+      },
       responseType: "blob",
     }),
 
   // Post monthly savings entry (Admin only)
   postSavings: (data: {
-    member: number;
+    member?: number;
+    member_ids?: number[];
     amount: string | number;
     hijri_month: number;
     hijri_year: number;
@@ -234,6 +259,10 @@ export const loansApi = {
 
   eligibility: () => api.get<LoanEligibilityResponse>("/loans/eligibility/"),
 
+  settings: () => api.get<LoanSettings>("/loans/settings/"),
+  updateSettings: (data: Partial<LoanSettings>) =>
+    api.patch<LoanSettings>("/loans/settings/", data),
+
   apply: (data: Record<string, unknown>) =>
     api.post<LoanApplication>("/loans/apply/", data),
 
@@ -249,6 +278,12 @@ export const loansApi = {
     api.post(`/loans/${id}/repayment/`, data),
 
   repaymentHistory: (id: number) => api.get(`/loans/${id}/repayments/`),
+
+  exportRepayments: (id: number, format: "csv" | "pdf" = "csv") =>
+    api.get<Blob>(`/loans/${id}/repayments/export/`, {
+      params: { format },
+      responseType: "blob",
+    }),
 };
 
 export const suretiesApi = {
