@@ -248,7 +248,8 @@ export default function DashboardPage() {
           <>
             {balances?.member === null && balances ? (
               <div className="mt-4 rounded-lg border border-warning-200 bg-warning-50 p-4 text-sm text-warning-700">
-                Member balance not available for this role.
+                ℹ️ No savings profile linked to this account. 
+                Personal balance will appear here once a member profile is created and linked by an administrator.
               </div>
             ) : null}
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">

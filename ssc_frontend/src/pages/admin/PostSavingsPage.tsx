@@ -120,11 +120,18 @@ export default function PostSavingsPage() {
     const reader = new FileReader();
     reader.onload = () => {
       const text = String(reader.result || "");
-      const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const lines = text
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
       // match by file_number or staff id if present in members list
       const matchedIds: number[] = [];
-      const lookupByFile = new Map(members.map((m) => [m.file_number.toLowerCase(), m.id]));
-      const lookupByName = new Map(members.map((m) => [m.full_name.toLowerCase(), m.id]));
+      const lookupByFile = new Map(
+        members.map((m) => [m.file_number.toLowerCase(), m.id]),
+      );
+      const lookupByName = new Map(
+        members.map((m) => [m.full_name.toLowerCase(), m.id]),
+      );
       for (const line of lines) {
         const key = line.toLowerCase();
         if (lookupByFile.has(key)) matchedIds.push(lookupByFile.get(key)!);
@@ -134,7 +141,9 @@ export default function PostSavingsPage() {
         setServerMessage("No matching members found in CSV.");
         setIsError(true);
       } else {
-        setSelectedMemberIds(Array.from(new Set([...selectedMemberIds, ...matchedIds])));
+        setSelectedMemberIds(
+          Array.from(new Set([...selectedMemberIds, ...matchedIds])),
+        );
         setServerMessage(`${matchedIds.length} members selected from CSV.`);
         setIsError(false);
       }
@@ -174,7 +183,10 @@ export default function PostSavingsPage() {
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              checked={visibleMembers.length > 0 && visibleMembers.every((m) => selectedMemberIds.includes(m.id))}
+              checked={
+                visibleMembers.length > 0 &&
+                visibleMembers.every((m) => selectedMemberIds.includes(m.id))
+              }
               onChange={(e) => handleSelectAll(e.target.checked)}
             />
             <span className="text-sm">Select visible</span>
@@ -183,10 +195,14 @@ export default function PostSavingsPage() {
             <input
               type="file"
               accept=".csv,text/csv"
-              onChange={(e) => handleCsvUpload(e.target.files ? e.target.files[0] : null)}
+              onChange={(e) =>
+                handleCsvUpload(e.target.files ? e.target.files[0] : null)
+              }
               className="hidden"
             />
-            <button type="button" className="btn-ghost">Upload CSV</button>
+            <button type="button" className="btn-ghost">
+              Upload CSV
+            </button>
           </label>
         </div>
         <div>
@@ -199,7 +215,9 @@ export default function PostSavingsPage() {
             value={selectedMemberIds.map(String)}
             onChange={(event) =>
               setSelectedMemberIds(
-                Array.from(event.target.selectedOptions, (option) => Number(option.value)),
+                Array.from(event.target.selectedOptions, (option) =>
+                  Number(option.value),
+                ),
               )
             }
             className="input h-40"
