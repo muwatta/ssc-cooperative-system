@@ -371,3 +371,46 @@ class SendInvitationsView(APIView):
 
         summary = send_bulk_invitations(user_ids, frontend_url=frontend_url)
         return Response(summary)
+
+
+
+class ChangeMemberRoleView(APIView):
+    
+    permission_classes = [IsAdmin]
+
+    def post(self, request, pk):
+        try:
+            profile = MemberProfile.objects.select_related("user").get(pk=pk)
+        except MemberProfile.DoesNotExist:
+            return Response(
+                {"error": "Member not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Cannot change own role
+        if profile.user == request.user:
+            return Response(
+                {"error": "You cannot change your own role."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        new_role = request.data.get("role", "").strip()
+        valid_roles = ("staff", "committee", "head_of_school", "admin")
+
+        if new_role not in valid_roles:
+            return Response(
+                {"error": f"Invalid role. Must be one of: {', '.join(valid_roles)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        old_role = profile.user.role
+        profile.user.role = new_role
+        profile.user.save(update_fields=["role", "updated_at"])
+
+        return Response({
+            "message": f"{profile.full_name} role changed from {old_role} to {new_role}.",
+            "file_number": profile.file_number,
+            "full_name": profile.full_name,
+            "old_role": old_role,
+            "new_role": new_role,
+        })

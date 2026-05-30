@@ -377,3 +377,45 @@ class HandleDefaultView(APIView):
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"message": "Loan defaulted. Balance transferred to sureties.", "detail": result})
+
+
+class LoanRepaymentExportAsyncView(APIView):
+    """POST /api/v1/loans/<id>/repayments/export-async/ — queue async PDF export"""
+    permission_classes = [IsAdminOrCommitteeOrHOS]
+
+    def post(self, request, pk):
+        from apps.loans.tasks import generate_loan_repayment_pdf
+        
+        try:
+            loan = LoanApplication.objects.get(pk=pk)
+        except LoanApplication.DoesNotExist:
+            return Response(
+                {"error": "Loan not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Queue async task
+        task = generate_loan_repayment_pdf.delay(pk)
+        
+        return Response({
+            "message": "PDF export queued",
+            "task_id": task.id,
+            "status": "pending"
+        }, status=status.HTTP_202_ACCEPTED)
+
+
+class TaskStatusView(APIView):
+    """GET /api/v1/tasks/<task_id>/ — get async task status"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, task_id):
+        from celery.result import AsyncResult
+        
+        task = AsyncResult(task_id)
+        
+        return Response({
+            "task_id": task_id,
+            "status": task.status,
+            "result": task.result if task.status == "SUCCESS" else None,
+            "error": str(task.info) if task.status == "FAILURE" else None,
+        })

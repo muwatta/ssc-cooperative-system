@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import (
+    ChangeMemberRoleView,
     SetInitialPasswordView,
     CreateUserView,
     StaffIDRegistryListCreateView,
@@ -12,6 +13,7 @@ from .views import (
     DeactivateMemberView,
     LegacyImportView,
     SendInvitationsView,
+    ChangeMemberRoleView,
 
 )
 
@@ -28,4 +30,6 @@ urlpatterns = [
     path("members/<int:pk>/deactivate/", DeactivateMemberView.as_view(), name="member-deactivate"),
     path("members/legacy-import/", LegacyImportView.as_view(), name="member-legacy-import"),
     path("members/invitations/send/", SendInvitationsView.as_view(), name="member-invitations-send"),
+    path("members/<int:pk>/change-role/", ChangeMemberRoleView.as_view(), name="member-change-role"),
+
 ]

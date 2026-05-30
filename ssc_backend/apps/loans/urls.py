@@ -4,6 +4,7 @@ from .views import (
     SubmitLoanView, CommitteeDecisionView, HOSApprovalView,
     PostRepaymentView, LoanRepaymentHistoryView, LoanRepaymentExportView,
     LoanDetailView, HandleDefaultView, LoanSettingsView,
+    LoanRepaymentExportAsyncView, TaskStatusView,
 )
 
 urlpatterns = [
@@ -18,5 +19,7 @@ urlpatterns = [
     path("<int:pk>/repayment/",            PostRepaymentView.as_view(),            name="loan-repayment"),
     path("<int:pk>/repayments/",           LoanRepaymentHistoryView.as_view(),     name="loan-repayment-history"),
     path("<int:pk>/repayments/export/",    LoanRepaymentExportView.as_view(),      name="loan-repayment-export"),
+    path("<int:pk>/repayments/export-async/", LoanRepaymentExportAsyncView.as_view(), name="loan-repayment-export-async"),
     path("<int:pk>/default/",              HandleDefaultView.as_view(),            name="loan-default"),
+    path("tasks/<str:task_id>/",           TaskStatusView.as_view(),               name="task-status"),
 ]

@@ -84,8 +84,6 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 # DATABASE — Supabase PostgreSQL
-# Reads from DATABASE_URL env variable.
-# conn_max_age=600 keeps connections alive (important for Railway/Render cold starts)
 DATABASES = {
     "default": dj_database_url.config(
         default=config("DATABASE_URL"),
@@ -94,6 +92,14 @@ DATABASES = {
         ssl_require=True, 
     )
 }
+
+# DATABASES = {
+#     "default": dj_database_url.config(
+#         default=config("DATABASE_URL"),
+#         conn_max_age=600,
+#         conn_health_checks=True,
+#     )
+# }
 
 # CUSTOM AUTH USER MODEL
 AUTH_USER_MODEL = "accounts.User"
@@ -167,7 +173,7 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # PRODUCTION SECURITY HARDENING
-# Only active when ENVIRONMENT=production
+
 if ENVIRONMENT == "production":
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -178,3 +184,19 @@ if ENVIRONMENT == "production":
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+
+# CELERY — Async task queue
+CELERY_BROKER_URL = config(
+    "CELERY_BROKER_URL",
+    default="redis://localhost:6379/0"
+)
+CELERY_RESULT_BACKEND = config(
+    "CELERY_RESULT_BACKEND",
+    default="redis://localhost:6379/0"
+)
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_ALWAYS_EAGER = config("CELERY_TASK_ALWAYS_EAGER", default=False, cast=bool)  # For testing
+CELERY_TASK_EAGER_PROPAGATES = True
