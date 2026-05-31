@@ -258,7 +258,15 @@ class RejectSavingsChangeView(APIView):
         return Response(SavingsChangeRequestSerializer(change_req).data)
 
 
-# Termly Dues
+class PendingChangeRequestsCountView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role in ("admin", "committee"):
+            count = SavingsChangeRequest.objects.filter(status="pending").count()
+        else:
+            count = 0
+        return Response({"count": count})
 
 class DuesCycleListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAdmin]

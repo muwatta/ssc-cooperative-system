@@ -7,6 +7,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
 from .models import User, StaffIDRegistry, MemberProfile
 from .serializers import (
@@ -414,3 +416,30 @@ class ChangeMemberRoleView(APIView):
             "old_role": old_role,
             "new_role": new_role,
         })
+
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        current = request.data.get("current_password")
+        new = request.data.get("new_password")
+        confirm = request.data.get("confirm_password")
+
+        if not user.check_password(current):
+            return Response({"error": "Current password is incorrect."}, status=400)
+
+        if new != confirm:
+            return Response({"error": "New passwords do not match."}, status=400)
+
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError
+        try:
+            validate_password(new, user)
+        except ValidationError as e:
+            return Response({"error": e.messages}, status=400)
+
+        user.set_password(new)
+        user.save()
+        return Response({"message": "Password changed successfully."})

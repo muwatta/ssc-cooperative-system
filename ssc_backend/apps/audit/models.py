@@ -63,3 +63,15 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"{self.get_action_display()} by {self.user or 'System'}"
+    
+
+class MemberProfileAudit(models.Model):
+    member = models.ForeignKey("accounts.MemberProfile", on_delete=models.CASCADE)
+    changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    field_name = models.CharField(max_length=100)
+    old_value = models.TextField(blank=True, null=True)
+    new_value = models.TextField(blank=True, null=True)
+    changed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-changed_at"]

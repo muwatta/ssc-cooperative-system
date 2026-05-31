@@ -276,7 +276,6 @@ class CreateMemberSerializer(serializers.Serializer):
     )
 
     def validate_staff_id(self, value):
-        # Must exist in registry
         if not StaffIDRegistry.objects.filter(staff_id=value, is_active=True).exists():
             raise serializers.ValidationError(
                 "This Staff ID is not in the registry or has been deactivated."
