@@ -132,6 +132,7 @@ export interface SavingsChangeRequest {
   id: number;
   member: number;
   member_file_number: string;
+  member_user_id: number;
   member_name: string;
   current_amount: string;
   requested_amount: string;

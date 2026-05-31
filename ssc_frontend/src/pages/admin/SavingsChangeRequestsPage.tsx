@@ -9,6 +9,7 @@ import {
 } from "@/components/common";
 import { HIJRI_MONTHS } from "@/types";
 import type { SavingsChangeRequest } from "@/types";
+import { useAuth } from "@/context/AuthContext";
 
 function ApproveModal({
   request,
@@ -116,6 +117,7 @@ function ApproveModal({
 
 export default function SavingsChangeRequestsPage() {
   const qc = useQueryClient();
+  const { user } = useAuth(); // current logged‑in user
   const [selectedRequest, setSelectedRequest] =
     useState<SavingsChangeRequest | null>(null);
   const [statusFilter, setStatusFilter] = useState("pending");
@@ -175,74 +177,85 @@ export default function SavingsChangeRequestsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {requests.map((req) => (
-            <div key={req.id} className="card p-4">
-              <div className="flex flex-wrap justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <p className="font-semibold text-gray-900">
-                      {req.member_name}
-                    </p>
-                    <p className="text-xs text-gray-400 font-mono">
-                      {req.member_file_number}
-                    </p>
-                    {req.status === "pending" && (
-                      <span className="badge-warning text-xs">Pending</span>
-                    )}
-                    {req.status === "approved" && (
-                      <span className="badge-success text-xs">Approved</span>
-                    )}
-                    {req.status === "rejected" && (
-                      <span className="badge-danger text-xs">Rejected</span>
-                    )}
-                  </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-gray-500">Current amount:</span>{" "}
-                      <span className="font-medium">
-                        {formatNaira(req.current_amount)}
-                      </span>
+          {requests.map((req) => {
+            const isOwnRequest = req.member_user_id === user?.user_id;
+            return (
+              <div key={req.id} className="card p-4">
+                <div className="flex flex-wrap justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <p className="font-semibold text-gray-900">
+                        {req.member_name}
+                      </p>
+                      <p className="text-xs text-gray-400 font-mono">
+                        {req.member_file_number}
+                      </p>
+                      {req.status === "pending" && (
+                        <span className="badge-warning text-xs">Pending</span>
+                      )}
+                      {req.status === "approved" && (
+                        <span className="badge-success text-xs">Approved</span>
+                      )}
+                      {req.status === "rejected" && (
+                        <span className="badge-danger text-xs">Rejected</span>
+                      )}
                     </div>
-                    <div>
-                      <span className="text-gray-500">Requested amount:</span>{" "}
-                      <span className="font-medium text-primary-700">
-                        {formatNaira(req.requested_amount)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Submitted:</span>{" "}
-                      {new Date(req.submitted_at).toLocaleDateString()}
-                    </div>
-                    {req.effective_hijri_display && (
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
                       <div>
-                        <span className="text-gray-500">Effective from:</span>{" "}
-                        {req.effective_hijri_display}
+                        <span className="text-gray-500">Current amount:</span>{" "}
+                        <span className="font-medium">
+                          {formatNaira(req.current_amount)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Requested amount:</span>{" "}
+                        <span className="font-medium text-primary-700">
+                          {formatNaira(req.requested_amount)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Submitted:</span>{" "}
+                        {new Date(req.submitted_at).toLocaleDateString()}
+                      </div>
+                      {req.effective_hijri_display && (
+                        <div>
+                          <span className="text-gray-500">Effective from:</span>{" "}
+                          {req.effective_hijri_display}
+                        </div>
+                      )}
+                    </div>
+                    {req.status === "pending" && (
+                      <div className="mt-3 flex gap-2">
+                        {isOwnRequest ? (
+                          <span className="text-xs text-gray-400 italic">
+                            You cannot approve your own request
+                          </span>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setSelectedRequest(req)}
+                              className="btn-primary btn-sm"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm("Reject this request?"))
+                                  rejectMutation.mutate(req.id);
+                              }}
+                              className="btn-danger btn-sm"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
-                  {req.status === "pending" && (
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        onClick={() => setSelectedRequest(req)}
-                        className="btn-primary btn-sm"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm("Reject this request?"))
-                            rejectMutation.mutate(req.id);
-                        }}
-                        className="btn-danger btn-sm"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

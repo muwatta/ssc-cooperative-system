@@ -95,21 +95,22 @@ class PostSavingsSerializer(serializers.Serializer):
 
 
 class SavingsChangeRequestSerializer(serializers.ModelSerializer):
-    member_file_number   = serializers.CharField(source="member.file_number", read_only=True)
-    member_name          = serializers.CharField(source="member.full_name", read_only=True)
+    member_file_number = serializers.CharField(source="member.file_number", read_only=True)
+    member_name        = serializers.CharField(source="member.full_name", read_only=True)
+    member_user_id     = serializers.IntegerField(source="member.user.id", read_only=True)   # new
     effective_hijri_display = serializers.CharField(read_only=True)
 
     class Meta:
-        model  = SavingsChangeRequest
+        model = SavingsChangeRequest
         fields = [
-            "id", "member", "member_file_number", "member_name",
+            "id", "member", "member_file_number", "member_name", "member_user_id",
             "current_amount", "requested_amount",
             "savings_balance_at_request", "loan_balance_at_request",
             "effective_hijri_month", "effective_hijri_year", "effective_hijri_display",
             "status", "approved_by_name", "submitted_at", "approved_at",
         ]
         read_only_fields = [
-            "id", "member", "member_file_number", "member_name",
+            "id", "member", "member_file_number", "member_name", "member_user_id",
             "current_amount", "savings_balance_at_request", "loan_balance_at_request",
             "status", "approved_by_name", "submitted_at", "approved_at",
             "effective_hijri_display",
