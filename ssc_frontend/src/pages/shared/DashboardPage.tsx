@@ -113,28 +113,34 @@ export default function DashboardPage() {
   const hasMemberBalance = !!memberBalance;
   const coopSummary = balances?.cooperative;
 
+  const displayName =
+  myProfile?.full_name || user?.full_name || user?.staff_id || "Guest";
   return (
     <div>
       <div className="mb-6">
         <h1 className="page-title">Dashboard</h1>
         <p className="page-subtitle">
           Welcome back,{" "}
-          <span className="font-medium text-gray-700">
-            {user?.full_name || user?.staff_id}
-          </span>
+          <span className="font-medium text-gray-700">{displayName}</span>
         </p>
       </div>
 
       {isLeadership && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
           <StatCard
             label="Your Role"
             value={user ? user.role.replace(/_/g, " ").toUpperCase() : "N/A"}
             sub="Access level assigned by Admin"
           />
           <StatCard
+            label="Full Name"
+            value={displayName}
+            sub="Your registered name"
+            color="primary"
+          />
+          <StatCard
             label="Staff ID"
-            value={user?.staff_id || "—"}
+            value={user?.staff_id ?? "—"}
             sub="Your login identity"
             color="success"
           />
@@ -148,15 +154,21 @@ export default function DashboardPage() {
       )}
 
       {!isLeadership && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <StatCard
             label="Your Role"
             value={user ? user.role.replace(/_/g, " ").toUpperCase() : "N/A"}
             sub="Staff access level"
           />
           <StatCard
+            label="Full Name"
+            value={displayName}
+            sub="Your registered name"
+            color="primary"
+          />
+          <StatCard
             label="Staff ID"
-            value={user?.staff_id || "—"}
+            value={user?.staff_id ?? "—"}
             sub="Used for login"
             color="success"
           />
@@ -292,7 +304,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Cooperative totals – only for Admin and Committee */}
             {(isAdmin || isCommittee) && (
               <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-4">
                 <div className="card p-4">

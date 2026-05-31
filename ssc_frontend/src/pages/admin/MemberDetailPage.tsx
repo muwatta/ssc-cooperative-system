@@ -27,7 +27,9 @@ function InfoRow({
       <span className="text-xs uppercase tracking-wide text-gray-400">
         {label}
       </span>
-      <span className="text-sm font-medium text-gray-800">{value || "—"}</span>
+      <span className="text-sm font-medium text-gray-800 break-all">
+        {value || "—"}
+      </span>
     </div>
   );
 }
@@ -49,7 +51,7 @@ function Section({
   );
 }
 
-// ── Approve modal ─────────────────────────────────────────────────
+// Approve modal
 function ApproveModal({
   member,
   onClose,
@@ -147,7 +149,7 @@ function ApproveModal({
               />
               <p className="mt-1 text-xs text-gray-400">Minimum ₦1,000</p>
             </div>
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row">
               <button
                 type="button"
                 onClick={onClose}
@@ -170,7 +172,7 @@ function ApproveModal({
   );
 }
 
-// ── Change Role modal ─────────────────────────────────────────────
+// Change Role modal
 function ChangeRoleModal({
   member,
   onClose,
@@ -221,7 +223,6 @@ function ChangeRoleModal({
               {error}
             </div>
           )}
-
           <p className="text-sm text-gray-600">
             Changing role for <strong>{member.full_name}</strong> (
             {member.file_number}). Current role:{" "}
@@ -229,7 +230,6 @@ function ChangeRoleModal({
               {member.role.replace(/_/g, " ")}
             </span>
           </p>
-
           <div className="space-y-2">
             {(["staff", "committee", "head_of_school", "admin"] as Role[]).map(
               (role) => (
@@ -259,15 +259,13 @@ function ChangeRoleModal({
               ),
             )}
           </div>
-
           {selectedRole !== member.role && (
             <div className="rounded-lg border border-warning-200 bg-warning-50 px-3 py-2 text-xs text-warning-700">
               ⚠️ This will immediately change what {member.full_name} can access
               in the system.
             </div>
           )}
-
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row">
             <button onClick={onClose} className="btn-secondary flex-1">
               Cancel
             </button>
@@ -285,7 +283,7 @@ function ChangeRoleModal({
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────
+// Main page
 export default function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
@@ -296,25 +294,22 @@ export default function MemberDetailPage() {
   const [showChangeRole, setShowChangeRole] = useState(false);
   const [activeTab, setActiveTab] = useState<"profile" | "savings">("profile");
   const [isEditingContribution, setIsEditingContribution] = useState(false);
-  const [contributionDraft, setContributionDraft] = useState<string>("");
+  const [contributionDraft, setContributionDraft] = useState("");
   const [contributionError, setContributionError] = useState("");
 
   const updateContributionMutation = useMutation({
     mutationFn: (amount: string) =>
-      membersApi.update(Number(id), {
-        approved_monthly_contribution: amount,
-      }),
+      membersApi.update(Number(id), { approved_monthly_contribution: amount }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["member", id] });
       qc.invalidateQueries({ queryKey: ["members"] });
       setIsEditingContribution(false);
       setContributionError("");
     },
-    onError: () => {
+    onError: () =>
       setContributionError(
         "Unable to update monthly contribution. Please try again.",
-      );
-    },
+      ),
   });
 
   const {
@@ -401,7 +396,7 @@ export default function MemberDetailPage() {
   };
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-4xl px-4 sm:px-6">
       <PageHeader
         title={member.full_name}
         subtitle={`${member.file_number} · ${member.staff_id}`}
@@ -411,7 +406,7 @@ export default function MemberDetailPage() {
       {/* Header card */}
       <div className="card mb-6">
         <div className="card-body">
-          <div className="flex items-start gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-4">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary-100 text-2xl font-bold text-primary-700">
               {member.full_name.charAt(0)}
             </div>
@@ -424,7 +419,6 @@ export default function MemberDetailPage() {
                   {member.membership_status.charAt(0).toUpperCase() +
                     member.membership_status.slice(1)}
                 </span>
-                {/* Role badge */}
                 <span
                   className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${ROLE_COLOR[member.role]}`}
                 >
@@ -442,9 +436,9 @@ export default function MemberDetailPage() {
               </p>
             </div>
 
-            {/* Action buttons */}
+            {/* Action buttons - stack on mobile */}
             {isAdmin && (
-              <div className="flex shrink-0 flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2">
                 {member.membership_status === "pending" && (
                   <button
                     onClick={() => setShowApprove(true)}
@@ -563,7 +557,16 @@ export default function MemberDetailPage() {
             <Section title="Contact">
               <InfoRow label="Primary Phone" value={member.phone_primary} />
               <InfoRow label="Secondary Phone" value={member.phone_secondary} />
-              <InfoRow label="Email" value={member.email_address} />
+              
+              {/* Custom email row with word breaking */}
+              <div className="grid grid-cols-2 gap-2 border-b border-gray-50 py-2 last:border-0">
+                <span className="text-xs uppercase tracking-wide text-gray-400">
+                  Email
+                </span>
+                <span className="text-sm font-medium text-gray-800 break-all">
+                  {member.email_address || "—"}
+                </span>
+              </div>
               <InfoRow label="Residential" value={member.residential_address} />
               <InfoRow
                 label="Permanent Home"
@@ -605,8 +608,7 @@ export default function MemberDetailPage() {
                       </button>
                     ) : null}
                   </div>
-
-                  {isEditingContribution ? (
+                  {isEditingContribution && (
                     <div className="mt-4 space-y-3">
                       <input
                         type="number"
@@ -663,7 +665,7 @@ export default function MemberDetailPage() {
                         </button>
                       </div>
                     </div>
-                  ) : null}
+                  )}
                 </div>
               ) : (
                 <InfoRow
@@ -710,17 +712,17 @@ export default function MemberDetailPage() {
             <h2 className="font-semibold text-gray-900">Savings Ledger</h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="table">
+            <table className="min-w-full table-auto border-collapse text-sm">
               <thead>
-                <tr>
-                  <th>Islamic Date</th>
-                  <th>Gregorian</th>
-                  <th>Type</th>
-                  <th>Details</th>
-                  <th>Credit</th>
-                  <th>Debit</th>
-                  <th>Balance</th>
-                  <th>Verified By</th>
+                <tr className="bg-gray-50 text-sm text-gray-500">
+                  <th className="px-2 py-2 text-left">Islamic Date</th>
+                  <th className="px-2 py-2 text-left">Gregorian</th>
+                  <th className="px-2 py-2 text-left">Type</th>
+                  <th className="px-2 py-2 text-left">Details</th>
+                  <th className="px-2 py-2 text-left">Credit</th>
+                  <th className="px-2 py-2 text-left">Debit</th>
+                  <th className="px-2 py-2 text-left">Balance</th>
+                  <th className="px-2 py-2 text-left">Verified By</th>
                 </tr>
               </thead>
               <tbody>
@@ -732,27 +734,29 @@ export default function MemberDetailPage() {
                   </tr>
                 ) : (
                   ledger.results.map((entry) => (
-                    <tr key={entry.id}>
-                      <td className="font-medium">{entry.hijri_display}</td>
-                      <td className="text-xs text-gray-400">
+                    <tr key={entry.id} className="border-t">
+                      <td className="px-2 py-2 font-medium">
+                        {entry.hijri_display}
+                      </td>
+                      <td className="px-2 py-2 text-xs text-gray-400">
                         {entry.gregorian_date}
                       </td>
-                      <td className="text-xs capitalize">
+                      <td className="px-2 py-2 text-xs capitalize">
                         {entry.entry_type.replace(/_/g, " ")}
                       </td>
-                      <td className="max-w-xs truncate text-sm text-gray-600">
+                      <td className="max-w-xs truncate px-2 py-2 text-sm text-gray-600">
                         {entry.details}
                       </td>
-                      <td className="font-medium text-success-700">
+                      <td className="px-2 py-2 font-medium text-success-700">
                         {entry.credit ? formatNaira(entry.credit) : "—"}
                       </td>
-                      <td className="font-medium text-danger-700">
+                      <td className="px-2 py-2 font-medium text-danger-700">
                         {entry.debit ? formatNaira(entry.debit) : "—"}
                       </td>
-                      <td className="font-bold">
+                      <td className="px-2 py-2 font-bold">
                         {formatNaira(entry.balance)}
                       </td>
-                      <td className="text-xs text-gray-400">
+                      <td className="px-2 py-2 text-xs text-gray-400">
                         {entry.verified_by_name}
                       </td>
                     </tr>
@@ -774,7 +778,6 @@ export default function MemberDetailPage() {
           onClose={() => setShowChangeRole(false)}
         />
       )}
-
       {showDeactivate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="card w-full max-w-sm">
@@ -786,7 +789,7 @@ export default function MemberDetailPage() {
                 This will deactivate <strong>{member.full_name}</strong>'s
                 account. Their records are preserved.
               </p>
-              <div className="flex gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <button
                   onClick={() => setShowDeactivate(false)}
                   className="btn-secondary flex-1"

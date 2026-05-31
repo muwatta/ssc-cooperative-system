@@ -33,6 +33,7 @@ import MyLoansPage from "@/pages/staff/MyLoansPage";
 import LoanDetailPage from "@/pages/staff/LoanDetailPage";
 // Shared pages (all authenticated roles)
 import ReportsPage from "@/pages/shared/ReportsPage";
+import SavingsChangeRequestsPage from "@/pages/admin/SavingsChangeRequestsPage";
 
 // Placeholder for pages not built yet
 import ComingSoonPage from "@/pages/shared/ComingSoonPage";
@@ -82,6 +83,7 @@ const router = createBrowserRouter([
             children: [
               { path: "/loans/queue", element: <LoanQueuePage /> },
               { path: "/reports", element: <ReportsPage /> },
+              {path: "/savings/change-requests", element: <SavingsChangeRequestsPage />}
             ],
           },
 

@@ -33,6 +33,11 @@ function useNavItems(): NavItem[] {
   const committeeItems: NavItem[] = [
     { label: "Loan Queue", to: "/loans/queue", icon: "📑" },
     { label: "Reports", to: "/reports", icon: "📊" },
+    {
+      label: "Savings Requests",
+      to: "/savings/change-requests",
+      icon: "📝",
+    }, 
   ];
 
   const hosItems: NavItem[] = [

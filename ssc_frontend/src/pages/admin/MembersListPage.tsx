@@ -184,7 +184,7 @@ export default function MembersListPage() {
           </button>
         )}
       </div>
-      
+
       {/* Error */}
       {error && (
         <div className="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700">
@@ -219,6 +219,7 @@ export default function MembersListPage() {
                     "Staff ID",
                     "Branch",
                     "Designation",
+                    "Role",
                     "Contribution",
                     "Savings Months",
                     "Status",
@@ -236,7 +237,10 @@ export default function MembersListPage() {
               <tbody className="divide-y divide-gray-200">
                 {data?.results?.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-16 text-center text-gray-400">
+                    <td
+                      colSpan={10}
+                      className="py-16 text-center text-gray-400"
+                    >
                       <p className="text-4xl">👥</p>
                       <p className="mt-2">No members found.</p>
                       {!hasFilters && (
@@ -268,6 +272,10 @@ export default function MembersListPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {member.designation}
+                      </td>
+                      {/* Role column */}
+                      <td className="px-4 py-3 text-sm capitalize text-gray-600">
+                        {member.role?.replace(/_/g, " ") || "staff"}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         ₦
@@ -347,6 +355,13 @@ export default function MembersListPage() {
                       Designation:
                     </span>{" "}
                     {member.designation}
+                  </div>
+                  {/* Role in mobile card */}
+                  <div>
+                    <span className="font-semibold text-gray-700">Role:</span>{" "}
+                    <span className="capitalize">
+                      {member.role?.replace(/_/g, " ") || "staff"}
+                    </span>
                   </div>
                 </div>
               </Link>

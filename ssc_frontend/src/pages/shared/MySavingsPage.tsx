@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { membersApi, savingsApi } from "@/api/services";
 import { useAuth } from "@/context/AuthContext";
 import type { MemberBalance, MemberProfile, SavingsLedgerEntry } from "@/types";
@@ -40,6 +40,11 @@ export default function MySavingsPage() {
     date_to: "",
   });
 
+  // Request modal state
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestAmount, setRequestAmount] = useState("");
+  const [requestError, setRequestError] = useState("");
+
   const canSeeCoopBalances = isAdmin || isCommittee;
 
   const {
@@ -55,6 +60,22 @@ export default function MySavingsPage() {
     staleTime: 30000,
     refetchOnWindowFocus: true,
     refetchInterval: 60000,
+  });
+
+  const createRequestMutation = useMutation({
+    mutationFn: (amount: string) =>
+      savingsApi.changeRequests.create({ requested_amount: amount }),
+    onSuccess: () => {
+      setShowRequestModal(false);
+      setRequestAmount("");
+      setRequestError("");
+      alert("Your request has been submitted. Admin will review it.");
+    },
+    onError: (e: any) => {
+      setRequestError(
+        e?.response?.data?.requested_amount?.[0] || "Failed to submit request.",
+      );
+    },
   });
 
   useEffect(() => {
@@ -242,8 +263,8 @@ export default function MySavingsPage() {
             </div>
           ) : null}
 
-          {/* Personal summary cards */}
-          <div className="grid gap-4 lg:grid-cols-4 mb-6">
+          {/* Personal summary cards – responsive grid */}
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 mb-6">
             <div className="card p-4">
               <p className="text-sm text-gray-500">Total Savings</p>
               <p className="text-3xl font-semibold mt-2">
@@ -270,9 +291,18 @@ export default function MySavingsPage() {
                 {summary.loanEligibility}
               </p>
             </div>
+            <div className="card p-4">
+              <p className="text-sm text-gray-500">Request Change</p>
+              <button
+                onClick={() => setShowRequestModal(true)}
+                className="mt-2 btn-secondary w-full text-sm"
+              >
+                📝 Increase / Decrease
+              </button>
+            </div>
           </div>
 
-          {/* Cooperative Balances (visible only to admin/committee) */}
+          {/* Cooperative Balances (only admin/committee) */}
           {canSeeCoopBalances && (
             <div className="card p-6 mb-6">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -284,13 +314,12 @@ export default function MySavingsPage() {
                     General totals for all members.
                   </p>
                 </div>
-                {summaryLoadError ? (
+                {summaryLoadError && (
                   <div className="text-sm text-danger-700">
                     Unable to load cooperative balance summary.
                   </div>
-                ) : null}
+                )}
               </div>
-
               <div className="mt-6 grid gap-4 lg:grid-cols-4">
                 <div className="card p-4">
                   <p className="text-sm text-gray-500">Total Savings</p>
@@ -578,6 +607,74 @@ export default function MySavingsPage() {
             </>
           )}
         </>
+      )}
+
+      {/* Request Change Modal */}
+      {showRequestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="card w-full max-w-md">
+            <div className="card-header flex items-center justify-between">
+              <h2 className="font-semibold">Request Savings Change</h2>
+              <button
+                onClick={() => setShowRequestModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="card-body space-y-4">
+              {requestError && (
+                <div className="rounded-lg border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-700">
+                  {requestError}
+                </div>
+              )}
+              <p className="text-sm text-gray-600">
+                Your current monthly contribution:{" "}
+                <strong>
+                  {formatCurrency(
+                    profile?.approved_monthly_contribution ?? "0",
+                  )}
+                </strong>
+              </p>
+              <div>
+                <label className="label">New monthly contribution (₦)</label>
+                <input
+                  type="number"
+                  step="1000"
+                  min="1000"
+                  value={requestAmount}
+                  onChange={(e) => setRequestAmount(e.target.value)}
+                  className="input"
+                  placeholder="Enter new amount"
+                />
+                <p className="text-xs text-gray-400 mt-1">Minimum ₦1,000</p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowRequestModal(false)}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (Number(requestAmount) < 1000) {
+                      setRequestError("Amount must be at least ₦1,000");
+                      return;
+                    }
+                    createRequestMutation.mutate(requestAmount);
+                  }}
+                  disabled={createRequestMutation.isPending}
+                  className="btn-primary flex-1"
+                >
+                  {createRequestMutation.isPending
+                    ? "Submitting..."
+                    : "Submit Request"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
