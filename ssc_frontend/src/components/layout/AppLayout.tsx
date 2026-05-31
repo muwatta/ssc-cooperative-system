@@ -19,7 +19,6 @@ function useNavItems(): NavItem[] {
     { label: "My Savings", to: "/my-savings", icon: "₦" },
     { label: "My Loans", to: "/my-loans", icon: "🏦" },
     { label: "My Profile", to: "/profile", icon: "👤" },
-    { label: "Change Password", to: "/change-password", icon: "🔒" },
   ];
 
   const adminItems: NavItem[] = [
@@ -34,11 +33,7 @@ function useNavItems(): NavItem[] {
   const committeeItems: NavItem[] = [
     { label: "Loan Queue", to: "/loans/queue", icon: "📑" },
     { label: "Reports", to: "/reports", icon: "📊" },
-    {
-      label: "Change Requests",
-      to: "/savings/change-requests",
-      icon: "📝",
-    },
+    { label: "Change Requests", to: "/savings/change-requests", icon: "📝" },
   ];
 
   const hosItems: NavItem[] = [
@@ -55,6 +50,7 @@ function useNavItems(): NavItem[] {
 export default function AppLayout() {
   const { user, logout, isAdmin, isCommittee } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
   const navItems = useNavItems();
 
@@ -91,6 +87,7 @@ export default function AppLayout() {
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Sidebar */}
       <aside
         className={clsx(
           "flex flex-col bg-white border-r border-gray-200 transition-all duration-200 shrink-0",
@@ -127,7 +124,6 @@ export default function AppLayout() {
               {sidebarOpen && (
                 <span className="truncate flex-1">{item.label}</span>
               )}
-              {/* Badge for Savings Change Requests */}
               {item.to === "/savings/change-requests" && pendingCount > 0 && (
                 <span
                   className={clsx(
@@ -142,7 +138,8 @@ export default function AppLayout() {
           ))}
         </nav>
 
-        <div className="border-t border-gray-100 p-3">
+        {/* User section with Change Password and Logout */}
+        <div className="border-t border-gray-100 p-3 space-y-2">
           {sidebarOpen ? (
             <div className="flex items-start gap-2">
               <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-xs shrink-0">
@@ -157,11 +154,29 @@ export default function AppLayout() {
                 </span>
               </div>
             </div>
-          ) : null}
+          ) : (
+            <div className="flex justify-center">
+              <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-xs">
+                {(user?.full_name || user?.staff_id)?.slice(0, 2).toUpperCase()}
+              </div>
+            </div>
+          )}
+
           <button
-            onClick={handleLogout}
+            onClick={() => navigate("/change-password")}
             className={clsx(
-              "btn-ghost w-full mt-2 text-xs text-gray-500 justify-start",
+              "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-100 transition-colors",
+              !sidebarOpen && "justify-center px-2",
+            )}
+          >
+            <span>🔒</span>
+            {sidebarOpen && "Change Password"}
+          </button>
+
+          <button
+            onClick={() => setShowLogoutConfirm(true)}
+            className={clsx(
+              "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-100 transition-colors",
               !sidebarOpen && "justify-center px-2",
             )}
           >
@@ -204,6 +219,32 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="card w-full max-w-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Confirm Logout
+            </h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Are you sure you want to logout? You will need to login again to
+              access your account.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="btn-secondary px-4 py-2"
+              >
+                Cancel
+              </button>
+              <button onClick={handleLogout} className="btn-danger px-4 py-2">
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
