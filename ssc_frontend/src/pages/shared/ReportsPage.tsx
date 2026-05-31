@@ -31,7 +31,7 @@ export default function ReportsPage() {
       const response = await membersApi.list({ membership_status: "active" });
       return response.data;
     },
-    staleTime: 10000,
+    staleTime: 30000,
     refetchOnWindowFocus: true,
     refetchInterval: 15000,
   });
@@ -46,9 +46,9 @@ export default function ReportsPage() {
       const response = await savingsApi.summary();
       return response.data;
     },
-    staleTime: 10000,
+    staleTime: 30000,
     refetchOnWindowFocus: true,
-    refetchInterval: 15000,
+    refetchInterval: 60000,
   });
 
   const members = membersPage?.results ?? [];

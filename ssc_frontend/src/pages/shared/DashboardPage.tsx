@@ -1,7 +1,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { membersApi, savingsApi } from "@/api/services";
-import type { SavingsSummary } from "@/types";
+import type { MemberProfile, SavingsSummary } from "@/types";
 
 function StatCard({
   label,
@@ -79,10 +79,22 @@ export default function DashboardPage() {
     refetchInterval: 15000,
   });
 
+  const meQuery = useQuery<MemberProfile | null>({
+    queryKey: ["dashboard", "me"],
+    queryFn: async () => {
+      const response = await membersApi.me();
+      return response.data;
+    },
+    staleTime: 10000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000,
+  });
+
   const stats = memberStatsQuery.data as DashboardStats | undefined;
   const balances = balanceQuery.data as SavingsSummary | undefined;
+  const myProfile = meQuery.data;
   const loading = memberStatsQuery.isLoading;
-  const balanceLoading = balanceQuery.isLoading;
+  const balanceLoading = balanceQuery.isLoading || meQuery.isLoading;
   const error = memberStatsQuery.error
     ? "Unable to load dashboard statistics. Please refresh the page."
     : "";
@@ -220,7 +232,9 @@ export default function DashboardPage() {
           <div>
             <h2 className="text-lg font-semibold">Balance Overview</h2>
             <p className="text-sm text-gray-500 mt-1">
-              Your savings balance plus a cooperative summary for all members.
+              {isAdmin || isCommittee
+                ? "Your savings balance plus a cooperative summary for all members."
+                : "Your personal savings balance and contribution details."}
             </p>
           </div>
           {balanceLoading && (
@@ -260,25 +274,49 @@ export default function DashboardPage() {
               </div>
               <div className="card p-4">
                 <p className="text-sm text-gray-500">
-                  Cooperative Total Savings
+                  Approved Monthly Contribution
                 </p>
                 <p className="text-3xl font-semibold mt-2">
-                  {coopSummary
-                    ? formatNaira(coopSummary.total_savings)
-                    : "₦0.00"}
+                  {myProfile?.approved_monthly_contribution !== undefined
+                    ? formatNaira(myProfile.approved_monthly_contribution)
+                    : "N/A"}
                 </p>
               </div>
               <div className="card p-4">
-                <p className="text-sm text-gray-500">
-                  Total Available Across Members
-                </p>
+                <p className="text-sm text-gray-500">Committed Savings</p>
                 <p className="text-3xl font-semibold mt-2">
-                  {coopSummary
-                    ? formatNaira(coopSummary.total_available)
-                    : "₦0.00"}
+                  {hasMemberBalance
+                    ? formatNaira(memberBalance!.suretyship_committed)
+                    : "N/A"}
                 </p>
               </div>
             </div>
+
+            {/* Cooperative totals – only for Admin and Committee */}
+            {(isAdmin || isCommittee) && (
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-4">
+                <div className="card p-4">
+                  <p className="text-sm text-gray-500">
+                    Cooperative Total Savings
+                  </p>
+                  <p className="text-3xl font-semibold mt-2">
+                    {coopSummary
+                      ? formatNaira(coopSummary.total_savings)
+                      : "₦0.00"}
+                  </p>
+                </div>
+                <div className="card p-4">
+                  <p className="text-sm text-gray-500">
+                    Total Available Across Members
+                  </p>
+                  <p className="text-3xl font-semibold mt-2">
+                    {coopSummary
+                      ? formatNaira(coopSummary.total_available)
+                      : "₦0.00"}
+                  </p>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

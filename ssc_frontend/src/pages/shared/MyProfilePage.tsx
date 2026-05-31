@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { membersApi } from "@/api/services";
-import { useAuth } from "@/context/AuthContext";
 import type {
   MemberProfile,
   MaritalStatus,
@@ -36,7 +35,6 @@ interface ProfileForm {
 }
 
 export default function MyProfilePage() {
-  const { user, updateUser } = useAuth();
   const [profile, setProfile] = useState<MemberProfile | null>(null);
   const [profileMissing, setProfileMissing] = useState(false);
   const [serverMessage, setServerMessage] = useState<string | null>(null);
@@ -47,111 +45,57 @@ export default function MyProfilePage() {
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<ProfileForm>();
 
   useEffect(() => {
     const loadProfile = async () => {
       try {
         const response = await membersApi.me();
-        if (!response.data) {
+        const data = response.data;
+
+        if (!data || !data.id) {
           setProfile(null);
           setProfileMissing(true);
-          setServerMessage(
-            "No profile found. Complete the form below to create your member profile.",
-          );
-          setIsError(false);
-          reset({
-            full_name: user?.full_name ?? "",
-            phone_primary: "",
-            phone_secondary: "",
-            marital_status: "single",
-            gender: "male",
-            date_of_birth: "",
-            place_of_birth: "",
-            school_branch: "primary",
-            designation: "",
-            date_joined_school: "",
-            monthly_income: "",
-            approved_monthly_contribution: "5000",
-            residential_address: "",
-            permanent_home_address: "",
-            email_address: "",
-            social_media_handle: "",
-            state_of_origin: "",
-            local_government_area: "",
-            next_of_kin_name: "",
-            next_of_kin_address: "",
-            next_of_kin_phone: "",
-            next_of_kin_relationship: "",
-            next_of_kin_place_of_work: "",
-          });
+          setIsLoading(false);
           return;
         }
 
-        setProfile(response.data);
+        setProfile(data);
+        setProfileMissing(false);
+
+        // Pre-fill form with existing data
         reset({
-          full_name: response.data.full_name,
-          phone_primary: response.data.phone_primary,
-          phone_secondary: response.data.phone_secondary,
-          marital_status: response.data.marital_status,
-          gender: response.data.gender,
-          date_of_birth: response.data.date_of_birth,
-          place_of_birth: response.data.place_of_birth,
-          school_branch: response.data.school_branch,
-          designation: response.data.designation,
-          date_joined_school: response.data.date_joined_school,
-          monthly_income: response.data.monthly_income,
-          approved_monthly_contribution:
-            response.data.approved_monthly_contribution,
-          residential_address: response.data.residential_address,
-          permanent_home_address: response.data.permanent_home_address,
-          email_address: response.data.email_address,
-          social_media_handle: response.data.social_media_handle,
-          state_of_origin: response.data.state_of_origin,
-          local_government_area: response.data.local_government_area,
-          next_of_kin_name: response.data.next_of_kin_name,
-          next_of_kin_address: response.data.next_of_kin_address,
-          next_of_kin_phone: response.data.next_of_kin_phone,
-          next_of_kin_relationship: response.data.next_of_kin_relationship,
-          next_of_kin_place_of_work: response.data.next_of_kin_place_of_work,
+          full_name: data.full_name,
+          phone_primary: data.phone_primary,
+          phone_secondary: data.phone_secondary ?? "",
+          marital_status: data.marital_status,
+          gender: data.gender,
+          date_of_birth: data.date_of_birth,
+          place_of_birth: data.place_of_birth,
+          school_branch: data.school_branch,
+          designation: data.designation,
+          date_joined_school: data.date_joined_school,
+          monthly_income: data.monthly_income,
+          approved_monthly_contribution: data.approved_monthly_contribution,
+          residential_address: data.residential_address,
+          permanent_home_address: data.permanent_home_address,
+          email_address: data.email_address ?? "",
+          social_media_handle: data.social_media_handle ?? "",
+          state_of_origin: data.state_of_origin,
+          local_government_area: data.local_government_area,
+          next_of_kin_name: data.next_of_kin_name,
+          next_of_kin_address: data.next_of_kin_address,
+          next_of_kin_phone: data.next_of_kin_phone,
+          next_of_kin_relationship: data.next_of_kin_relationship,
+          next_of_kin_place_of_work: data.next_of_kin_place_of_work ?? "",
         });
-      } catch (error) {
-        const axiosError = error as any;
-        if (axiosError?.response?.status === 404) {
+      } catch (err: any) {
+        if (err?.response?.status === 404) {
           setProfile(null);
           setProfileMissing(true);
-          setServerMessage(
-            "No profile found. Complete the form below to create your member profile.",
-          );
-          setIsError(false);
-          reset({
-            full_name: user?.full_name ?? "",
-            phone_primary: "",
-            phone_secondary: "",
-            marital_status: "single",
-            gender: "male",
-            date_of_birth: "",
-            place_of_birth: "",
-            school_branch: "primary",
-            designation: "",
-            date_joined_school: "",
-            monthly_income: "",
-            approved_monthly_contribution: "5000",
-            residential_address: "",
-            permanent_home_address: "",
-            email_address: "",
-            social_media_handle: "",
-            state_of_origin: "",
-            local_government_area: "",
-            next_of_kin_name: "",
-            next_of_kin_address: "",
-            next_of_kin_phone: "",
-            next_of_kin_relationship: "",
-            next_of_kin_place_of_work: "",
-          });
         } else {
-          setServerMessage("Unable to load profile. Please try again later.");
+          setServerMessage("Unable to load profile. Please try again.");
           setIsError(true);
         }
       } finally {
@@ -160,44 +104,69 @@ export default function MyProfilePage() {
     };
 
     loadProfile();
-  }, [reset, user]);
+  }, [reset]);
 
   const onSubmit = async (data: ProfileForm) => {
     setServerMessage(null);
     setIsError(false);
 
-    try {
-      const response = profileMissing
-        ? await membersApi.createMe(data)
-        : await membersApi.updateMe(data);
-
-      setProfile(response.data);
-      setProfileMissing(false);
-      updateUser({ full_name: response.data.full_name });
+    if (!profile) {
       setServerMessage(
-        profileMissing
-          ? "Profile created successfully."
-          : "Profile updated successfully.",
+        "No profile found. Please contact Admin to create your member profile.",
       );
-      reset(response.data);
-    } catch (error: any) {
-      console.error("Error:", error?.response?.data);
-      const errorMessage =
-        error?.response?.data?.approved_monthly_contribution?.[0] ||
-        error?.response?.data?.detail ||
-        Object.values(error?.response?.data || {}).flat()[0] ||
-        (profileMissing
-          ? "Failed to create profile. Please check your details and try again."
-          : "Failed to update profile. Please check your details and try again.");
-      setServerMessage(errorMessage);
+      setIsError(true);
+      return;
+    }
+
+    try {
+      const response = await membersApi.update(profile.id, data);
+      setProfile(response.data);
+      // Re-sync form so isDirty resets
+      reset({
+        full_name: response.data.full_name,
+        phone_primary: response.data.phone_primary,
+        phone_secondary: response.data.phone_secondary ?? "",
+        marital_status: response.data.marital_status,
+        gender: response.data.gender,
+        date_of_birth: response.data.date_of_birth,
+        place_of_birth: response.data.place_of_birth,
+        school_branch: response.data.school_branch,
+        designation: response.data.designation,
+        date_joined_school: response.data.date_joined_school,
+        monthly_income: response.data.monthly_income,
+        approved_monthly_contribution:
+          response.data.approved_monthly_contribution,
+        residential_address: response.data.residential_address,
+        permanent_home_address: response.data.permanent_home_address,
+        email_address: response.data.email_address ?? "",
+        social_media_handle: response.data.social_media_handle ?? "",
+        state_of_origin: response.data.state_of_origin,
+        local_government_area: response.data.local_government_area,
+        next_of_kin_name: response.data.next_of_kin_name,
+        next_of_kin_address: response.data.next_of_kin_address,
+        next_of_kin_phone: response.data.next_of_kin_phone,
+        next_of_kin_relationship: response.data.next_of_kin_relationship,
+        next_of_kin_place_of_work:
+          response.data.next_of_kin_place_of_work ?? "",
+      });
+      setServerMessage("Profile updated successfully.");
+      setIsError(false);
+    } catch (err: any) {
+      const d = err?.response?.data;
+      const msg =
+        d?.approved_monthly_contribution?.[0] ||
+        d?.detail ||
+        (Object.values(d || {}).flat()[0] as string) ||
+        "Failed to update profile. Please check your details.";
+      setServerMessage(msg);
       setIsError(true);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="text-gray-600">Loading your profile...</div>
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
       </div>
     );
   }
@@ -207,418 +176,323 @@ export default function MyProfilePage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold">My Profile</h1>
         <p className="text-sm text-gray-500">
-          Update your personal and contact details here.
+          Your SSC member record. Contact Admin for changes to contribution
+          amount.
         </p>
       </div>
 
+      {/* Profile missing notice */}
+      {profileMissing && (
+        <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900">
+          <p className="font-semibold">No member profile found.</p>
+          <p className="mt-1">
+            Contact your Admin to create your member profile. You cannot create
+            it yourself — it must be registered by an administrator.
+          </p>
+        </div>
+      )}
+
       {serverMessage && (
         <div
-          className={`mb-6 rounded-lg px-4 py-3 text-sm ${
+          className={`mb-6 rounded-lg border px-4 py-3 text-sm ${
             isError
-              ? "bg-danger-50 text-danger-700 border border-danger-200"
-              : "bg-success-50 text-success-700 border border-success-200"
+              ? "border-danger-200 bg-danger-50 text-danger-700"
+              : "border-green-200 bg-success-50 text-success-700"
           }`}
         >
           {serverMessage}
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="mb-4">
-            <label htmlFor="staff_id" className="label">
-              Staff ID
-            </label>
-            <input
-              id="staff_id"
-              className="input bg-gray-100"
-              value={profile?.staff_id ?? user?.staff_id ?? ""}
-              disabled
-            />
-          </div>
-          <div className="mb-4">
-            <label htmlFor="file_number" className="label">
-              SSC File Number
-            </label>
-            <input
-              id="file_number"
-              className="input bg-gray-100"
-              value={profile?.file_number ?? "Not assigned yet"}
-              disabled
-            />
-          </div>
+      {/* Read-only identity fields */}
+      <div className="mb-6 grid gap-4 md:grid-cols-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+        <div>
+          <p className="text-xs text-gray-400 uppercase tracking-wide">
+            Staff ID
+          </p>
+          <p className="font-mono font-medium text-gray-900 mt-1">
+            {profile?.staff_id ?? "—"}
+          </p>
         </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="mb-4">
-            <label htmlFor="full_name" className="label">
-              Full Name
-            </label>
-            <input
-              id="full_name"
-              {...register("full_name", { required: "Full name is required" })}
-              className={`input ${errors.full_name ? "input-error" : ""}`}
-            />
-            {errors.full_name && (
-              <p className="field-error">{errors.full_name.message}</p>
-            )}
-          </div>
-
-          <div className="mb-4">
-            <label htmlFor="phone_primary" className="label">
-              Phone
-            </label>
-            <input
-              id="phone_primary"
-              {...register("phone_primary", {
-                required: "Phone number is required",
-              })}
-              className={`input ${errors.phone_primary ? "input-error" : ""}`}
-            />
-            {errors.phone_primary && (
-              <p className="field-error">{errors.phone_primary.message}</p>
-            )}
-          </div>
+        <div>
+          <p className="text-xs text-gray-400 uppercase tracking-wide">
+            SSC File Number
+          </p>
+          <p className="font-mono font-medium text-primary-700 mt-1">
+            {profile?.file_number ?? "Not assigned"}
+          </p>
         </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="mb-4">
-            <label htmlFor="phone_secondary" className="label">
-              Secondary Phone
-            </label>
-            <input
-              id="phone_secondary"
-              {...register("phone_secondary")}
-              className="input"
-            />
-          </div>
-          <div className="mb-4">
-            <label htmlFor="email_address" className="label">
-              Email Address
-            </label>
-            <input
-              id="email_address"
-              {...register("email_address")}
-              className="input"
-              type="email"
-            />
-          </div>
+        <div>
+          <p className="text-xs text-gray-400 uppercase tracking-wide">
+            Membership Status
+          </p>
+          <p className="font-medium capitalize text-gray-900 mt-1">
+            {profile?.membership_status ?? "—"}
+          </p>
         </div>
+      </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="mb-4">
-            <label htmlFor="marital_status" className="label">
-              Marital Status
-            </label>
-            <select
-              id="marital_status"
-              aria-label="Marital Status"
-              title="Marital Status"
-              {...register("marital_status")}
-              className="input"
-            >
-              <option value="single">Single</option>
-              <option value="married">Married</option>
-              <option value="divorced">Divorced</option>
-              <option value="widowed">Widowed</option>
-            </select>
+      {/* Editable form — only shown when profile exists */}
+      {!profileMissing && (
+        <form onSubmit={handleSubmit(onSubmit)}>
+          {/* Personal */}
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-gray-400">
+            Personal Information
+          </h2>
+          <div className="mb-6 grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="label">Full Name *</label>
+              <input
+                {...register("full_name", { required: "Required" })}
+                className={`input ${errors.full_name ? "input-error" : ""}`}
+              />
+              {errors.full_name && (
+                <p className="field-error">{errors.full_name.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="label">Primary Phone *</label>
+              <input
+                {...register("phone_primary", { required: "Required" })}
+                className={`input ${errors.phone_primary ? "input-error" : ""}`}
+              />
+              {errors.phone_primary && (
+                <p className="field-error">{errors.phone_primary.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="label">Secondary Phone</label>
+              <input {...register("phone_secondary")} className="input" />
+            </div>
+            <div>
+              <label className="label">Email Address</label>
+              <input
+                {...register("email_address")}
+                type="email"
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Gender</label>
+              <select {...register("gender")} className="input">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Marital Status</label>
+              <select {...register("marital_status")} className="input">
+                <option value="single">Single</option>
+                <option value="married">Married</option>
+                <option value="divorced">Divorced</option>
+                <option value="widowed">Widowed</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Date of Birth *</label>
+              <input
+                {...register("date_of_birth", { required: "Required" })}
+                type="date"
+                className={`input ${errors.date_of_birth ? "input-error" : ""}`}
+              />
+              {errors.date_of_birth && (
+                <p className="field-error">{errors.date_of_birth.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="label">Place of Birth *</label>
+              <input
+                {...register("place_of_birth", { required: "Required" })}
+                className={`input ${errors.place_of_birth ? "input-error" : ""}`}
+              />
+              {errors.place_of_birth && (
+                <p className="field-error">{errors.place_of_birth.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="label">State of Origin *</label>
+              <input
+                {...register("state_of_origin", { required: "Required" })}
+                className={`input ${errors.state_of_origin ? "input-error" : ""}`}
+              />
+              {errors.state_of_origin && (
+                <p className="field-error">{errors.state_of_origin.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="label">Local Government Area *</label>
+              <input
+                {...register("local_government_area", { required: "Required" })}
+                className={`input ${errors.local_government_area ? "input-error" : ""}`}
+              />
+              {errors.local_government_area && (
+                <p className="field-error">
+                  {errors.local_government_area.message}
+                </p>
+              )}
+            </div>
           </div>
-          <div className="mb-4">
-            <label htmlFor="gender" className="label">
-              Gender
-            </label>
-            <select
-              id="gender"
-              aria-label="Gender"
-              title="Gender"
-              {...register("gender")}
-              className="input"
-            >
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
-          </div>
-        </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="mb-4">
-            <label htmlFor="date_of_birth" className="label">
-              Date of Birth
-            </label>
-            <input
-              id="date_of_birth"
-              {...register("date_of_birth", {
-                required: "Date of birth is required",
-              })}
-              className={`input ${errors.date_of_birth ? "input-error" : ""}`}
-              type="date"
-            />
-            {errors.date_of_birth && (
-              <p className="field-error">{errors.date_of_birth.message}</p>
-            )}
+          {/* School */}
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-gray-400">
+            School Details
+          </h2>
+          <div className="mb-6 grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="label">School Branch</label>
+              <select {...register("school_branch")} className="input">
+                <option value="primary">Primary</option>
+                <option value="college">College</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Designation</label>
+              <input {...register("designation")} className="input" />
+            </div>
+            <div>
+              <label className="label">Date Joined School</label>
+              <input
+                {...register("date_joined_school")}
+                type="date"
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Monthly Income *</label>
+              <input
+                {...register("monthly_income", { required: "Required" })}
+                type="number"
+                step="0.01"
+                className={`input ${errors.monthly_income ? "input-error" : ""}`}
+              />
+              {errors.monthly_income && (
+                <p className="field-error">{errors.monthly_income.message}</p>
+              )}
+            </div>
           </div>
-          <div className="mb-4">
-            <label htmlFor="place_of_birth" className="label">
-              Place of Birth
-            </label>
-            <input
-              id="place_of_birth"
-              {...register("place_of_birth", {
-                required: "Place of birth is required",
-              })}
-              className={`input ${errors.place_of_birth ? "input-error" : ""}`}
-            />
-            {errors.place_of_birth && (
-              <p className="field-error">{errors.place_of_birth.message}</p>
-            )}
-          </div>
-        </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="mb-4">
-            <label htmlFor="school_branch" className="label">
-              School Branch
-            </label>
-            <select
-              id="school_branch"
-              aria-label="School Branch"
-              title="School Branch"
-              {...register("school_branch")}
-              className="input"
-            >
-              <option value="primary">Primary</option>
-              <option value="college">College</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div className="mb-4">
-            <label htmlFor="designation" className="label">
-              Designation
-            </label>
-            <input
-              id="designation"
-              {...register("designation")}
-              className="input"
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="mb-4">
-            <label htmlFor="date_joined_school" className="label">
-              Date Joined School
-            </label>
-            <input
-              id="date_joined_school"
-              {...register("date_joined_school")}
-              className="input"
-              type="date"
-            />
-          </div>
-          <div className="mb-4">
-            <label htmlFor="monthly_income" className="label">
-              Monthly Income
-            </label>
-            <input
-              id="monthly_income"
-              {...register("monthly_income", {
-                required: "Monthly income is required",
-              })}
-              className={`input ${errors.monthly_income ? "input-error" : ""}`}
-              type="number"
-              step="0.01"
-            />
-            {errors.monthly_income && (
-              <p className="field-error">{errors.monthly_income.message}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="mb-4">
-          <label htmlFor="approved_monthly_contribution" className="label">
-            Proposed Monthly Contribution (₦)
-          </label>
+          {/* Financial — contribution is read-only, requires change form */}
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-gray-400">
+            Financial
+          </h2>
           <input
-            id="approved_monthly_contribution"
-            {...register("approved_monthly_contribution", {
-              required: "Monthly contribution is required",
-              min: 1000,
-            })}
-            type="number"
-            step="1000"
-            className={`input ${errors.approved_monthly_contribution ? "input-error" : ""}`}
+            className="input bg-gray-50 text-gray-500"
+            value={`₦${Number(profile?.approved_monthly_contribution ?? 0).toLocaleString("en-NG", { minimumFractionDigits: 2 })}`}
+            disabled
+            aria-label="Approved monthly contribution amount"
+            title="Approved monthly contribution amount"
           />
-          <p className="text-xs text-gray-500 mt-1">Minimum ₦1,000</p>
-          {errors.approved_monthly_contribution && (
-            <p className="field-error">
-              {errors.approved_monthly_contribution.message}
+
+          {/* Addresses */}
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-gray-400">
+            Addresses
+          </h2>
+          <div className="mb-6 grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="label">Residential Address *</label>
+              <textarea
+                {...register("residential_address", { required: "Required" })}
+                className={`input h-24 resize-none ${errors.residential_address ? "input-error" : ""}`}
+              />
+              {errors.residential_address && (
+                <p className="field-error">
+                  {errors.residential_address.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="label">Permanent Home Address *</label>
+              <textarea
+                {...register("permanent_home_address", {
+                  required: "Required",
+                })}
+                className={`input h-24 resize-none ${errors.permanent_home_address ? "input-error" : ""}`}
+              />
+              {errors.permanent_home_address && (
+                <p className="field-error">
+                  {errors.permanent_home_address.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Next of Kin */}
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-gray-400">
+            Next of Kin
+          </h2>
+          <div className="mb-6 grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="label">Full Name *</label>
+              <input
+                {...register("next_of_kin_name", { required: "Required" })}
+                className={`input ${errors.next_of_kin_name ? "input-error" : ""}`}
+              />
+              {errors.next_of_kin_name && (
+                <p className="field-error">{errors.next_of_kin_name.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="label">Relationship *</label>
+              <input
+                {...register("next_of_kin_relationship", {
+                  required: "Required",
+                })}
+                className={`input ${errors.next_of_kin_relationship ? "input-error" : ""}`}
+              />
+              {errors.next_of_kin_relationship && (
+                <p className="field-error">
+                  {errors.next_of_kin_relationship.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="label">Phone *</label>
+              <input
+                {...register("next_of_kin_phone", { required: "Required" })}
+                className={`input ${errors.next_of_kin_phone ? "input-error" : ""}`}
+              />
+              {errors.next_of_kin_phone && (
+                <p className="field-error">
+                  {errors.next_of_kin_phone.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="label">Place of Work</label>
+              <input
+                {...register("next_of_kin_place_of_work")}
+                className="input"
+              />
+            </div>
+          </div>
+          <div className="mb-8">
+            <label className="label">Next of Kin Address *</label>
+            <textarea
+              {...register("next_of_kin_address", { required: "Required" })}
+              className={`input h-24 resize-none ${errors.next_of_kin_address ? "input-error" : ""}`}
+            />
+            {errors.next_of_kin_address && (
+              <p className="field-error">
+                {errors.next_of_kin_address.message}
+              </p>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting || !isDirty}
+            className="btn-primary w-full py-2.5 disabled:opacity-50"
+          >
+            {isSubmitting ? "Saving..." : "Save Profile"}
+          </button>
+          {!isDirty && !isSubmitting && (
+            <p className="mt-2 text-center text-xs text-gray-400">
+              No changes to save.
             </p>
           )}
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="mb-4">
-            <label htmlFor="residential_address" className="label">
-              Residential Address
-            </label>
-            <textarea
-              id="residential_address"
-              {...register("residential_address", {
-                required: "Residential address is required",
-              })}
-              className={`input h-24 resize-none ${errors.residential_address ? "input-error" : ""}`}
-            />
-            {errors.residential_address && (
-              <p className="field-error">
-                {errors.residential_address.message}
-              </p>
-            )}
-          </div>
-          <div className="mb-4">
-            <label htmlFor="permanent_home_address" className="label">
-              Permanent Home Address
-            </label>
-            <textarea
-              id="permanent_home_address"
-              {...register("permanent_home_address", {
-                required: "Permanent address is required",
-              })}
-              className={`input h-24 resize-none ${errors.permanent_home_address ? "input-error" : ""}`}
-            />
-            {errors.permanent_home_address && (
-              <p className="field-error">
-                {errors.permanent_home_address.message}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="mb-4">
-            <label htmlFor="state_of_origin" className="label">
-              State of Origin
-            </label>
-            <input
-              id="state_of_origin"
-              {...register("state_of_origin", {
-                required: "State of origin is required",
-              })}
-              className={`input ${errors.state_of_origin ? "input-error" : ""}`}
-            />
-            {errors.state_of_origin && (
-              <p className="field-error">{errors.state_of_origin.message}</p>
-            )}
-          </div>
-          <div className="mb-4">
-            <label htmlFor="local_government_area" className="label">
-              Local Government Area
-            </label>
-            <input
-              id="local_government_area"
-              {...register("local_government_area", {
-                required: "LGA is required",
-              })}
-              className={`input ${errors.local_government_area ? "input-error" : ""}`}
-            />
-            {errors.local_government_area && (
-              <p className="field-error">
-                {errors.local_government_area.message}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="mb-4">
-            <label htmlFor="next_of_kin_name" className="label">
-              Next of Kin Name
-            </label>
-            <input
-              id="next_of_kin_name"
-              {...register("next_of_kin_name", {
-                required: "Next of kin name is required",
-              })}
-              className={`input ${errors.next_of_kin_name ? "input-error" : ""}`}
-            />
-            {errors.next_of_kin_name && (
-              <p className="field-error">{errors.next_of_kin_name.message}</p>
-            )}
-          </div>
-          <div className="mb-4">
-            <label htmlFor="next_of_kin_phone" className="label">
-              Next of Kin Phone
-            </label>
-            <input
-              id="next_of_kin_phone"
-              {...register("next_of_kin_phone", {
-                required: "Next of kin phone is required",
-              })}
-              className={`input ${errors.next_of_kin_phone ? "input-error" : ""}`}
-            />
-            {errors.next_of_kin_phone && (
-              <p className="field-error">{errors.next_of_kin_phone.message}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="mb-4">
-            <label htmlFor="next_of_kin_relationship" className="label">
-              Next of Kin Relationship
-            </label>
-            <input
-              id="next_of_kin_relationship"
-              {...register("next_of_kin_relationship", {
-                required: "Relationship is required",
-              })}
-              className={`input ${errors.next_of_kin_relationship ? "input-error" : ""}`}
-            />
-            {errors.next_of_kin_relationship && (
-              <p className="field-error">
-                {errors.next_of_kin_relationship.message}
-              </p>
-            )}
-          </div>
-          <div className="mb-4">
-            <label htmlFor="next_of_kin_place_of_work" className="label">
-              Next of Kin Place of Work
-            </label>
-            <input
-              id="next_of_kin_place_of_work"
-              {...register("next_of_kin_place_of_work")}
-              className="input"
-            />
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <label htmlFor="next_of_kin_address" className="label">
-            Next of Kin Address
-          </label>
-          <textarea
-            id="next_of_kin_address"
-            {...register("next_of_kin_address", {
-              required: "Next of kin address is required",
-            })}
-            className={`input h-24 resize-none ${errors.next_of_kin_address ? "input-error" : ""}`}
-          />
-          {errors.next_of_kin_address && (
-            <p className="field-error">{errors.next_of_kin_address.message}</p>
-          )}
-        </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="btn-primary w-full py-2.5"
-        >
-          {isSubmitting
-            ? "Saving..."
-            : profileMissing
-              ? "Create Profile"
-              : "Save Profile"}
-        </button>
-      </form>
+        </form>
+      )}
     </div>
   );
 }

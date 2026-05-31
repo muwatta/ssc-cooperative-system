@@ -1,405 +1,448 @@
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useState, useEffect } from "react";
 import { membersApi, savingsApi } from "@/api/services";
-import type { MemberSummary } from "@/types";
+import type { MemberProfile } from "@/types";
+import { HIJRI_MONTHS } from "@/types";
 
-interface FormData {
-  amount: number;
+function formatNaira(v: string | number) {
+  const n = Number(v);
+  return `₦${n.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+interface PeriodState {
   hijri_month: number;
   hijri_year: number;
 }
 
-interface CsvMappingState {
-  showModal: boolean;
-  csvData: string[];
-  columnMapOptions: string[];
-  selectedColumn: string;
+interface MemberPostState {
+  amount: string;
+  editReason: string;
+  isEdited: boolean;
+  status: "idle" | "posting" | "success" | "error";
+  message: string;
+}
+
+// Member savings card
+function MemberSavingsCard({
+  member,
+  state,
+  onChange,
+  onPost,
+}: {
+  member: MemberProfile;
+  state: MemberPostState;
+  onChange: (updates: Partial<MemberPostState>) => void;
+  onPost: () => void;
+}) {
+  const approved = Number(member.approved_monthly_contribution);
+  const entered = Number(state.amount);
+  const differs = Math.abs(entered - approved) > 0.009;
+  const needsReason = differs && state.isEdited;
+  const canPost =
+    state.amount &&
+    Number(state.amount) >= 1000 &&
+    (!needsReason || state.editReason.trim().length > 0);
+
+  return (
+    <div
+      className={`card overflow-hidden transition-all ${
+        state.status === "success"
+          ? "ring-2 ring-green-300"
+          : state.status === "error"
+            ? "ring-2 ring-danger-300"
+            : ""
+      }`}
+    >
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold shrink-0">
+            {member.full_name.charAt(0)}
+          </div>
+          <div>
+            <p className="font-semibold text-gray-900 text-sm">
+              {member.full_name}
+            </p>
+            <p className="text-xs text-gray-400 font-mono">
+              {member.file_number} · {member.school_branch}
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-gray-400">Approved monthly</p>
+          <p className="font-bold text-primary-700">{formatNaira(approved)}</p>
+        </div>
+      </div>
+
+      <div className="px-5 py-4">
+        {state.status === "success" ? (
+          <div className="flex items-center gap-2 text-success-700 text-sm py-2">
+            <span className="text-lg">✓</span>
+            <span>{state.message}</span>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-end gap-3">
+              <div className="flex-1">
+                <label className="label text-xs">
+                  Amount (₦)
+                  {differs && state.isEdited && (
+                    <span className="ml-2 text-warning-700 font-medium">
+                      ⚠ Differs from approved {formatNaira(approved)}
+                    </span>
+                  )}
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="1000"
+                    value={state.amount}
+                    onChange={(e) =>
+                      onChange({
+                        amount: e.target.value,
+                        isEdited: Number(e.target.value) !== approved,
+                      })
+                    }
+                    className={`input pr-24 ${
+                      differs && state.isEdited
+                        ? "border-warning-400 focus:ring-warning-400"
+                        : ""
+                    }`}
+                    aria-label="Monthly savings amount in Naira"
+                    title="Monthly savings amount"
+                  />
+                  {differs && state.isEdited && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onChange({
+                          amount: String(approved),
+                          isEdited: false,
+                          editReason: "",
+                        })
+                      }
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-primary-600 hover:underline"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={onPost}
+                disabled={!canPost || state.status === "posting"}
+                className="btn-primary shrink-0 px-5 py-2 disabled:opacity-40"
+              >
+                {state.status === "posting" ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Posting
+                  </span>
+                ) : (
+                  "Post"
+                )}
+              </button>
+            </div>
+
+            {needsReason && (
+              <div>
+                <label className="label text-xs text-warning-700">
+                  Reason for adjustment *{" "}
+                  <span className="text-gray-400 font-normal">
+                    (visible to member)
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={state.editReason}
+                  onChange={(e) => onChange({ editReason: e.target.value })}
+                  className="input border-warning-300 focus:ring-warning-400"
+                  placeholder="e.g. Loan repayment deduction applied, member confirmed reduced amount..."
+                  maxLength={200}
+                  aria-label="Reason for adjustment"
+                  title="Reason for adjustment"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  {state.editReason.length}/200 chars
+                </p>
+              </div>
+            )}
+
+            {state.status === "error" && (
+              <p className="text-sm text-danger-700">⚠ {state.message}</p>
+            )}
+
+            <div className="flex items-center gap-3 pt-1 text-xs text-gray-400">
+              <span
+                className={
+                  member.consecutive_savings_months >= 6
+                    ? "text-success-700"
+                    : "text-warning-700"
+                }
+              >
+                {member.consecutive_savings_months}/6 months
+              </span>
+              <span>·</span>
+              <span>
+                {member.is_loan_eligible
+                  ? "✓ Loan eligible"
+                  : "Not yet loan eligible"}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function PostSavingsPage() {
-  const [members, setMembers] = useState<MemberSummary[]>([]);
+  const [members, setMembers] = useState<MemberProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("");
-  const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
-  const [serverMessage, setServerMessage] = useState<string | null>(null);
-  const [isError, setIsError] = useState(false);
-  const [csvMapping, setCsvMapping] = useState<CsvMappingState>({
-    showModal: false,
-    csvData: [],
-    columnMapOptions: ["file_number", "full_name", "email_address"],
-    selectedColumn: "file_number",
+  const [search, setSearch] = useState("");
+  const [period, setPeriod] = useState<PeriodState>({
+    hijri_month: 1,
+    hijri_year: 1446,
   });
+  const [postStates, setPostStates] = useState<Record<number, MemberPostState>>(
+    {},
+  );
+  const [globalMsg, setGlobalMsg] = useState("");
+  const [postAllPending, setPostAllPending] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<FormData>({
-    defaultValues: {
-      hijri_month: 1,
-      hijri_year: new Date().getFullYear(),
-    },
-  });
-
-  // Fixed useEffect with cleanup and proper state management
   useEffect(() => {
-    let isMounted = true;
-
-    const loadMembers = async () => {
-      try {
-        setLoading(true);
-        setIsError(false);
-        setServerMessage(null);
-
-        const response = await membersApi.summary();
-        if (isMounted) {
-          setMembers(response.data.results);
-        }
-      } catch {
-        if (isMounted) {
-          setServerMessage("Unable to load members for savings posting.");
-          setIsError(true);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadMembers();
-
-    return () => {
-      isMounted = false;
-    };
+    membersApi
+      .list({ membership_status: "active" })
+      .then((r) => {
+        const data = r.data.results;
+        setMembers(data);
+        const initial: Record<number, MemberPostState> = {};
+        data.forEach((m) => {
+          initial[m.id] = {
+            amount: m.approved_monthly_contribution,
+            editReason: "",
+            isEdited: false,
+            status: "idle",
+            message: "",
+          };
+        });
+        setPostStates(initial);
+      })
+      .catch(() => setGlobalMsg("Unable to load members."))
+      .finally(() => setLoading(false));
   }, []);
 
-  const visibleMembers = members.filter((m) => {
-    if (!filter) return true;
-    const q = filter.toLowerCase();
+  const updateMemberState = (id: number, updates: Partial<MemberPostState>) => {
+    setPostStates((prev) => ({ ...prev, [id]: { ...prev[id], ...updates } }));
+  };
+
+  const postForMember = async (member: MemberProfile) => {
+    const s = postStates[member.id];
+    if (!s) return;
+
+    const amount = Number(s.amount);
+   // const approved = Number(member.approved_monthly_contribution);
+    // const differs = Math.abs(amount - approved) > 0.009;
+
+    updateMemberState(member.id, { status: "posting", message: "" });
+
+    try {
+      // Remove 'details' – it's not supported by the API
+      await savingsApi.postSavings({
+        member: member.id,
+        amount: String(amount),
+        hijri_month: period.hijri_month,
+        hijri_year: period.hijri_year,
+      });
+      updateMemberState(member.id, {
+        status: "success",
+        message: `₦${amount.toLocaleString()} posted for ${HIJRI_MONTHS.find((m) => m.value === period.hijri_month)?.label} ${period.hijri_year}`,
+      });
+    } catch (e: any) {
+      const msg =
+        e?.response?.data?.amount?.[0] ||
+        e?.response?.data?.error ||
+        "Failed to post savings.";
+      updateMemberState(member.id, { status: "error", message: msg });
+    }
+  };
+
+  const postAll = async () => {
+    setPostAllPending(true);
+    setGlobalMsg("");
+    const idle = members.filter((m) => postStates[m.id]?.status === "idle");
+    for (const member of idle) {
+      await postForMember(member);
+    }
+    setPostAllPending(false);
+    setGlobalMsg(`Batch posting complete for ${idle.length} members.`);
+  };
+
+  const resetSuccessful = () => {
+    setPostStates((prev) => {
+      const next = { ...prev };
+      members.forEach((m) => {
+        if (next[m.id]?.status === "success") {
+          next[m.id] = {
+            amount: m.approved_monthly_contribution,
+            editReason: "",
+            isEdited: false,
+            status: "idle",
+            message: "",
+          };
+        }
+      });
+      return next;
+    });
+    setGlobalMsg("");
+  };
+
+  const filtered = members.filter((m) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
     return (
       m.file_number.toLowerCase().includes(q) ||
       m.full_name.toLowerCase().includes(q)
     );
   });
 
-  const onSubmit = async (data: FormData) => {
-    if (selectedMemberIds.length === 0) {
-      setServerMessage(
-        "Please select at least one member to post savings for.",
-      );
-      setIsError(true);
-      return;
-    }
-
-    setServerMessage(null);
-    setIsError(false);
-
-    try {
-      await savingsApi.postSavings({
-        member_ids: selectedMemberIds,
-        amount: data.amount,
-        hijri_month: data.hijri_month,
-        hijri_year: data.hijri_year,
-      });
-      setServerMessage(
-        selectedMemberIds.length > 1
-          ? "Savings entry posted successfully for selected members."
-          : "Savings entry posted successfully.",
-      );
-      reset({
-        amount: 0,
-        hijri_month: data.hijri_month,
-        hijri_year: data.hijri_year,
-      });
-      setSelectedMemberIds([]);
-    } catch {
-      setServerMessage("Failed to post savings. Please try again.");
-      setIsError(true);
-    }
-  };
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedMemberIds(visibleMembers.map((m) => m.id));
-    } else {
-      setSelectedMemberIds([]);
-    }
-  };
-
-  const handleCsvUpload = (file?: File | null) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const text = String(reader.result || "");
-      const lines = text
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter(Boolean);
-
-      if (lines.length === 0) {
-        setServerMessage("CSV file is empty.");
-        setIsError(true);
-        return;
-      }
-
-      setCsvMapping({
-        showModal: true,
-        csvData: lines,
-        columnMapOptions: ["file_number", "full_name", "email_address"],
-        selectedColumn: "file_number",
-      });
-    };
-    reader.readAsText(file);
-  };
-
-  const handleCsvMappingConfirm = () => {
-    const { csvData, selectedColumn } = csvMapping;
-    const matchedIds: number[] = [];
-
-    if (selectedColumn === "file_number") {
-      const lookup = new Map(
-        members.map((m) => [m.file_number.toLowerCase(), m.id]),
-      );
-      for (const line of csvData) {
-        const key = line.toLowerCase();
-        if (lookup.has(key)) matchedIds.push(lookup.get(key)!);
-      }
-    } else if (selectedColumn === "full_name") {
-      const lookup = new Map(
-        members.map((m) => [m.full_name.toLowerCase(), m.id]),
-      );
-      for (const line of csvData) {
-        const key = line.toLowerCase();
-        if (lookup.has(key)) matchedIds.push(lookup.get(key)!);
-      }
-    }
-
-    if (matchedIds.length === 0) {
-      setServerMessage(`No matching members found using "${selectedColumn}".`);
-      setIsError(true);
-    } else {
-      setSelectedMemberIds(
-        Array.from(new Set([...selectedMemberIds, ...matchedIds])),
-      );
-      setServerMessage(
-        `${matchedIds.length} members selected from CSV (${selectedColumn}).`,
-      );
-      setIsError(false);
-    }
-
-    setCsvMapping({ ...csvMapping, showModal: false, csvData: [] });
-  };
+  const successCount = Object.values(postStates).filter(
+    (s) => s.status === "success",
+  ).length;
+  const pendingCount = Object.values(postStates).filter(
+    (s) => s.status === "idle",
+  ).length;
 
   return (
-    <div className="card p-6 max-w-2xl mx-auto">
+    <div className="max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold">Post Savings</h1>
-        <p className="text-sm text-gray-500">
-          Record an ordinary savings payment for a member.
+        <h1 className="page-title">Post Monthly Savings</h1>
+        <p className="page-subtitle">
+          Each card shows the member's approved monthly contribution pre-filled.
+          You can adjust the amount — a reason is required if you do.
         </p>
       </div>
 
-      {serverMessage && (
-        <div
-          className={`mb-6 rounded-lg px-4 py-3 text-sm ${
-            isError
-              ? "bg-danger-50 text-danger-700 border border-danger-200"
-              : "bg-success-50 text-success-700 border border-success-200"
-          }`}
-        >
-          {serverMessage}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div className="flex items-center gap-4">
-          <input
-            placeholder="Search by file number or name"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="input flex-1"
-          />
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={
-                visibleMembers.length > 0 &&
-                visibleMembers.every((m) => selectedMemberIds.includes(m.id))
-              }
-              onChange={(e) => handleSelectAll(e.target.checked)}
-            />
-            <span className="text-sm">Select visible</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="file"
-              accept=".csv,text/csv"
-              onChange={(e) =>
-                handleCsvUpload(e.target.files ? e.target.files[0] : null)
-              }
-              className="hidden"
-            />
-            <button type="button" className="btn-ghost">
-              Upload CSV
-            </button>
-          </label>
-        </div>
-        <div>
-          <label htmlFor="member-select" className="label">
-            Member(s)
-          </label>
-          <select
-            id="member-select"
-            multiple
-            value={selectedMemberIds.map(String)}
-            onChange={(event) =>
-              setSelectedMemberIds(
-                Array.from(event.target.selectedOptions, (option) =>
-                  Number(option.value),
-                ),
-              )
-            }
-            className="input h-40"
-            disabled={loading}
-          >
-            {loading ? (
-              <option disabled>Loading members...</option>
-            ) : (
-              visibleMembers.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.file_number} — {member.full_name}
-                </option>
-              ))
-            )}
-          </select>
-          <p className="text-xs text-gray-500 mt-2">
-            Hold Ctrl (Windows) or Cmd (Mac) to select multiple members.
-          </p>
-          {!loading && members.length === 0 && (
-            <p className="field-error">No members found</p>
-          )}
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
+      {/* Period selector */}
+      <div className="card p-4 mb-6 bg-primary-50 border border-primary-100">
+        <p className="text-xs font-semibold text-primary-700 uppercase tracking-wider mb-3">
+          Posting Period (Islamic Calendar)
+        </p>
+        <div className="flex flex-wrap gap-4 items-end">
           <div>
-            <label className="label">Amount</label>
-            <input
-              {...register("amount", {
-                required: "Amount is required",
-                valueAsNumber: true,
-                min: { value: 0.01, message: "Amount must be positive" },
-              })}
-              type="number"
-              step="0.01"
-              inputMode="decimal"
-              min={0.01}
-              className="input"
-              disabled={loading}
-            />
-            {errors.amount && (
-              <p className="field-error">{errors.amount.message}</p>
-            )}
-          </div>
-          <div>
-            <label className="label">Hijri Month</label>
-            <input
-              {...register("hijri_month", {
-                required: "Hijri month is required",
-                valueAsNumber: true,
-                min: { value: 1, message: "Month must be between 1 and 12" },
-                max: { value: 12, message: "Month must be between 1 and 12" },
-              })}
-              type="number"
-              min={1}
-              max={12}
-              className="input"
-              disabled={loading}
-            />
-            {errors.hijri_month && (
-              <p className="field-error">{errors.hijri_month.message}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="label">Hijri Year</label>
-            <input
-              {...register("hijri_year", {
-                required: "Hijri year is required",
-                valueAsNumber: true,
-                min: { value: 1, message: "Please enter a valid year" },
-              })}
-              type="number"
-              className="input"
-              disabled={loading}
-            />
-            {errors.hijri_year && (
-              <p className="field-error">{errors.hijri_year.message}</p>
-            )}
-          </div>
-          <div className="flex items-end">
-            <button
-              type="submit"
-              disabled={isSubmitting || loading}
-              className="btn-primary w-full py-2.5"
-            >
-              {isSubmitting ? "Posting..." : "Post Savings"}
-            </button>
-          </div>
-        </div>
-      </form>
-
-      {csvMapping.showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
-            <h2 className="text-xl font-semibold mb-4">Map CSV Column</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Select which column in your CSV contains member identifiers:
-            </p>
+            <label className="label text-xs">Islamic Month</label>
             <select
-              value={csvMapping.selectedColumn}
+              value={period.hijri_month}
               onChange={(e) =>
-                setCsvMapping({ ...csvMapping, selectedColumn: e.target.value })
+                setPeriod((p) => ({
+                  ...p,
+                  hijri_month: Number(e.target.value),
+                }))
               }
-              className="input w-full mb-4"
-              aria-label="Select CSV column to map"
-              title="Select CSV column to map"
+              className="input w-48"
+              aria-label="Hijri month"
+              title="Hijri month"
             >
-              <option value="file_number">File Number</option>
-              <option value="full_name">Full Name</option>
+              {HIJRI_MONTHS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
             </select>
-            <p className="text-xs text-gray-500 mb-4">
-              {csvMapping.csvData.length} rows will be matched.
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={handleCsvMappingConfirm}
-                className="btn-primary flex-1"
-              >
-                Confirm
-              </button>
-              <button
-                onClick={() =>
-                  setCsvMapping({
-                    ...csvMapping,
-                    showModal: false,
-                    csvData: [],
-                  })
-                }
-                className="btn-ghost flex-1"
-              >
-                Cancel
-              </button>
-            </div>
           </div>
+          <div>
+            <label className="label text-xs">Hijri Year</label>
+            <input
+              type="number"
+              min="1400"
+              max="1500"
+              value={period.hijri_year}
+              onChange={(e) =>
+                setPeriod((p) => ({ ...p, hijri_year: Number(e.target.value) }))
+              }
+              className="input w-28"
+              aria-label="Hijri year"
+              title="Hijri year"
+            />
+          </div>
+          <div className="flex gap-2 ml-auto">
+            {successCount > 0 && (
+              <button
+                onClick={resetSuccessful}
+                className="btn-secondary text-sm"
+              >
+                Clear {successCount} posted
+              </button>
+            )}
+            <button
+              onClick={postAll}
+              disabled={postAllPending || pendingCount === 0}
+              className="btn-primary text-sm disabled:opacity-40"
+            >
+              {postAllPending
+                ? "Posting all..."
+                : `Post All (${pendingCount} pending)`}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {globalMsg && (
+        <div className="mb-4 rounded-lg border border-green-200 bg-success-50 px-4 py-3 text-sm text-success-700">
+          ✅ {globalMsg}
         </div>
       )}
 
-      {loading && (
-        <div className="text-gray-600 mt-6 text-center">Loading members...</div>
+      <div className="mb-4 flex items-center gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+            🔍
+          </span>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search member..."
+            className="input pl-9"
+            aria-label="Search members"
+            title="Search members"
+          />
+        </div>
+        <p className="text-sm text-gray-400">
+          {filtered.length} member{filtered.length !== 1 ? "s" : ""}
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="flex h-48 items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-xl border border-gray-200 py-16 text-center text-gray-400">
+          <p className="text-4xl">👥</p>
+          <p className="mt-2">No active members found.</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {filtered.map((member) => (
+            <MemberSavingsCard
+              key={member.id}
+              member={member}
+              state={
+                postStates[member.id] ?? {
+                  amount: member.approved_monthly_contribution,
+                  editReason: "",
+                  isEdited: false,
+                  status: "idle",
+                  message: "",
+                }
+              }
+              onChange={(updates) => updateMemberState(member.id, updates)}
+              onPost={() => postForMember(member)}
+            />
+          ))}
+        </div>
       )}
     </div>
   );

@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { membersApi, savingsApi } from "@/api/services";
-import type {
-  MemberBalance,
-  MemberProfile,
-  SavingsLedgerEntry,
-  SavingsSummary,
-} from "@/types";
+import { useAuth } from "@/context/AuthContext";
+import type { MemberBalance, MemberProfile, SavingsLedgerEntry } from "@/types";
 import { HIJRI_MONTHS } from "@/types";
 
 function formatCurrency(value: string | number) {
@@ -20,6 +16,7 @@ function formatCurrency(value: string | number) {
 }
 
 export default function MySavingsPage() {
+  const { isAdmin, isCommittee } = useAuth();
   const [profile, setProfile] = useState<MemberProfile | null>(null);
   const [profileMissing, setProfileMissing] = useState(false);
   const [balance, setBalance] = useState<MemberBalance | null>(null);
@@ -43,22 +40,22 @@ export default function MySavingsPage() {
     date_to: "",
   });
 
+  const canSeeCoopBalances = isAdmin || isCommittee;
+
   const {
     data: cooperativeSummary,
     isLoading: summaryLoading,
     error: summaryLoadError,
-  } = useQuery(
-    ["my-savings", "summary"],
-    async () => {
+  } = useQuery({
+    queryKey: ["my-savings", "summary"],
+    queryFn: async () => {
       const response = await savingsApi.summary();
       return response.data;
     },
-    {
-      staleTime: 10000,
-      refetchOnWindowFocus: true,
-      refetchInterval: 15000,
-    },
-  );
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 60000,
+  });
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -245,6 +242,7 @@ export default function MySavingsPage() {
             </div>
           ) : null}
 
+          {/* Personal summary cards */}
           <div className="grid gap-4 lg:grid-cols-4 mb-6">
             <div className="card p-4">
               <p className="text-sm text-gray-500">Total Savings</p>
@@ -274,70 +272,76 @@ export default function MySavingsPage() {
             </div>
           </div>
 
-          <div className="card p-6 mb-6">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h2 className="text-lg font-semibold">Cooperative Balances</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  General totals for all members, visible to everyone.
-                </p>
-              </div>
-              {summaryLoadError ? (
-                <div className="text-sm text-danger-700">
-                  Unable to load cooperative balance summary.
+          {/* Cooperative Balances (visible only to admin/committee) */}
+          {canSeeCoopBalances && (
+            <div className="card p-6 mb-6">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">
+                    Cooperative Balances
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    General totals for all members.
+                  </p>
                 </div>
-              ) : null}
-            </div>
+                {summaryLoadError ? (
+                  <div className="text-sm text-danger-700">
+                    Unable to load cooperative balance summary.
+                  </div>
+                ) : null}
+              </div>
 
-            <div className="mt-6 grid gap-4 lg:grid-cols-4">
-              <div className="card p-4">
-                <p className="text-sm text-gray-500">Total Savings</p>
-                <p className="text-3xl font-semibold mt-2">
-                  {summaryLoading
-                    ? "Loading..."
-                    : cooperativeSummary
-                      ? formatCurrency(
-                          cooperativeSummary.cooperative.total_savings,
-                        )
-                      : "₦0.00"}
-                </p>
-              </div>
-              <div className="card p-4">
-                <p className="text-sm text-gray-500">Total Commitments</p>
-                <p className="text-3xl font-semibold mt-2">
-                  {summaryLoading
-                    ? "Loading..."
-                    : cooperativeSummary
-                      ? formatCurrency(
-                          cooperativeSummary.cooperative.total_committed,
-                        )
-                      : "₦0.00"}
-                </p>
-              </div>
-              <div className="card p-4">
-                <p className="text-sm text-gray-500">Total Available</p>
-                <p className="text-3xl font-semibold mt-2">
-                  {summaryLoading
-                    ? "Loading..."
-                    : cooperativeSummary
-                      ? formatCurrency(
-                          cooperativeSummary.cooperative.total_available,
-                        )
-                      : "₦0.00"}
-                </p>
-              </div>
-              <div className="card p-4">
-                <p className="text-sm text-gray-500">Members Count</p>
-                <p className="text-3xl font-semibold mt-2">
-                  {summaryLoading
-                    ? "Loading..."
-                    : (cooperativeSummary?.cooperative.member_count ?? 0)}
-                </p>
+              <div className="mt-6 grid gap-4 lg:grid-cols-4">
+                <div className="card p-4">
+                  <p className="text-sm text-gray-500">Total Savings</p>
+                  <p className="text-3xl font-semibold mt-2">
+                    {summaryLoading
+                      ? "Loading..."
+                      : cooperativeSummary
+                        ? formatCurrency(
+                            cooperativeSummary.cooperative.total_savings,
+                          )
+                        : "₦0.00"}
+                  </p>
+                </div>
+                <div className="card p-4">
+                  <p className="text-sm text-gray-500">Total Commitments</p>
+                  <p className="text-3xl font-semibold mt-2">
+                    {summaryLoading
+                      ? "Loading..."
+                      : cooperativeSummary
+                        ? formatCurrency(
+                            cooperativeSummary.cooperative.total_committed,
+                          )
+                        : "₦0.00"}
+                  </p>
+                </div>
+                <div className="card p-4">
+                  <p className="text-sm text-gray-500">Total Available</p>
+                  <p className="text-3xl font-semibold mt-2">
+                    {summaryLoading
+                      ? "Loading..."
+                      : cooperativeSummary
+                        ? formatCurrency(
+                            cooperativeSummary.cooperative.total_available,
+                          )
+                        : "₦0.00"}
+                  </p>
+                </div>
+                <div className="card p-4">
+                  <p className="text-sm text-gray-500">Members Count</p>
+                  <p className="text-3xl font-semibold mt-2">
+                    {summaryLoading
+                      ? "Loading..."
+                      : (cooperativeSummary?.cooperative.member_count ?? 0)}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {!profileMissing ? (
+          {/* Member details cards */}
+          {!profileMissing && (
             <>
               <div className="grid gap-4 lg:grid-cols-3 mb-8">
                 <div className="card p-4">
@@ -360,6 +364,7 @@ export default function MySavingsPage() {
                 </div>
               </div>
 
+              {/* Ledger filter & table */}
               <div className="mb-4">
                 <h2 className="text-lg font-semibold">Savings Ledger</h2>
                 <p className="text-sm text-gray-500">
@@ -571,7 +576,7 @@ export default function MySavingsPage() {
                 </div>
               )}
             </>
-          ) : null}
+          )}
         </>
       )}
     </div>
