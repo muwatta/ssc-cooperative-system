@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import api from "@/api/client";
 import clsx from "clsx";
 
-// Nav item
 interface NavItem {
   label: string;
   to: string;
   icon: string;
 }
 
-// Role-based nav items
 function useNavItems(): NavItem[] {
   const { isAdmin, isCommittee, isHOS } = useAuth();
 
@@ -19,6 +19,7 @@ function useNavItems(): NavItem[] {
     { label: "My Savings", to: "/my-savings", icon: "₦" },
     { label: "My Loans", to: "/my-loans", icon: "🏦" },
     { label: "My Profile", to: "/profile", icon: "👤" },
+    { label: "Change Password", to: "/change-password", icon: "🔒" },
   ];
 
   const adminItems: NavItem[] = [
@@ -34,10 +35,10 @@ function useNavItems(): NavItem[] {
     { label: "Loan Queue", to: "/loans/queue", icon: "📑" },
     { label: "Reports", to: "/reports", icon: "📊" },
     {
-      label: "Savings Requests",
+      label: "Change Requests",
       to: "/savings/change-requests",
       icon: "📝",
-    }, 
+    },
   ];
 
   const hosItems: NavItem[] = [
@@ -52,10 +53,22 @@ function useNavItems(): NavItem[] {
 }
 
 export default function AppLayout() {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin, isCommittee } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const navigate = useNavigate();
   const navItems = useNavItems();
+
+  // Fetch pending savings change requests count (only for admin/committee)
+  const { data: pendingCountData } = useQuery({
+    queryKey: ["pending-change-requests-count"],
+    queryFn: () =>
+      api
+        .get<{ count: number }>("/savings/change-requests/pending-count/")
+        .then((r) => r.data.count),
+    refetchInterval: 30000,
+    enabled: isAdmin || isCommittee,
+  });
+  const pendingCount = pendingCountData ?? 0;
 
   const handleLogout = async () => {
     await logout();
@@ -84,7 +97,6 @@ export default function AppLayout() {
           sidebarOpen ? "w-60" : "w-16",
         )}
       >
-        {/* Logo */}
         <div className="flex items-center gap-3 px-4 py-5 border-b border-gray-100">
           <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
             S
@@ -97,7 +109,6 @@ export default function AppLayout() {
           )}
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 overflow-y-auto py-4 px-2">
           {navItems.map((item) => (
             <NavLink
@@ -113,12 +124,24 @@ export default function AppLayout() {
               }
             >
               <span className="text-base shrink-0">{item.icon}</span>
-              {sidebarOpen && <span className="truncate">{item.label}</span>}
+              {sidebarOpen && (
+                <span className="truncate flex-1">{item.label}</span>
+              )}
+              {/* Badge for Savings Change Requests */}
+              {item.to === "/savings/change-requests" && pendingCount > 0 && (
+                <span
+                  className={clsx(
+                    "ml-auto inline-flex items-center justify-center rounded-full bg-primary-600 px-2 py-0.5 text-xs font-medium text-white",
+                    !sidebarOpen && "ml-0",
+                  )}
+                >
+                  {pendingCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
 
-        {/* User info + logout */}
         <div className="border-t border-gray-100 p-3">
           {sidebarOpen ? (
             <div className="flex items-start gap-2">
@@ -148,14 +171,11 @@ export default function AppLayout() {
         </div>
       </aside>
 
-      {/* Main content */}
       <div className="flex flex-col flex-1 overflow-hidden">
-        {/* Top bar */}
         <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-3 shrink-0">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="btn-ghost p-2"
-            aria-label="Toggle sidebar"
           >
             ☰
           </button>
@@ -164,7 +184,6 @@ export default function AppLayout() {
               type="button"
               onClick={() => navigate(-1)}
               className="btn-secondary btn-sm px-3 py-2"
-              aria-label="Go back"
             >
               ← Back
             </button>
@@ -172,7 +191,6 @@ export default function AppLayout() {
               type="button"
               onClick={() => navigate(1)}
               className="btn-primary btn-sm px-3 py-2"
-              aria-label="Go forward"
             >
               Next →
             </button>
@@ -182,8 +200,6 @@ export default function AppLayout() {
             {user?.full_name || user?.staff_id}
           </span>
         </header>
-
-        {/* Page content */}
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>

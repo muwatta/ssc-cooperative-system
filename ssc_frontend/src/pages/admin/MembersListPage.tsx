@@ -91,12 +91,12 @@ export default function MembersListPage() {
             {data?.count ?? 0} total members
           </p>
         </div>
-        <Link
+        {/* <Link
           to="/members/add"
           className="btn-primary w-full px-4 py-2 text-center md:w-auto"
         >
           + Add Member
-        </Link>
+        </Link> */}
       </div>
 
       {/* Success toast */}

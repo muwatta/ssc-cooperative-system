@@ -46,8 +46,12 @@ export default function StaffIDRegistryPage() {
       setEntries((prev) => [response.data, ...prev]);
       reset();
       setServerMessage("Staff ID registered successfully.");
-    } catch (error) {
-      setServerMessage("Failed to register Staff ID.");
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.staff_id?.[0] ||
+        error?.response?.data?.error ||
+        "Failed to register Staff ID.";
+      setServerMessage(message);
       setIsError(true);
     }
   };

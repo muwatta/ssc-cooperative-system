@@ -1,20 +1,16 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { RequireAuth, RequireRole, GuestOnly } from "./guards";
 
-// Layouts
 import AppLayout from "@/components/layout/AppLayout";
 
-// Auth pages
 import LoginPage from "@/pages/auth/LoginPage";
 import SetPasswordPage from "@/pages/auth/SetPasswordPage";
 import UnauthorizedPage from "@/pages/auth/UnauthorizedPage";
 
-// Shared pages (all authenticated roles)
 import DashboardPage from "@/pages/shared/DashboardPage";
 import MyProfilePage from "@/pages/shared/MyProfilePage";
 import MySavingsPage from "@/pages/shared/MySavingsPage";
 
-// Admin pages
 import MembersListPage from "@/pages/admin/MembersListPage";
 import MemberDetailPage from "@/pages/admin/MemberDetailPage";
 import AddMemberPage from "@/pages/admin/AddMemberPage";
@@ -25,18 +21,15 @@ import PostDuesPage from "@/pages/admin/PostDuesPage";
 import LoanSettingsPage from "@/pages/admin/LoanSettingsPage";
 import LegacyImportPage from "@/pages/admin/LegacyImportPage";
 
-// Committee pages
 import LoanQueuePage from "@/pages/committee/LoanQueuePage";
-// Staff pages
 import ApplyLoanPage from "@/pages/staff/ApplyLoanPage";
 import MyLoansPage from "@/pages/staff/MyLoansPage";
 import LoanDetailPage from "@/pages/staff/LoanDetailPage";
-// Shared pages (all authenticated roles)
 import ReportsPage from "@/pages/shared/ReportsPage";
 import SavingsChangeRequestsPage from "@/pages/admin/SavingsChangeRequestsPage";
 
-// Placeholder for pages not built yet
 import ComingSoonPage from "@/pages/shared/ComingSoonPage";
+import ChangePasswordPage from "@/pages/shared/ChangePasswordPage";
 
 const router = createBrowserRouter([
   {
@@ -60,6 +53,7 @@ const router = createBrowserRouter([
           { path: "/my-loans", element: <MyLoansPage /> },
           { path: "/loans/apply", element: <ApplyLoanPage /> },
           { path: "/loans/:id", element: <LoanDetailPage /> },
+          { path: "/change-password", element: <ChangePasswordPage /> },
 
           // Admin only
           {
@@ -83,7 +77,10 @@ const router = createBrowserRouter([
             children: [
               { path: "/loans/queue", element: <LoanQueuePage /> },
               { path: "/reports", element: <ReportsPage /> },
-              {path: "/savings/change-requests", element: <SavingsChangeRequestsPage />}
+              {
+                path: "/savings/change-requests",
+                element: <SavingsChangeRequestsPage />,
+              },
             ],
           },
 

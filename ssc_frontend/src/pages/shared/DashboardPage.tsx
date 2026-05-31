@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { membersApi, savingsApi } from "@/api/services";
@@ -42,6 +43,17 @@ type DashboardStats = {
 export default function DashboardPage() {
   const { user, isAdmin, isCommittee, isHOS } = useAuth();
   const isLeadership = isAdmin || isCommittee || isHOS;
+
+  // Balance toggle state (persisted in localStorage)
+  const [showBalances, setShowBalances] = useState(() => {
+    return localStorage.getItem("showBalances") !== "false";
+  });
+
+  const toggleBalances = () => {
+    const newVal = !showBalances;
+    setShowBalances(newVal);
+    localStorage.setItem("showBalances", String(newVal));
+  };
 
   const memberStatsQuery = useQuery<DashboardStats>({
     queryKey: ["dashboard", "member-stats"],
@@ -114,7 +126,14 @@ export default function DashboardPage() {
   const coopSummary = balances?.cooperative;
 
   const displayName =
-  myProfile?.full_name || user?.full_name || user?.staff_id || "Guest";
+    myProfile?.full_name || user?.full_name || user?.staff_id || "Guest";
+
+  // Helper to conditionally show masked value
+  const maskIfNeeded = (value: string) => {
+    if (!showBalances) return "•••••";
+    return value;
+  };
+
   return (
     <div>
       <div className="mb-6">
@@ -241,14 +260,21 @@ export default function DashboardPage() {
 
       <div className="card p-6 mb-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
+          <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold">Balance Overview</h2>
-            <p className="text-sm text-gray-500 mt-1">
-              {isAdmin || isCommittee
-                ? "Your savings balance plus a cooperative summary for all members."
-                : "Your personal savings balance and contribution details."}
-            </p>
+            <button
+              onClick={toggleBalances}
+              className="text-gray-500 hover:text-gray-700 transition-colors text-xl"
+              aria-label={showBalances ? "Hide balances" : "Show balances"}
+            >
+              {showBalances ? "👁️" : "👁️‍🗨️"}
+            </button>
           </div>
+          <p className="text-sm text-gray-500 mt-1">
+            {isAdmin || isCommittee
+              ? "Your savings balance plus a cooperative summary for all members."
+              : "Your personal savings balance and contribution details."}
+          </p>
           {balanceLoading && (
             <div className="text-sm text-gray-500">Loading balances...</div>
           )}
@@ -272,7 +298,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-500">Your Total Savings</p>
                 <p className="text-3xl font-semibold mt-2">
                   {hasMemberBalance
-                    ? formatNaira(memberBalance!.total_savings)
+                    ? maskIfNeeded(formatNaira(memberBalance!.total_savings))
                     : "N/A"}
                 </p>
               </div>
@@ -280,7 +306,9 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-500">Your Available Balance</p>
                 <p className="text-3xl font-semibold mt-2">
                   {hasMemberBalance
-                    ? formatNaira(memberBalance!.available_balance)
+                    ? maskIfNeeded(
+                        formatNaira(memberBalance!.available_balance),
+                      )
                     : "N/A"}
                 </p>
               </div>
@@ -290,7 +318,9 @@ export default function DashboardPage() {
                 </p>
                 <p className="text-3xl font-semibold mt-2">
                   {myProfile?.approved_monthly_contribution !== undefined
-                    ? formatNaira(myProfile.approved_monthly_contribution)
+                    ? maskIfNeeded(
+                        formatNaira(myProfile.approved_monthly_contribution),
+                      )
                     : "N/A"}
                 </p>
               </div>
@@ -298,7 +328,9 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-500">Committed Savings</p>
                 <p className="text-3xl font-semibold mt-2">
                   {hasMemberBalance
-                    ? formatNaira(memberBalance!.suretyship_committed)
+                    ? maskIfNeeded(
+                        formatNaira(memberBalance!.suretyship_committed),
+                      )
                     : "N/A"}
                 </p>
               </div>
@@ -312,7 +344,7 @@ export default function DashboardPage() {
                   </p>
                   <p className="text-3xl font-semibold mt-2">
                     {coopSummary
-                      ? formatNaira(coopSummary.total_savings)
+                      ? maskIfNeeded(formatNaira(coopSummary.total_savings))
                       : "₦0.00"}
                   </p>
                 </div>
@@ -322,7 +354,7 @@ export default function DashboardPage() {
                   </p>
                   <p className="text-3xl font-semibold mt-2">
                     {coopSummary
-                      ? formatNaira(coopSummary.total_available)
+                      ? maskIfNeeded(formatNaira(coopSummary.total_available))
                       : "₦0.00"}
                   </p>
                 </div>
