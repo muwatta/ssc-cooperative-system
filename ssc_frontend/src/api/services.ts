@@ -1,8 +1,3 @@
-/**
- * SSC Cooperative — API Services
- * All API calls go through here. Never call axios directly from components.
- */
-
 import api from "./client";
 import type {
   LoginRequest,
@@ -22,6 +17,7 @@ import type {
   Notification,
   InvestmentRecord,
   InvestmentDistribution,
+  LoanSettings,
 } from "@/types";
 
 // AUTH

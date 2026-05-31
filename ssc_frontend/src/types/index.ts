@@ -263,6 +263,16 @@ export interface LoanApplication {
     status: string;
   }[];
 }
+
+export interface LoanSettings {
+  id?: number;
+  max_loan_duration_months?: number;
+  min_savings_months?: number;
+  max_loan_percentage_of_savings?: number;
+  max_surety_percentage?: number;
+  annual_loan_limit?: number;
+}
+
 export interface LoanEligibilityResponse {
   eligible: boolean;
   reasons: string[];

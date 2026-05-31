@@ -218,13 +218,20 @@ class SavingsChangeRequestListCreateView(generics.ListCreateAPIView):
 
 
 class ApproveSavingsChangeView(APIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAdmin]   # or IsAdminOrCommittee if committee can also approve
 
     def post(self, request, pk):
         try:
             change_req = SavingsChangeRequest.objects.get(pk=pk, status="pending")
         except SavingsChangeRequest.DoesNotExist:
             return Response({"error": "Request not found or not pending."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Prevent self‑approval
+        if change_req.member.user == request.user:
+            return Response(
+                {"error": "You cannot approve your own savings change request. Another admin/committee member must approve it."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         serializer = ApproveSavingsChangeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -237,8 +244,7 @@ class ApproveSavingsChangeView(APIView):
             hijri_year=d["effective_hijri_year"],
         )
         return Response(SavingsChangeRequestSerializer(result).data)
-
-
+    
 class RejectSavingsChangeView(APIView):
     permission_classes = [IsAdmin]
 

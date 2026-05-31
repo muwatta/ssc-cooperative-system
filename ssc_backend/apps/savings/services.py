@@ -150,10 +150,6 @@ def post_termly_dues(cycle: TermlyDuesCycle, posted_by) -> dict:
 
 @transaction.atomic
 def apply_savings_change(change_request: SavingsChangeRequest, approved_by, hijri_month: int, hijri_year: int):
-    """
-    SRS Section 2.5 — apply an approved savings change.
-    Updates member's approved_monthly_contribution from effective month.
-    """
     from utils.hijri import hijri_month_display
     member = change_request.member
     member.approved_monthly_contribution = change_request.requested_amount
@@ -172,6 +168,5 @@ def apply_savings_change(change_request: SavingsChangeRequest, approved_by, hijr
 
 
 def reset_consecutive_counter(member: MemberProfile):
-    """SRS Rule M2 — missed month resets counter to zero."""
     member.consecutive_savings_months = 0
     member.save(update_fields=["consecutive_savings_months", "updated_at"])
