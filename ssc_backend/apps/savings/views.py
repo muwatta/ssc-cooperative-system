@@ -101,7 +101,6 @@ class MemberBalanceView(APIView):
         balance = get_or_create_balance(member)
         return Response(MemberBalanceSerializer(balance).data)
     
-
 class SavingsSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -118,20 +117,29 @@ class SavingsSummaryView(APIView):
                 member_balance = get_or_create_balance(profile)
                 member_data = MemberBalanceSerializer(member_balance).data
 
-            summary = MemberBalance.objects.aggregate(
-                total_savings=Sum("total_savings"),
-                total_committed=Sum("suretyship_committed"),
-                member_count=Count("id"),
-            )
+            # Check if user is admin or committee
+            if request.user.role in ("admin", "committee"):
+                summary = MemberBalance.objects.aggregate(
+                    total_savings=Sum("total_savings"),
+                    total_committed=Sum("suretyship_committed"),
+                    member_count=Count("id"),
+                )
+                total_savings = summary["total_savings"] or Decimal("0.00")
+                total_committed = summary["total_committed"] or Decimal("0.00")
+                total_available = total_savings - total_committed
+                member_count = summary["member_count"] or 0
+            else:
+                # Non-privileged users see zero totals
+                total_savings = Decimal("0.00")
+                total_committed = Decimal("0.00")
+                total_available = Decimal("0.00")
+                member_count = 0
 
-            total_savings = summary["total_savings"] or Decimal("0.00")
-            total_committed = summary["total_committed"] or Decimal("0.00")
-            total_available = total_savings - total_committed
         except ProgrammingError:
             total_savings = Decimal("0.00")
             total_committed = Decimal("0.00")
             total_available = Decimal("0.00")
-            summary = {"member_count": 0}
+            member_count = 0
             member_data = None
 
         return Response({
@@ -140,10 +148,9 @@ class SavingsSummaryView(APIView):
                 "total_savings": str(total_savings),
                 "total_committed": str(total_committed),
                 "total_available": str(total_available),
-                "member_count": summary["member_count"] or 0,
+                "member_count": member_count,
             },
         })
-
 
 class MyBalanceView(APIView):
     def get(self, request):
@@ -172,11 +179,10 @@ class MyLedgerView(generics.ListAPIView):
     def get_queryset(self):
         try:
             profile = self.request.user.member_profile
-            return SavingsLedger.objects.filter(member=profile).order_by("-hijri_year", "-hijri_month")
+            return SavingsLedger.objects.filter(member=profile).order_by("-hijri_year", "-hijri_month", "-created_at")
         except Exception:
             return SavingsLedger.objects.none()
-
-# Savings Change Requests
+        
 
 class SavingsChangeRequestListCreateView(generics.ListCreateAPIView):
     serializer_class = SavingsChangeRequestSerializer

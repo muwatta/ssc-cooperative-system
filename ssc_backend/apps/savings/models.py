@@ -1,8 +1,3 @@
-"""
-SSC Cooperative — Savings Models
-Covers SRS Sections 4, 7.1
-"""
-
 from django.db import models
 from django.core.validators import MinValueValidator
 from decimal import Decimal
@@ -24,11 +19,6 @@ class SavingsChangeStatus(models.TextChoices):
 
 
 class SavingsLedger(models.Model):
-    """
-    SRS Section 4.4 — per-member savings ledger.
-    Every credit and debit recorded here with Islamic date.
-    Running balance maintained after every entry.
-    """
     member = models.ForeignKey(
         "accounts.MemberProfile",
         on_delete=models.PROTECT,
@@ -73,11 +63,6 @@ class SavingsLedger(models.Model):
 
 
 class MemberBalance(models.Model):
-    """
-    SRS Section 4.2 — denormalised balance record.
-    Updated atomically after every ledger entry.
-    Available Balance = Total Savings - Suretyship Committed
-    """
     member = models.OneToOneField(
         "accounts.MemberProfile",
         on_delete=models.PROTECT,
@@ -100,10 +85,6 @@ class MemberBalance(models.Model):
 
 
 class SavingsChangeRequest(models.Model):
-    """
-    SRS Section 2.5 — formal Savings Increase/Decrease form.
-    Member submits → Admin/Chairman approves → effective Islamic month set.
-    """
     member           = models.ForeignKey(
         "accounts.MemberProfile",
         on_delete=models.PROTECT,
@@ -142,11 +123,6 @@ class SavingsChangeRequest(models.Model):
 
 
 class TermlyDuesCycle(models.Model):
-    """
-    SRS Section 4.3 — configurable termly dues.
-    Admin creates a cycle, sets amount and target members.
-    Posting debits all selected members' savings.
-    """
     name        = models.CharField(max_length=100, help_text="e.g. 'First Term 1446'")
     amount      = models.DecimalField(max_digits=12, decimal_places=2)
     description = models.CharField(max_length=255, blank=True, default="")

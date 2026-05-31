@@ -1,9 +1,3 @@
-"""
-SSC Cooperative — Savings Service Layer
-All savings business logic lives here. Views call these functions.
-This keeps views thin and business rules testable.
-"""
-
 from django.db import transaction
 from django.db.utils import ProgrammingError
 from django.utils import timezone
@@ -39,12 +33,6 @@ def post_savings_entry(
     entry_type: str = LedgerEntryType.ORDINARY_SAVINGS,
     details: str = "",
 ) -> SavingsLedger:
-    """
-    SRS Rules S1, S3, S4, S5.
-    Posts a credit entry to the member's savings ledger.
-    Updates MemberBalance atomically.
-    Updates consecutive_savings_months counter.
-    """
     balance = get_or_create_balance(member)
     new_balance = balance.total_savings + amount
     hijri_disp = hijri_month_display(hijri_month, hijri_year)
