@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { membersApi, savingsApi } from "@/api/services";
 import type {
   MemberBalance,
@@ -22,8 +23,6 @@ export default function MySavingsPage() {
   const [profile, setProfile] = useState<MemberProfile | null>(null);
   const [profileMissing, setProfileMissing] = useState(false);
   const [balance, setBalance] = useState<MemberBalance | null>(null);
-  const [cooperativeSummary, setCooperativeSummary] =
-    useState<SavingsSummary | null>(null);
   const [ledger, setLedger] = useState<SavingsLedgerEntry[]>([]);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
@@ -31,7 +30,6 @@ export default function MySavingsPage() {
   const [downloading, setDownloading] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<"csv" | "pdf">("csv");
   const [error, setError] = useState("");
-  const [summaryError, setSummaryError] = useState("");
   const [filters, setFilters] = useState({
     hijri_month: "",
     hijri_year: "",
@@ -44,6 +42,23 @@ export default function MySavingsPage() {
     date_from: "",
     date_to: "",
   });
+
+  const {
+    data: cooperativeSummary,
+    isLoading: summaryLoading,
+    error: summaryLoadError,
+  } = useQuery(
+    ["my-savings", "summary"],
+    async () => {
+      const response = await savingsApi.summary();
+      return response.data;
+    },
+    {
+      staleTime: 10000,
+      refetchOnWindowFocus: true,
+      refetchInterval: 15000,
+    },
+  );
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -122,20 +137,6 @@ export default function MySavingsPage() {
 
     loadSavings();
   }, [profile, page, appliedFilters, profileMissing]);
-
-  useEffect(() => {
-    const loadSummary = async () => {
-      setSummaryError("");
-      try {
-        const response = await savingsApi.summary();
-        setCooperativeSummary(response.data);
-      } catch {
-        setSummaryError("Unable to load cooperative balance summary.");
-      }
-    };
-
-    loadSummary();
-  }, []);
 
   const summary = useMemo(() => {
     return {
@@ -281,8 +282,10 @@ export default function MySavingsPage() {
                   General totals for all members, visible to everyone.
                 </p>
               </div>
-              {summaryError ? (
-                <div className="text-sm text-danger-700">{summaryError}</div>
+              {summaryLoadError ? (
+                <div className="text-sm text-danger-700">
+                  Unable to load cooperative balance summary.
+                </div>
               ) : null}
             </div>
 
@@ -290,37 +293,45 @@ export default function MySavingsPage() {
               <div className="card p-4">
                 <p className="text-sm text-gray-500">Total Savings</p>
                 <p className="text-3xl font-semibold mt-2">
-                  {cooperativeSummary
-                    ? formatCurrency(
-                        cooperativeSummary.cooperative.total_savings,
-                      )
-                    : "₦0.00"}
+                  {summaryLoading
+                    ? "Loading..."
+                    : cooperativeSummary
+                      ? formatCurrency(
+                          cooperativeSummary.cooperative.total_savings,
+                        )
+                      : "₦0.00"}
                 </p>
               </div>
               <div className="card p-4">
                 <p className="text-sm text-gray-500">Total Commitments</p>
                 <p className="text-3xl font-semibold mt-2">
-                  {cooperativeSummary
-                    ? formatCurrency(
-                        cooperativeSummary.cooperative.total_committed,
-                      )
-                    : "₦0.00"}
+                  {summaryLoading
+                    ? "Loading..."
+                    : cooperativeSummary
+                      ? formatCurrency(
+                          cooperativeSummary.cooperative.total_committed,
+                        )
+                      : "₦0.00"}
                 </p>
               </div>
               <div className="card p-4">
                 <p className="text-sm text-gray-500">Total Available</p>
                 <p className="text-3xl font-semibold mt-2">
-                  {cooperativeSummary
-                    ? formatCurrency(
-                        cooperativeSummary.cooperative.total_available,
-                      )
-                    : "₦0.00"}
+                  {summaryLoading
+                    ? "Loading..."
+                    : cooperativeSummary
+                      ? formatCurrency(
+                          cooperativeSummary.cooperative.total_available,
+                        )
+                      : "₦0.00"}
                 </p>
               </div>
               <div className="card p-4">
                 <p className="text-sm text-gray-500">Members Count</p>
                 <p className="text-3xl font-semibold mt-2">
-                  {cooperativeSummary?.cooperative.member_count ?? 0}
+                  {summaryLoading
+                    ? "Loading..."
+                    : (cooperativeSummary?.cooperative.member_count ?? 0)}
                 </p>
               </div>
             </div>

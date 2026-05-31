@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -295,6 +295,27 @@ export default function MemberDetailPage() {
   const [showDeactivate, setShowDeactivate] = useState(false);
   const [showChangeRole, setShowChangeRole] = useState(false);
   const [activeTab, setActiveTab] = useState<"profile" | "savings">("profile");
+  const [isEditingContribution, setIsEditingContribution] = useState(false);
+  const [contributionDraft, setContributionDraft] = useState<string>("");
+  const [contributionError, setContributionError] = useState("");
+
+  const updateContributionMutation = useMutation({
+    mutationFn: (amount: string) =>
+      membersApi.update(Number(id), {
+        approved_monthly_contribution: amount,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["member", id] });
+      qc.invalidateQueries({ queryKey: ["members"] });
+      setIsEditingContribution(false);
+      setContributionError("");
+    },
+    onError: () => {
+      setContributionError(
+        "Unable to update monthly contribution. Please try again.",
+      );
+    },
+  });
 
   const {
     data: member,
@@ -304,19 +325,35 @@ export default function MemberDetailPage() {
     queryKey: ["member", id],
     queryFn: () => membersApi.get(Number(id)).then((r) => r.data),
     enabled: !!id,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000,
   });
 
   const { data: balance } = useQuery({
     queryKey: ["balance", id],
     queryFn: () => savingsApi.getBalance(Number(id)).then((r) => r.data),
     enabled: !!id && member?.membership_status === "active",
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000,
   });
 
   const { data: ledger } = useQuery({
     queryKey: ["ledger", id],
     queryFn: () => savingsApi.getLedger(Number(id)).then((r) => r.data),
     enabled: activeTab === "savings" && !!id,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000,
   });
+
+  useEffect(() => {
+    if (member) {
+      setContributionDraft(
+        member.approved_monthly_contribution?.toString() ?? "0",
+      );
+      setContributionError("");
+      setIsEditingContribution(false);
+    }
+  }, [member]);
 
   const deactivateMutation = useMutation({
     mutationFn: () => membersApi.deactivate(Number(id)),
@@ -545,10 +582,95 @@ export default function MemberDetailPage() {
                 label="Monthly Income"
                 value={formatNaira(member.monthly_income)}
               />
-              <InfoRow
-                label="Monthly Contribution"
-                value={formatNaira(member.approved_monthly_contribution)}
-              />
+              {isAdmin ? (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm text-slate-500">
+                        Monthly Contribution
+                      </p>
+                      {!isEditingContribution ? (
+                        <p className="mt-1 text-lg font-semibold">
+                          {formatNaira(member.approved_monthly_contribution)}
+                        </p>
+                      ) : null}
+                    </div>
+                    {!isEditingContribution ? (
+                      <button
+                        type="button"
+                        className="btn-secondary btn-sm"
+                        onClick={() => setIsEditingContribution(true)}
+                      >
+                        Edit
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {isEditingContribution ? (
+                    <div className="mt-4 space-y-3">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        aria-label="Monthly contribution amount"
+                        value={contributionDraft}
+                        onChange={(e) => setContributionDraft(e.target.value)}
+                        className="input w-full"
+                      />
+                      {contributionError && (
+                        <p className="text-sm text-danger-700">
+                          {contributionError}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          onClick={() => {
+                            setIsEditingContribution(false);
+                            setContributionDraft(
+                              member.approved_monthly_contribution?.toString() ??
+                                "0",
+                            );
+                            setContributionError("");
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          disabled={updateContributionMutation.isPending}
+                          onClick={() => {
+                            const parsedAmount = Number(contributionDraft);
+                            if (
+                              Number.isNaN(parsedAmount) ||
+                              parsedAmount <= 0
+                            ) {
+                              setContributionError(
+                                "Enter a valid monthly contribution amount.",
+                              );
+                              return;
+                            }
+                            updateContributionMutation.mutate(
+                              contributionDraft,
+                            );
+                          }}
+                        >
+                          {updateContributionMutation.isPending
+                            ? "Saving..."
+                            : "Save"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <InfoRow
+                  label="Monthly Contribution"
+                  value={formatNaira(member.approved_monthly_contribution)}
+                />
+              )}
               <InfoRow
                 label="Consecutive Months"
                 value={`${member.consecutive_savings_months} months`}

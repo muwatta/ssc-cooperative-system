@@ -1,6 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { membersApi, savingsApi } from "@/api/services";
-import type { MemberProfile, SchoolBranch, MembershipStatus } from "@/types";
+import type {
+  MemberProfile,
+  PaginatedResponse,
+  SavingsSummary,
+  SchoolBranch,
+  MembershipStatus,
+} from "@/types";
 
 function formatNaira(value: string | number) {
   const amount = Number(value);
@@ -13,41 +20,41 @@ function formatNaira(value: string | number) {
 }
 
 export default function ReportsPage() {
-  const [members, setMembers] = useState<MemberProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [totalSavingsPool, setTotalSavingsPool] = useState<string | null>(null);
-  const [poolLoading, setPoolLoading] = useState(true);
+  const {
+    data: membersPage,
+    isLoading: loading,
+    isFetching: fetchingMembers,
+    error: membersError,
+  } = useQuery<PaginatedResponse<MemberProfile>>({
+    queryKey: ["reports", "members", { membership_status: "active" }],
+    queryFn: async () => {
+      const response = await membersApi.list({ membership_status: "active" });
+      return response.data;
+    },
+    staleTime: 10000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000,
+  });
 
-  useEffect(() => {
-    const loadMembers = async () => {
-      try {
-        const response = await membersApi.list({ membership_status: "active" });
-        setMembers(response.data.results);
-      } catch {
-        setError("Unable to load report data.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadMembers();
-  }, []);
+  const {
+    data: savingsSummary,
+    isLoading: poolLoading,
+    error: poolError,
+  } = useQuery<SavingsSummary>({
+    queryKey: ["reports", "savings-summary"],
+    queryFn: async () => {
+      const response = await savingsApi.summary();
+      return response.data;
+    },
+    staleTime: 10000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000,
+  });
 
-  // Load real savings pool from summary endpoint
-  useEffect(() => {
-    const loadPool = async () => {
-      setPoolLoading(true);
-      try {
-        const res = await savingsApi.summary();
-        setTotalSavingsPool(res.data.cooperative.total_savings);
-      } catch {
-        setTotalSavingsPool(null);
-      } finally {
-        setPoolLoading(false);
-      }
-    };
-    loadPool();
-  }, []);
+  const members = membersPage?.results ?? [];
+  const activeMemberCount = membersPage?.count ?? 0;
+  const error = membersError || poolError ? "Unable to load report data." : "";
+  const totalSavingsPool = savingsSummary?.cooperative?.total_savings ?? null;
 
   const summary = useMemo(() => {
     const statusCounts = {
@@ -95,7 +102,7 @@ export default function ReportsPage() {
           <div className="grid gap-4 md:grid-cols-3 mb-8">
             <div className="card p-4">
               <p className="text-sm text-gray-500">Active Members</p>
-              <p className="text-3xl font-semibold mt-2">{members.length}</p>
+              <p className="text-3xl font-semibold mt-2">{activeMemberCount}</p>
             </div>
             <div className="card p-4">
               <p className="text-sm text-gray-500">Loan-Eligible Members</p>
@@ -107,11 +114,13 @@ export default function ReportsPage() {
             <div className="card p-4 border border-primary-100 bg-primary-50">
               <p className="text-sm text-gray-500">Total Savings Pool</p>
               <p className="text-3xl font-semibold mt-2 text-primary-700">
-                {poolLoading
-                  ? "Loading..."
-                  : totalSavingsPool !== null
-                    ? formatNaira(totalSavingsPool)
-                    : "—"}
+                {(loading || poolLoading) && fetchingMembers
+                  ? "Refreshing..."
+                  : poolLoading
+                    ? "Loading..."
+                    : totalSavingsPool !== null
+                      ? formatNaira(totalSavingsPool)
+                      : "—"}
               </p>
               <p className="text-xs text-gray-400 mt-1">
                 Actual money saved across all members

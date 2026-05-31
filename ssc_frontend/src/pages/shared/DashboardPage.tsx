@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useQuery } from "@tanstack/react-query";
 import { membersApi, savingsApi } from "@/api/services";
 import type { SavingsSummary } from "@/types";
 
@@ -41,66 +41,54 @@ type DashboardStats = {
 
 export default function DashboardPage() {
   const { user, isAdmin, isCommittee, isHOS } = useAuth();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [balances, setBalances] = useState<SavingsSummary | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [balanceLoading, setBalanceLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [balanceError, setBalanceError] = useState("");
-
-  useEffect(() => {
-    if (!isAdmin && !isCommittee && !isHOS) return;
-
-    const loadStats = async () => {
-      setLoading(true);
-      setError("");
-
-      try {
-        const [all, active, pending, inactive, exited] = await Promise.all([
-          membersApi.list(),
-          membersApi.list({ membership_status: "active" }),
-          membersApi.list({ membership_status: "pending" }),
-          membersApi.list({ membership_status: "inactive" }),
-          membersApi.list({ membership_status: "exited" }),
-        ]);
-
-        setStats({
-          totalMembers: all.data.count,
-          activeMembers: active.data.count,
-          pendingMembers: pending.data.count,
-          inactiveMembers: inactive.data.count,
-          exitedMembers: exited.data.count,
-        });
-      } catch {
-        setError(
-          "Unable to load dashboard statistics. Please refresh the page.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadStats();
-  }, [isAdmin, isCommittee, isHOS]);
-
-  useEffect(() => {
-    const loadBalances = async () => {
-      setBalanceLoading(true);
-      setBalanceError("");
-      try {
-        const response = await savingsApi.summary();
-        setBalances(response.data);
-      } catch {
-        setBalanceError("Unable to load balance summary.");
-      } finally {
-        setBalanceLoading(false);
-      }
-    };
-
-    loadBalances();
-  }, []);
-
   const isLeadership = isAdmin || isCommittee || isHOS;
+
+  const memberStatsQuery = useQuery<DashboardStats>({
+    queryKey: ["dashboard", "member-stats"],
+    queryFn: async () => {
+      const [all, active, pending, inactive, exited] = await Promise.all([
+        membersApi.list(),
+        membersApi.list({ membership_status: "active" }),
+        membersApi.list({ membership_status: "pending" }),
+        membersApi.list({ membership_status: "inactive" }),
+        membersApi.list({ membership_status: "exited" }),
+      ]);
+
+      return {
+        totalMembers: all.data.count,
+        activeMembers: active.data.count,
+        pendingMembers: pending.data.count,
+        inactiveMembers: inactive.data.count,
+        exitedMembers: exited.data.count,
+      };
+    },
+    enabled: isLeadership,
+    staleTime: 10000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000,
+  });
+
+  const balanceQuery = useQuery<SavingsSummary>({
+    queryKey: ["dashboard", "balances"],
+    queryFn: async () => {
+      const response = await savingsApi.summary();
+      return response.data;
+    },
+    staleTime: 10000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000,
+  });
+
+  const stats = memberStatsQuery.data as DashboardStats | undefined;
+  const balances = balanceQuery.data as SavingsSummary | undefined;
+  const loading = memberStatsQuery.isLoading;
+  const balanceLoading = balanceQuery.isLoading;
+  const error = memberStatsQuery.error
+    ? "Unable to load dashboard statistics. Please refresh the page."
+    : "";
+  const balanceError = balanceQuery.error
+    ? "Unable to load balance summary."
+    : "";
 
   const formatNaira = (value: string | number) => {
     const amount = Number(value);
@@ -248,8 +236,9 @@ export default function DashboardPage() {
           <>
             {balances?.member === null && balances ? (
               <div className="mt-4 rounded-lg border border-warning-200 bg-warning-50 p-4 text-sm text-warning-700">
-                ℹ️ No savings profile linked to this account. 
-                Personal balance will appear here once a member profile is created and linked by an administrator.
+                ℹ️ No savings profile linked to this account. Personal balance
+                will appear here once a member profile is created and linked by
+                an administrator.
               </div>
             ) : null}
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
