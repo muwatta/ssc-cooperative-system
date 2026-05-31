@@ -25,33 +25,34 @@ export default function LoanSettingsPage() {
   const [serverMessage, setServerMessage] = useState("");
   const [serverError, setServerError] = useState("");
 
+  // Use React Query v5 – no onSuccess/onError in options
   const { data, isLoading, isError } = useQuery({
     queryKey: ["loan-settings"],
     queryFn: () => loansApi.settings().then((response) => response.data),
-    onSuccess: (data) => setSettings(data),
-    onError: () => setServerError("Unable to load loan rules."),
   });
 
+  // Sync fetched data to local state
+  useEffect(() => {
+    if (data) {
+      setSettings(data);
+    }
+  }, [data]);
+
+  // Mutation for updating settings – v5 uses `isPending`
   const updateMutation = useMutation({
     mutationFn: (payload: Partial<LoanSettings>) =>
       loansApi.updateSettings(payload).then((response) => response.data),
-    onSuccess: (data) => {
-      setSettings(data);
+    onSuccess: (updatedData) => {
+      setSettings(updatedData);
       setServerMessage("Loan rules updated successfully.");
       setServerError("");
-      queryClient.invalidateQueries(["loan-settings"]);
+      queryClient.invalidateQueries({ queryKey: ["loan-settings"] });
     },
     onError: () => {
       setServerError("Unable to save loan rules. Please try again.");
       setServerMessage("");
     },
   });
-
-  useEffect(() => {
-    if (data) {
-      setSettings(data);
-    }
-  }, [data]);
 
   const handleChange =
     (field: keyof LoanSettings) => (event: ChangeEvent<HTMLInputElement>) => {
@@ -138,8 +139,10 @@ export default function LoanSettingsPage() {
             value={settings.consecutive_savings_months_required}
             onChange={handleChange("consecutive_savings_months_required")}
             className="input w-full"
+            aria-label="Consecutive savings months required"
+            title="Consecutive savings months required"
           />
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="mt-2 text-sm text-gray-500">
             Members must meet this number of consecutive savings months before
             applying for a loan.
           </p>
@@ -156,8 +159,10 @@ export default function LoanSettingsPage() {
             value={settings.max_loans_per_year}
             onChange={handleChange("max_loans_per_year")}
             className="input w-full"
+            aria-label="Maximum approved loans per year"
+            title="Maximum approved loans per year"
           />
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="mt-2 text-sm text-gray-500">
             The maximum number of approved loans a member may have in a calendar
             year.
           </p>
@@ -174,8 +179,10 @@ export default function LoanSettingsPage() {
             value={settings.max_repayment_months}
             onChange={handleChange("max_repayment_months")}
             className="input w-full"
+            aria-label="Maximum repayment months"
+            title="Maximum repayment months"
           />
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="mt-2 text-sm text-gray-500">
             Maximum allowed repayment duration for loan applications.
           </p>
         </div>
@@ -193,8 +200,10 @@ export default function LoanSettingsPage() {
             value={settings.self_surety_ratio}
             onChange={handleChange("self_surety_ratio")}
             className="input w-full"
+            aria-label="Maximum borrow ratio (decimal between 0 and 1)"
+            title="Maximum borrow ratio"
           />
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="mt-2 text-sm text-gray-500">
             Fraction of available balance a member may borrow, expressed as a
             decimal between 0 and 1.
           </p>
@@ -211,8 +220,10 @@ export default function LoanSettingsPage() {
             value={settings.max_sureties}
             onChange={handleChange("max_sureties")}
             className="input w-full"
+            aria-label="Maximum number of sureties"
+            title="Maximum number of sureties"
           />
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="mt-2 text-sm text-gray-500">
             Maximum number of surety members allowed on a loan application.
           </p>
         </div>
@@ -230,8 +241,10 @@ export default function LoanSettingsPage() {
               value={settings.min_loan_amount}
               onChange={handleChange("min_loan_amount")}
               className="input w-full"
+              aria-label="Minimum loan amount"
+              title="Minimum loan amount"
             />
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="mt-2 text-sm text-gray-500">
               The minimum loan amount members may request.
             </p>
           </div>
@@ -248,19 +261,22 @@ export default function LoanSettingsPage() {
               value={settings.max_loan_amount}
               onChange={handleChange("max_loan_amount")}
               className="input w-full"
+              aria-label="Maximum loan amount (0 = no cap)"
+              title="Maximum loan amount"
             />
-            <p className="text-sm text-gray-500 mt-2">Set to 0 for no cap.</p>
+            <p className="mt-2 text-sm text-gray-500">Set to 0 for no cap.</p>
           </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <label className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <input
               id="require_no_active_loan"
               type="checkbox"
               checked={settings.require_no_active_loan}
               onChange={handleChange("require_no_active_loan")}
               className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              aria-label="Require no active loan before applying"
             />
             <span>
               Require no active loan before applying
@@ -271,13 +287,14 @@ export default function LoanSettingsPage() {
             </span>
           </label>
 
-          <label className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <input
               id="require_no_surety_liabilities"
               type="checkbox"
               checked={settings.require_no_surety_liabilities}
               onChange={handleChange("require_no_surety_liabilities")}
               className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              aria-label="Require no active surety liability"
             />
             <span>
               Require no active surety liability
@@ -291,10 +308,10 @@ export default function LoanSettingsPage() {
 
         <button
           type="submit"
-          disabled={updateMutation.isLoading}
+          disabled={updateMutation.isPending}
           className="btn-primary"
         >
-          {updateMutation.isLoading ? "Saving..." : "Save Loan Rules"}
+          {updateMutation.isPending ? "Saving..." : "Save Loan Rules"}
         </button>
       </form>
     </div>
