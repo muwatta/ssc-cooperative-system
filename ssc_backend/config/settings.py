@@ -60,7 +60,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -89,17 +88,9 @@ DATABASES = {
         default=config("DATABASE_URL"),
         conn_max_age=600,
         conn_health_checks=True,
-        ssl_require=True, 
     )
 }
 
-# DATABASES = {
-#     "default": dj_database_url.config(
-#         default=config("DATABASE_URL"),
-#         conn_max_age=600,
-#         conn_health_checks=True,
-#     )
-# }
 
 # CUSTOM AUTH USER MODEL
 AUTH_USER_MODEL = "accounts.User"
@@ -178,13 +169,14 @@ if ENVIRONMENT == "production":
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
-    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
+    
 # CELERY — Async task queue
 CELERY_BROKER_URL = config(
     "CELERY_BROKER_URL",
