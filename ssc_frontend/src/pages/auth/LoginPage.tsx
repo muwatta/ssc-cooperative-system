@@ -24,9 +24,7 @@ export default function LoginPage() {
       if (result.is_first_login) {
         navigate("/set-password");
       } else {
-        // Wipe all stored state and force a hard redirect
-        localStorage.clear();
-        sessionStorage.clear();
+        // ✅ Force a fresh navigation without clearing storage
         window.location.replace("/dashboard");
       }
     } catch (err) {
