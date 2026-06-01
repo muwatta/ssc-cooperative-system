@@ -6,11 +6,8 @@ import axios, {
 const meta = import.meta as unknown as {
   env?: { VITE_API_URL?: string; MODE?: string };
 };
-const BASE_URL =
-  meta.env?.VITE_API_URL ||
-  (meta.env?.MODE === "development"
-    ? "http://127.0.0.1:8000/api/v1"
-    : "/api/v1");
+// Delete the BASE_URL logic and use this directly:
+const BASE_URL = "https://ssc-cooperative-system.onrender.com/api/v1";
 
 // ── Storage keys
 const ACCESS_KEY = "ssc_access";
