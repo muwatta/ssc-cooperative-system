@@ -24,8 +24,10 @@ export default function LoginPage() {
       if (result.is_first_login) {
         navigate("/set-password");
       } else {
-        // ✅ Force a full page reload to /dashboard – this clears all stored redirect state
-        window.location.href = "/dashboard";
+        // Wipe all stored state and force a hard redirect
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.replace("/dashboard");
       }
     } catch (err) {
       const error = err as AxiosError<Record<string, string[]>>;
@@ -47,7 +49,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo / Header */}
         <div className="text-center mb-6 sm:mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/10 backdrop-blur mb-3 sm:mb-4">
             <span className="text-2xl sm:text-3xl font-black text-white">
@@ -62,7 +63,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Card */}
         <div className="card p-6 sm:p-8">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">
             Sign in
@@ -78,7 +78,6 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
-            {/* Staff ID */}
             <div className="mb-4">
               <label className="label text-sm">Staff ID</label>
               <input
@@ -104,7 +103,6 @@ export default function LoginPage() {
               )}
             </div>
 
-            {/* Password */}
             <div className="mb-6">
               <label className="label text-sm">Password</label>
               <div className="relative">
