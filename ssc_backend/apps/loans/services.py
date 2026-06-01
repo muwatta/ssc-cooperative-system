@@ -1,5 +1,3 @@
-"""SSC Cooperative — Loans Service Layer"""
-
 from django.db import transaction
 from django.utils import timezone
 from decimal import Decimal
@@ -7,7 +5,7 @@ from apps.accounts.models import MemberProfile
 from apps.notifications.models import NotificationType
 from apps.savings.services import get_or_create_balance, post_debit_entry
 from apps.savings.models import LedgerEntryType
-from apps.sureties.services import create_surety_records
+from apps.sureties.services import create_surety_records, lock_sureties_for_loan, release_sureties_proportionally, release_all_sureties, transfer_balance_to_sureties
 from utils.hijri import hijri_month_display
 from .models import LoanApplication, LoanRepaymentLedger, LoanStatus, LoanConfiguration
 
@@ -17,10 +15,6 @@ def get_loan_configuration() -> LoanConfiguration:
 
 
 def check_loan_eligibility(member: MemberProfile) -> dict:
-    """
-    SRS Section 5.1 — all 4 conditions must pass.
-    Returns {"eligible": bool, "reasons": [str]}
-    """
     reasons = []
     config = get_loan_configuration()
 
@@ -53,7 +47,7 @@ def check_loan_eligibility(member: MemberProfile) -> dict:
     loans_this_year = LoanApplication.objects.filter(
         applicant=member,
         created_at__year=current_year,
-        status__in=[LoanStatus.ACTIVE, LoanStatus.APPROVED, LoanStatus.HOS_APPROVED, LoanStatus.COMPLETED]
+        status__in=[LoanStatus.ACTIVE, LoanStatus.APPROVED, LoanStatus.COMPLETED]  # removed HOS_APPROVED
     ).count()
     if loans_this_year >= config.max_loans_per_year:
         reasons.append(
@@ -139,18 +133,18 @@ def committee_reject_loan(loan: LoanApplication, rejected_by, note: str = "") ->
 
 
 @transaction.atomic
-def hos_approve_loan(loan: LoanApplication, hos_user) -> LoanApplication:
-    """SRS L10 stage 2 — Head of School final sign-off"""
+def admin_final_approve_loan(loan: LoanApplication, admin_user) -> LoanApplication:
+    """Admin final approval — activates loan and locks sureties."""
     if loan.status != LoanStatus.APPROVED:
-        raise ValueError("Loan must have Committee approval before HOS sign-off.")
+        raise ValueError("Loan must be committee-approved before final approval.")
 
     loan.status = LoanStatus.ACTIVE
-    loan.hos_approved_by = hos_user
-    loan.hos_approved_at = timezone.now()
+    # Optionally store who approved (add a field like `final_approved_by` to model)
+    # loan.final_approved_by = admin_user
+    # loan.final_approved_at = timezone.now()
     loan.save()
 
-    # Lock sureties
-    from apps.sureties.services import lock_sureties_for_loan
+    # Lock sureties (same as previously done in HOS approval)
     lock_sureties_for_loan(loan)
 
     return loan
@@ -192,12 +186,10 @@ def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hij
     loan.save(update_fields=["outstanding_balance", "status", "updated_at"])
 
     # Release sureties proportionally
-    from apps.sureties.services import release_sureties_proportionally
     release_sureties_proportionally(loan, amount)
 
     # If completed — fully release all sureties (SRS SR8)
     if balance_after == Decimal("0.00"):
-        from apps.sureties.services import release_all_sureties
         release_all_sureties(loan)
 
     return repayment
@@ -212,7 +204,6 @@ def handle_default_or_exit(loan: LoanApplication) -> dict:
     if loan.status not in (LoanStatus.ACTIVE,):
         raise ValueError("Loan must be active to process default.")
 
-    from apps.sureties.services import transfer_balance_to_sureties
     result = transfer_balance_to_sureties(loan)
 
     loan.status = LoanStatus.DEFAULTED

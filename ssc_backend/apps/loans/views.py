@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 
-from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee, IsAdminOrCommitteeOrHOS, CanApproveLoan, CanGiveFinalLoanApproval
+from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee, IsAdminOrCommitteeOrHOS, CanApproveLoan
 from apps.accounts.models import MemberProfile
 from apps.savings.services import get_or_create_balance
 from .models import LoanApplication, LoanRepaymentLedger, LoanStatus
@@ -25,7 +25,8 @@ from .services import (
     check_loan_eligibility, calculate_max_borrowable,
     get_loan_configuration, submit_loan_application, create_surety_records,
     committee_approve_loan, committee_reject_loan,
-    hos_approve_loan, post_repayment, handle_default_or_exit,
+    admin_final_approve_loan,  # <-- ADD THIS
+    post_repayment, handle_default_or_exit,
 )
 
 
@@ -179,6 +180,9 @@ class CommitteeDecisionView(APIView):
         try:
             if d["decision"] == "approve":
                 loan = committee_approve_loan(loan, request.user, d["amount_approved"], d.get("note", ""))
+                # Override status: committee approval should not activate loan
+                loan.status = LoanStatus.APPROVED
+                loan.save(update_fields=["status"])
             else:
                 loan = committee_reject_loan(loan, request.user, d.get("note", ""))
         except ValueError as e:
@@ -187,19 +191,34 @@ class CommitteeDecisionView(APIView):
         return Response(LoanApplicationSerializer(loan).data)
 
 
-class HOSApprovalView(APIView):
-    """POST /api/v1/loans/<id>/hos-approve/ — SRS L10 stage 2"""
-    permission_classes = [CanGiveFinalLoanApproval]
+class AdminFinalApprovalView(APIView):
+    """
+    POST /api/v1/loans/<id>/admin-approve/
+    Admin gives final approval after committee approval.
+    """
+    permission_classes = [IsAdmin]
 
     def post(self, request, pk):
         try:
-            loan = LoanApplication.objects.get(pk=pk)
+            loan = LoanApplication.objects.get(pk=pk, status=LoanStatus.APPROVED)
         except LoanApplication.DoesNotExist:
-            return Response({"error": "Loan not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Loan not found or not in committee-approved state."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Prevent admin from approving their own loan
+        if loan.applicant.user == request.user:
+            return Response(
+                {"error": "Admin cannot approve their own loan."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         try:
-            loan = hos_approve_loan(loan, request.user)
+            loan = admin_final_approve_loan(loan, request.user)
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         return Response(LoanApplicationSerializer(loan).data)
 
 
