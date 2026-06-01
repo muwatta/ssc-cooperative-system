@@ -451,37 +451,3 @@ class ChangePasswordView(APIView):
         return Response({"message": "Password changed successfully."})
     
 
-
-class CreateSuperuserView(APIView):
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        from .models import User, StaffIDRegistry
-
-        staff_id = "S43-0001"
-        password = "Admin1234!"   # Change to a strong password
-
-        # Ensure Staff ID is in registry
-        registry, reg_created = StaffIDRegistry.objects.get_or_create(
-            staff_id=staff_id,
-            defaults={'is_active': True}
-        )
-        if not registry.is_active:
-            registry.is_active = True
-            registry.save()
-
-        # Create or update user
-        user, created = User.objects.get_or_create(staff_id=staff_id)
-        if created:
-            user.set_password(password)
-            user.role = "admin"
-            user.is_superuser = True
-            user.is_staff = True
-            user.is_first_login = False
-            user.save()
-            return JsonResponse({"message": f"Superuser {staff_id} created successfully."})
-        else:
-            # Update password if needed
-            user.set_password(password)
-            user.save()
-            return JsonResponse({"message": f"User {staff_id} already exists, password updated."})
