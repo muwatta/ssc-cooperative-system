@@ -24,8 +24,7 @@ export default function LoginPage() {
       if (result.is_first_login) {
         navigate("/set-password", { replace: true });
       } else {
-        // 🔥 Force a full page reload to /dashboard with a timestamp to bust cache
-        window.location.href = `/dashboard?t=${Date.now()}`;
+        navigate("/dashboard", { replace: true });
       }
     } catch (err) {
       const error = err as AxiosError<Record<string, string[]>>;

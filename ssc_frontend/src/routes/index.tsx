@@ -46,7 +46,10 @@ const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          // All roles
+          // ✅ ADD THIS INDEX ROUTE – makes Dashboard the default page
+          { index: true, element: <DashboardPage /> },
+
+          // All roles – explicit paths
           { path: "/dashboard", element: <DashboardPage /> },
           { path: "/profile", element: <MyProfilePage /> },
           { path: "/my-savings", element: <MySavingsPage /> },
