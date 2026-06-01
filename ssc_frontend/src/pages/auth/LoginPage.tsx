@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/context/AuthContext";
 import type { LoginRequest } from "@/types";
@@ -8,17 +8,8 @@ import { AxiosError } from "axios";
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [serverError, setServerError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
-  // Prevent redirect to /my-loans (force dashboard)
-  let intendedPath = (location.state as { from?: { pathname: string } })?.from
-    ?.pathname;
-  if (intendedPath === "/my-loans") {
-    intendedPath = "/dashboard";
-  }
-  const from = intendedPath || "/dashboard";
 
   const {
     register,
@@ -33,7 +24,7 @@ export default function LoginPage() {
       if (result.is_first_login) {
         navigate("/set-password");
       } else {
-        navigate(from, { replace: true });
+        navigate("/dashboard", { replace: true });
       }
     } catch (err) {
       const error = err as AxiosError<Record<string, string[]>>;
