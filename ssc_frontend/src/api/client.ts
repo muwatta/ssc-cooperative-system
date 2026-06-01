@@ -3,13 +3,13 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 
-const meta = import.meta as unknown as {
-  env?: { VITE_API_URL?: string; MODE?: string };
-};
-// Delete the BASE_URL logic and use this directly:
+// const meta = import.meta as unknown as {
+//   env?: { VITE_API_URL?: string; MODE?: string };
+// };
+
 const BASE_URL = "https://ssc-cooperative-system.onrender.com/api/v1";
 
-// ── Storage keys
+// Storage keys
 const ACCESS_KEY = "ssc_access";
 const REFRESH_KEY = "ssc_refresh";
 
@@ -26,14 +26,14 @@ export const tokenStorage = {
   },
 };
 
-// ── Axios instance
+// Axios instance
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
   timeout: 15000,
 });
 
-// ── Request interceptor
+// Request interceptor
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = tokenStorage.getAccess();
@@ -45,7 +45,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// ── Response interceptor — handle 401 / token refresh
+// Response interceptor — handle 401 / token refresh
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (token: string) => void;
