@@ -22,9 +22,10 @@ export default function LoginPage() {
     try {
       const result = await login(data);
       if (result.is_first_login) {
-        navigate("/set-password");
+        navigate("/set-password", { replace: true });
       } else {
-        window.location.replace("/dashboard");
+        // ✅ Use React Router navigation – no full page reload
+        navigate("/dashboard", { replace: true });
       }
     } catch (err) {
       const error = err as AxiosError<Record<string, string[]>>;
