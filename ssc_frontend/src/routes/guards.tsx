@@ -1,8 +1,7 @@
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import type { Role } from "@/types";
 
-// ── Spinner shown while auth state is loading
 function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -14,41 +13,24 @@ function LoadingScreen() {
   );
 }
 
-// ── Requires authentication
 export function RequireAuth() {
   const { user, isLoading } = useAuth();
-  const location = useLocation();
-
   if (isLoading) return <LoadingScreen />;
-  if (!user) {
-    // Do NOT store loan-related paths as redirect targets
-    const isLoanPath = location.pathname.startsWith("/loans/");
-    const from = isLoanPath ? undefined : location;
-    return <Navigate to="/login" state={{ from }} replace />;
-  }
+  if (!user) return <Navigate to="/login" replace />;
   return <Outlet />;
 }
 
-// ── Requires specific role(s)
 export function RequireRole({ roles }: { roles: Role[] }) {
   const { user, isLoading } = useAuth();
-  const location = useLocation();
-
   if (isLoading) return <LoadingScreen />;
-  if (!user) {
-    const isLoanPath = location.pathname.startsWith("/loans/");
-    const from = isLoanPath ? undefined : location;
-    return <Navigate to="/login" state={{ from }} replace />;
-  }
+  if (!user) return <Navigate to="/login" replace />;
   if (!roles.includes(user.role))
     return <Navigate to="/unauthorized" replace />;
   return <Outlet />;
 }
 
-// ── Redirects already-logged-in users away from /login
 export function GuestOnly() {
   const { user, isLoading } = useAuth();
-
   if (isLoading) return <LoadingScreen />;
   if (user) return <Navigate to="/dashboard" replace />;
   return <Outlet />;
