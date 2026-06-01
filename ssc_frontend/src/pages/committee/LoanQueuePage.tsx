@@ -36,7 +36,6 @@ function CommitteeDecisionModal({
     },
   });
   const decision = watch("decision");
-
   const mutation = useMutation({
     mutationFn: (data: any) => loansApi.committeeDecision(loan.id, data),
     onSuccess: () => {
@@ -45,19 +44,18 @@ function CommitteeDecisionModal({
     },
     onError: (e: any) => setError(e?.response?.data?.error || "Action failed."),
   });
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-1">
       {error && <ErrorAlert message={error} />}
       <div className="bg-gray-50 rounded-lg p-4 text-sm space-y-1">
         <div className="flex justify-between">
           <span className="text-gray-500">Applicant</span>
-          <span className="font-medium">
+          <span>
             {loan.applicant_file_number} — {loan.applicant_name}
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-500">Amount Applied</span>
+          <span className="text-gray-500">Amount</span>
           <span className="font-bold text-primary-700">
             {formatNaira(loan.amount_applied)}
           </span>
@@ -66,16 +64,11 @@ function CommitteeDecisionModal({
           <span className="text-gray-500">Duration</span>
           <span>{loan.proposed_duration_months} months</span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-gray-500">Monthly Repayment</span>
-          <span>{formatNaira(loan.proposed_monthly_repayment)}</span>
-        </div>
         <div>
           <span className="text-gray-500">Purpose: </span>
           {loan.purpose}
         </div>
       </div>
-
       <form
         onSubmit={handleSubmit((d) => mutation.mutate(d))}
         className="space-y-4"
@@ -100,11 +93,7 @@ function CommitteeDecisionModal({
         )}
         <div>
           <label className="label">Note (optional)</label>
-          <textarea
-            {...register("note")}
-            className="input h-16"
-            placeholder="Add a note..."
-          />
+          <textarea {...register("note")} className="input h-16" />
         </div>
         <div className="flex gap-3">
           <button
@@ -131,7 +120,7 @@ function CommitteeDecisionModal({
   );
 }
 
-function HOSApprovalModal({
+function AdminFinalApprovalModal({
   loan,
   onClose,
 }: {
@@ -141,7 +130,8 @@ function HOSApprovalModal({
   const qc = useQueryClient();
   const [error, setError] = useState("");
   const mutation = useMutation({
-    mutationFn: () => loansApi.hosApprove(loan.id),
+    mutationFn: () =>
+      loansApi.adminApprove?.(loan.id) || loansApi.hosApprove?.(loan.id), // adjust to your new endpoint
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["loans-queue"] });
       onClose();
@@ -161,9 +151,6 @@ function HOSApprovalModal({
         </p>
         <p className="text-gray-500 mt-1">{loan.committee_decision_note}</p>
       </div>
-      <p className="text-sm text-gray-600">
-        By approving, you give final sign-off to activate this loan.
-      </p>
       <div className="flex gap-3">
         <button onClick={onClose} className="btn-secondary flex-1">
           Cancel
@@ -173,7 +160,7 @@ function HOSApprovalModal({
           disabled={mutation.isPending}
           className="btn-primary flex-1"
         >
-          {mutation.isPending ? "Approving..." : "Give Final Approval"}
+          {mutation.isPending ? "Approving..." : "Admin Approve"}
         </button>
       </div>
     </div>
@@ -184,9 +171,10 @@ export default function LoanQueuePage() {
   const [selectedLoan, setSelectedLoan] = useState<LoanApplication | null>(
     null,
   );
-  const [modalType, setModalType] = useState<"committee" | "hos" | "repayment" | null>(null);
+  const [modalType, setModalType] = useState<
+    "committee" | "admin" | "repayment" | null
+  >(null);
   const [statusFilter, setStatusFilter] = useState("");
-
   const { data, isLoading } = useQuery({
     queryKey: ["loans-queue", statusFilter],
     queryFn: () =>
@@ -199,7 +187,6 @@ export default function LoanQueuePage() {
         title="Loan Queue"
         subtitle="Review and process loan applications"
       />
-
       <div className="mb-4">
         <label htmlFor="loan-status-filter" className="sr-only">
           Filter loan status
@@ -209,6 +196,8 @@ export default function LoanQueuePage() {
           className="input w-auto"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
+          aria-label="Filter loan status"
+          title="Filter loan status"
         >
           <option value="">All Statuses</option>
           <option value="submitted">Submitted</option>
@@ -218,99 +207,174 @@ export default function LoanQueuePage() {
           <option value="completed">Completed</option>
         </select>
       </div>
-
-      <div className="table-container">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Loan #</th>
-              <th>Member</th>
-              <th>Amount</th>
-              <th>Duration</th>
-              <th>Applied</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={7} className="py-8 text-center">
-                  <PageLoader />
-                </td>
-              </tr>
-            ) : !data?.results?.length ? (
-              <tr>
-                <td colSpan={7}>
-                  <EmptyState icon="📑" title="No loans in queue" />
-                </td>
-              </tr>
-            ) : (
-              data.results.map((loan) => (
-                <tr key={loan.id}>
-                  <td className="font-mono text-sm">#{loan.id}</td>
-                  <td>
-                    <span className="font-medium">
-                      {loan.applicant_file_number}
-                    </span>
-                    <br />
-                    <span className="text-xs text-gray-400">
-                      {loan.applicant_name}
-                    </span>
-                  </td>
-                  <td className="font-medium">
-                    {formatNaira(loan.amount_applied)}
-                  </td>
-                  <td>{loan.proposed_duration_months} mo.</td>
-                  <td className="text-xs text-gray-500">
-                    {loan.application_hijri_display}
-                  </td>
-                  <td>
-                    <LoanStatusBadge status={loan.status} />
-                  </td>
-                  <td>
-                    {["submitted", "under_review", "pending_sureties"].includes(
-                      loan.status,
-                    ) && (
-                      <button
-                        onClick={() => {
-                          setSelectedLoan(loan);
-                          setModalType("committee");
-                        }}
-                        className="btn-secondary text-xs px-2 py-1"
-                      >
-                        Review
-                      </button>
-                    )}
-                    {loan.status === "approved" && (
-                      <button
-                        onClick={() => {
-                          setSelectedLoan(loan);
-                          setModalType("hos");
-                        }}
-                        className="btn-primary text-xs px-2 py-1"
-                      >
-                        HOS Approve
-                      </button>
-                    )}
-                    {loan.status === "active" && (
-                      <button
-                        onClick={() => {
-                          setSelectedLoan(loan);
-                          setModalType("repayment");
-                        }}
-                        className="btn-primary text-xs px-2 py-1"
-                      >
-                        Post Repayment
-                      </button>
-                    )}
-                  </td>
+      
+      {isLoading ? (
+        <PageLoader />
+      ) : !data?.results?.length ? (
+        <EmptyState icon="📑" title="No loans in queue" />
+      ) : (
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-gray-50 text-sm text-gray-500">
+                <tr>
+                  <th className="px-4 py-3">Loan #</th>
+                  <th>Member</th>
+                  <th>Amount</th>
+                  <th>Duration</th>
+                  <th>Applied</th>
+                  <th>Status</th>
+                  <th>Actions</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody className="divide-y">
+                {data.results.map((loan) => (
+                  <tr key={loan.id}>
+                    <td className="px-4 py-3 font-mono text-sm">#{loan.id}</td>
+                    <td>
+                      <span className="font-medium">
+                        {loan.applicant_file_number}
+                      </span>
+                      <br />
+                      <span className="text-xs text-gray-400">
+                        {loan.applicant_name}
+                      </span>
+                    </td>
+                    <td className="font-medium">
+                      {formatNaira(loan.amount_applied)}
+                    </td>
+                    <td>{loan.proposed_duration_months} mo.</td>
+                    <td className="text-xs text-gray-500">
+                      {loan.application_hijri_display}
+                    </td>
+                    <td>
+                      <LoanStatusBadge status={loan.status} />
+                    </td>
+                    <td>
+                      {[
+                        "submitted",
+                        "under_review",
+                        "pending_sureties",
+                      ].includes(loan.status) && (
+                        <button
+                          onClick={() => {
+                            setSelectedLoan(loan);
+                            setModalType("committee");
+                          }}
+                          className="btn-secondary text-xs px-3 py-1"
+                        >
+                          Review
+                        </button>
+                      )}
+                      {loan.status === "approved" && (
+                        <button
+                          onClick={() => {
+                            setSelectedLoan(loan);
+                            setModalType("admin");
+                          }}
+                          className="btn-primary text-xs px-3 py-1"
+                        >
+                          Admin Approve
+                        </button>
+                      )}
+                      {loan.status === "active" && (
+                        <button
+                          onClick={() => {
+                            setSelectedLoan(loan);
+                            setModalType("repayment");
+                          }}
+                          className="btn-primary text-xs px-3 py-1"
+                        >
+                          Post Repayment
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {data.results.map((loan) => (
+              <div
+                key={loan.id}
+                className="bg-white rounded-xl border p-4 shadow-sm"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-mono text-sm font-semibold text-primary-600">
+                      #{loan.id}
+                    </p>
+                    <p className="font-medium text-gray-900">
+                      {loan.applicant_name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {loan.applicant_file_number}
+                    </p>
+                  </div>
+                  <LoanStatusBadge status={loan.status} />
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-gray-500">Amount:</span>{" "}
+                    <span className="font-semibold">
+                      {formatNaira(loan.amount_applied)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Duration:</span>{" "}
+                    {loan.proposed_duration_months} mo.
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-500">Purpose:</span>{" "}
+                    <span className="line-clamp-2">{loan.purpose}</span>
+                  </div>
+                </div>
+                <div className="mt-4 flex gap-2 flex-wrap">
+                  {["submitted", "under_review", "pending_sureties"].includes(
+                    loan.status,
+                  ) && (
+                    <button
+                      onClick={() => {
+                        setSelectedLoan(loan);
+                        setModalType("committee");
+                      }}
+                      className="btn-secondary flex-1 py-2 text-sm"
+                    >
+                      Review
+                    </button>
+                  )}
+                  {loan.status === "approved" && (
+                    <button
+                      onClick={() => {
+                        setSelectedLoan(loan);
+                        setModalType("admin");
+                      }}
+                      className="btn-primary flex-1 py-2 text-sm"
+                    >
+                      Admin Approve
+                    </button>
+                  )}
+                  {loan.status === "active" && (
+                    <button
+                      onClick={() => {
+                        setSelectedLoan(loan);
+                        setModalType("repayment");
+                      }}
+                      className="btn-primary flex-1 py-2 text-sm"
+                    >
+                      Post Repayment
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <Modal
         open={!!selectedLoan && modalType === "committee"}
@@ -330,17 +394,16 @@ export default function LoanQueuePage() {
           />
         )}
       </Modal>
-
       <Modal
-        open={!!selectedLoan && modalType === "hos"}
-        title="Head of School — Final Approval"
+        open={!!selectedLoan && modalType === "admin"}
+        title="Admin Final Approval"
         onClose={() => {
           setSelectedLoan(null);
           setModalType(null);
         }}
       >
         {selectedLoan && (
-          <HOSApprovalModal
+          <AdminFinalApprovalModal
             loan={selectedLoan}
             onClose={() => {
               setSelectedLoan(null);
@@ -349,7 +412,6 @@ export default function LoanQueuePage() {
           />
         )}
       </Modal>
-
       <Modal
         open={!!selectedLoan && modalType === "repayment"}
         title="Post Loan Repayment"
@@ -363,7 +425,10 @@ export default function LoanQueuePage() {
             loanId={selectedLoan.id}
             outstanding={selectedLoan.outstanding_balance}
             defaultMonth={selectedLoan.repayment_start_hijri_month || 1}
-            defaultYear={selectedLoan.repayment_start_hijri_year || new Date().getFullYear()}
+            defaultYear={
+              selectedLoan.repayment_start_hijri_year ||
+              new Date().getFullYear()
+            }
             onClose={() => {
               setSelectedLoan(null);
               setModalType(null);
