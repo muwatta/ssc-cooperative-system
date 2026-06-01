@@ -24,7 +24,8 @@ export default function LoginPage() {
       if (result.is_first_login) {
         navigate("/set-password");
       } else {
-        navigate("/dashboard", { replace: true });
+        // ✅ Force a full page reload to /dashboard – this clears all stored redirect state
+        window.location.href = "/dashboard";
       }
     } catch (err) {
       const error = err as AxiosError<Record<string, string[]>>;
