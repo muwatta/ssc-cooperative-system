@@ -5,7 +5,7 @@ from apps.accounts.views import SSCTokenObtainPairView, LogoutView
 
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    path("ssc-coop-admin-secret/", admin.site.urls),
     path("api/v1/auth/login/", SSCTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/v1/auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/v1/auth/logout/", LogoutView.as_view(), name="logout"),

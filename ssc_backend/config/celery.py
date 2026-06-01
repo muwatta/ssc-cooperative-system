@@ -1,7 +1,4 @@
-"""
-Celery configuration for SSC Cooperative
-Handles async tasks like PDF generation and email sending.
-"""
+
 
 import os
 from celery import Celery
