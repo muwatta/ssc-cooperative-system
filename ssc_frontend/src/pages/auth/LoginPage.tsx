@@ -12,9 +12,13 @@ export default function LoginPage() {
   const [serverError, setServerError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const from =
-    (location.state as { from?: { pathname: string } })?.from?.pathname ||
-    "/dashboard";
+  // Prevent redirect to /my-loans (force dashboard)
+  let intendedPath = (location.state as { from?: { pathname: string } })?.from
+    ?.pathname;
+  if (intendedPath === "/my-loans") {
+    intendedPath = "/dashboard";
+  }
+  const from = intendedPath || "/dashboard";
 
   const {
     register,
@@ -97,9 +101,9 @@ export default function LoginPage() {
                 placeholder="S43-0094"
                 autoFocus
                 autoComplete="username"
-                onChange={(e) => {
-                  e.target.value = e.target.value.toUpperCase();
-                }}
+                onChange={(e) =>
+                  (e.target.value = e.target.value.toUpperCase())
+                }
               />
               {errors.staff_id && (
                 <p className="field-error text-xs mt-1">
