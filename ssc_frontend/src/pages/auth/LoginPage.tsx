@@ -24,7 +24,6 @@ export default function LoginPage() {
       if (result.is_first_login) {
         navigate("/set-password");
       } else {
-        // ✅ Force a fresh navigation without clearing storage
         window.location.replace("/dashboard");
       }
     } catch (err) {
