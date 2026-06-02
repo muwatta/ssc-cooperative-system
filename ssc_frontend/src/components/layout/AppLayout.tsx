@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/client";
@@ -50,9 +50,15 @@ function useNavItems(): NavItem[] {
 export default function AppLayout() {
   const { user, logout, isAdmin, isCommittee } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const navItems = useNavItems();
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   // Fetch pending savings change requests count (only for admin/committee)
   const { data: pendingCountData } = useQuery({
@@ -71,6 +77,14 @@ export default function AppLayout() {
     navigate("/login");
   };
 
+  const handleToggleSidebar = () => {
+    if (window.innerWidth < 1024) {
+      setMobileMenuOpen((open) => !open);
+      return;
+    }
+    setSidebarOpen((open) => !open);
+  };
+
   const roleLabel = {
     admin: "Administrator",
     committee: "Committee Member",
@@ -87,15 +101,14 @@ export default function AppLayout() {
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Sidebar */}
       <aside
         className={clsx(
-          "flex flex-col bg-white border-r border-gray-200 transition-all duration-200 shrink-0",
-          sidebarOpen ? "w-60" : "w-16",
+          "hidden lg:flex flex-col bg-white border-r border-gray-200 transition-all duration-200 shrink-0",
+          sidebarOpen ? "w-72" : "w-20",
         )}
       >
         <div className="flex items-center gap-3 px-4 py-5 border-b border-gray-100">
-          <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
             S
           </div>
           {sidebarOpen && (
@@ -138,25 +151,24 @@ export default function AppLayout() {
           ))}
         </nav>
 
-        {/* User section with Change Password and Logout */}
-        <div className="border-t border-gray-100 p-3 space-y-2">
+        <div className="border-t border-gray-100 p-4 space-y-3">
           {sidebarOpen ? (
-            <div className="flex items-start gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-xs shrink-0">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-sm shrink-0">
                 {(user?.full_name || user?.staff_id)?.slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 overflow-hidden">
-                <p className="text-xs font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-gray-900 truncate">
                   {user?.full_name || user?.staff_id}
                 </p>
-                <span className={clsx("badge text-xs mt-0.5", roleBadgeClass)}>
+                <span className={clsx("badge text-xs mt-1", roleBadgeClass)}>
                   {roleLabel}
                 </span>
               </div>
             </div>
           ) : (
             <div className="flex justify-center">
-              <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-xs">
+              <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-sm">
                 {(user?.full_name || user?.staff_id)?.slice(0, 2).toUpperCase()}
               </div>
             </div>
@@ -187,14 +199,31 @@ export default function AppLayout() {
       </aside>
 
       <div className="flex flex-col flex-1 overflow-hidden">
-        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-3 shrink-0">
+        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 lg:px-6">
           <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="btn-ghost p-2"
+            onClick={handleToggleSidebar}
+            className="btn-ghost p-2 rounded-md text-gray-700 hover:bg-gray-100 lg:hidden"
           >
             ☰
           </button>
-          <div className="flex items-center gap-2">
+
+          <button
+            onClick={handleToggleSidebar}
+            className="btn-ghost p-2 rounded-md text-gray-700 hover:bg-gray-100 hidden lg:inline-flex"
+          >
+            {sidebarOpen ? "⟨" : "⟩"}
+          </button>
+
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-semibold text-gray-900">
+              SSC Cooperative
+            </p>
+            <p className="text-xs text-gray-500">
+              Quick access to your dashboard and reports
+            </p>
+          </div>
+
+          <div className="ml-auto flex items-center gap-2">
             <button
               type="button"
               onClick={() => navigate(-1)}
@@ -210,19 +239,112 @@ export default function AppLayout() {
               Next →
             </button>
           </div>
-          <div className="flex-1" />
-          <span className="text-sm text-gray-500">
-            {user?.full_name || user?.staff_id}
-          </span>
+
+          <div className="hidden md:flex items-center gap-2 rounded-full bg-gray-100 px-3 py-2 text-sm text-gray-700">
+            <span className="font-semibold">
+              {(user?.full_name || user?.staff_id) ?? "Guest"}
+            </span>
+          </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-6">
+
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <Outlet />
         </main>
       </div>
 
-      {/* Logout Confirmation Modal */}
+      <div
+        className={clsx(
+          "fixed inset-0 z-40 transition-opacity lg:hidden",
+          mobileMenuOpen
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0",
+        )}
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        <div className="absolute inset-0 bg-black/40" />
+      </div>
+
+      <aside
+        className={clsx(
+          "fixed inset-y-0 left-0 z-50 w-72 overflow-hidden border-r border-gray-200 bg-white transition-transform duration-200 lg:hidden",
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
+        <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold text-sm">
+              S
+            </div>
+            <div>
+              <p className="font-bold text-sm text-gray-900">SSC</p>
+              <p className="text-xs text-gray-400">Cooperative</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(false)}
+            className="btn-ghost text-gray-700"
+          >
+            ✕
+          </button>
+        </div>
+
+        <nav className="overflow-y-auto p-4 space-y-2">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                clsx(
+                  "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary-50 text-primary-700"
+                    : "text-gray-700 hover:bg-gray-100",
+                )
+              }
+            >
+              <span className="text-base">{item.icon}</span>
+              <span className="truncate">{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="border-t border-gray-100 p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-sm">
+              {(user?.full_name || user?.staff_id)?.slice(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                {user?.full_name || user?.staff_id}
+              </p>
+              <span className={clsx("badge text-xs mt-1", roleBadgeClass)}>
+                {roleLabel}
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              navigate("/change-password");
+            }}
+            className="w-full rounded-md border border-gray-200 bg-white px-4 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            🔒 Change Password
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="w-full rounded-md bg-red-600 px-4 py-2 text-left text-sm font-medium text-white hover:bg-red-700"
+          >
+            🚪 Logout
+          </button>
+        </div>
+      </aside>
+
       {showLogoutConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
           <div className="card w-full max-w-sm p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Confirm Logout
@@ -231,7 +353,7 @@ export default function AppLayout() {
               Are you sure you want to logout? You will need to login again to
               access your account.
             </p>
-            <div className="flex gap-3 justify-end">
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
                 className="btn-secondary px-4 py-2"
