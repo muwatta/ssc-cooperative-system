@@ -17,8 +17,6 @@ export default function MembersListPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
-
-  // Success message passed from AddMemberPage on redirect
   const successMsg = (location.state as { success?: string })?.success;
 
   const [skeletonVisible, setSkeletonVisible] = useState(true);
@@ -37,7 +35,6 @@ export default function MembersListPage() {
         .then((r) => r.data),
   });
 
-  // Pending count for badge — separate lightweight query
   const { data: pendingData, isLoading: isLoadingPending } = useQuery({
     queryKey: ["members-pending-count"],
     queryFn: () =>
@@ -47,15 +44,11 @@ export default function MembersListPage() {
 
   useEffect(() => {
     let timeout: number | undefined;
-
     if (isLoading) {
       loadStartRef.current = Date.now();
       setSkeletonVisible(true);
-      return () => {
-        if (timeout) window.clearTimeout(timeout);
-      };
+      return () => clearTimeout(timeout);
     }
-
     const elapsed = Date.now() - loadStartRef.current;
     if (elapsed >= 2000) {
       setSkeletonVisible(false);
@@ -65,10 +58,7 @@ export default function MembersListPage() {
         2000 - elapsed,
       );
     }
-
-    return () => {
-      if (timeout) window.clearTimeout(timeout);
-    };
+    return () => clearTimeout(timeout);
   }, [isLoading]);
 
   const totalPages = Math.ceil((data?.count ?? 0) / 50);
@@ -91,15 +81,9 @@ export default function MembersListPage() {
             {data?.count ?? 0} total members
           </p>
         </div>
-        {/* <Link
-          to="/members/add"
-          className="btn-primary w-full px-4 py-2 text-center md:w-auto"
-        >
-          + Add Member
-        </Link> */}
+        {/* Add Member button removed – use Create User instead */}
       </div>
 
-      {/* Success toast */}
       {successMsg && (
         <div className="rounded-lg border border-green-200 bg-success-50 px-4 py-3 text-sm text-success-700">
           ✅ {successMsg}
@@ -108,7 +92,6 @@ export default function MembersListPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
-        {/* Search input */}
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
             🔍
@@ -126,7 +109,6 @@ export default function MembersListPage() {
           />
         </div>
 
-        {/* Status Filter with label */}
         <div className="flex items-center gap-2">
           <label
             htmlFor="status-filter"
@@ -148,7 +130,6 @@ export default function MembersListPage() {
           </select>
         </div>
 
-        {/* Branch Filter with label */}
         <div className="flex items-center gap-2">
           <label
             htmlFor="branch-filter"
@@ -169,7 +150,6 @@ export default function MembersListPage() {
           </select>
         </div>
 
-        {/* Clear button */}
         {hasFilters && (
           <button
             onClick={() => {
@@ -185,14 +165,12 @@ export default function MembersListPage() {
         )}
       </div>
 
-      {/* Error */}
       {error && (
         <div className="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700">
           Unable to load members. Please refresh.
         </div>
       )}
 
-      {/* Loading skeleton */}
       {skeletonVisible && (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -206,9 +184,9 @@ export default function MembersListPage() {
         </div>
       )}
 
-      {/* Desktop table */}
       {!isLoading && !error && (
         <>
+          {/* Desktop table */}
           <div className="hidden overflow-x-auto rounded-lg border border-gray-200 md:block">
             <table className="w-full text-left">
               <thead>
@@ -263,6 +241,11 @@ export default function MembersListPage() {
                       </td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">
                         {member.full_name}
+                        {member.is_new_member && (
+                          <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
+                            New
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {member.staff_id}
@@ -273,7 +256,6 @@ export default function MembersListPage() {
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {member.designation}
                       </td>
-                      {/* Role column */}
                       <td className="px-4 py-3 text-sm capitalize text-gray-600">
                         {member.role?.replace(/_/g, " ") || "staff"}
                       </td>
@@ -326,9 +308,16 @@ export default function MembersListPage() {
               >
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="font-bold text-gray-900">
-                      {member.full_name}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-gray-900">
+                        {member.full_name}
+                      </h3>
+                      {member.is_new_member && (
+                        <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
+                          New
+                        </span>
+                      )}
+                    </div>
                     <p className="font-mono text-sm text-gray-500">
                       {member.file_number}
                     </p>
@@ -356,7 +345,6 @@ export default function MembersListPage() {
                     </span>{" "}
                     {member.designation}
                   </div>
-                  {/* Role in mobile card */}
                   <div>
                     <span className="font-semibold text-gray-700">Role:</span>{" "}
                     <span className="capitalize">

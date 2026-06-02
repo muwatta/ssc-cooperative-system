@@ -214,7 +214,14 @@ export default function MyProfilePage() {
                   : " Update your contact and personal details here."}
               </p>
             </div>
-            <span className="badge badge-primary">Profile Snapshot</span>
+            <div className="flex gap-2">
+              <span className="badge badge-primary">Profile Snapshot</span>
+              {profile && profile.is_new_member && (
+                <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
+                  New
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

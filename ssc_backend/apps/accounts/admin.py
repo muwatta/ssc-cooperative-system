@@ -1,5 +1,10 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.urls import path
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 from .models import User, StaffIDRegistry, MemberProfile
 
 
@@ -47,15 +52,45 @@ class MemberProfileAdmin(admin.ModelAdmin):
     actions = ["mark_as_not_new", "mark_as_new"]
 
     def mark_as_not_new(self, request, queryset):
-        """Admin action: mark selected members as not new (is_new_member=False)."""
         updated = queryset.update(is_new_member=False)
         self.message_user(request, f"Marked {updated} member(s) as not new.")
-
     mark_as_not_new.short_description = "Mark selected members as NOT new"
 
     def mark_as_new(self, request, queryset):
-        """Admin action: mark selected members as new (is_new_member=True)."""
         updated = queryset.update(is_new_member=True)
         self.message_user(request, f"Marked {updated} member(s) as new.")
-
     mark_as_new.short_description = "Mark selected members as NEW"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                'mark-all-legacy-not-new/',
+                self.admin_site.admin_view(self.mark_all_legacy_confirmation),
+                name='accounts_memberprofile_mark_all_legacy_not_new'
+            ),
+            path(
+                'do-mark-all-legacy-not-new/',
+                self.admin_site.admin_view(self.do_mark_all_legacy_not_new),
+                name='accounts_memberprofile_do_mark_all_legacy_not_new'
+            ),
+        ]
+        return custom_urls + urls
+
+    def mark_all_legacy_confirmation(self, request):
+        legacy_new_count = MemberProfile.objects.filter(is_legacy=True, is_new_member=True).count()
+        context = {
+            'title': 'Mark all legacy members as NOT new',
+            'legacy_new_count': legacy_new_count,
+            'opts': self.model._meta,
+            'app_label': self.model._meta.app_label,
+        }
+        return render(request, 'admin/accounts/memberprofile/mark_all_legacy_confirmation.html', context)
+
+    def do_mark_all_legacy_not_new(self, request):
+        """Execute the bulk update (POST only)."""
+        if request.method != 'POST':
+            return redirect('admin:accounts_memberprofile_changelist')
+        updated = MemberProfile.objects.filter(is_legacy=True).update(is_new_member=False)
+        self.message_user(request, f'{updated} legacy member(s) have been marked as NOT new.')
+        return HttpResponseRedirect(reverse('admin:accounts_memberprofile_changelist'))

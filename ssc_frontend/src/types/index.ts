@@ -60,6 +60,7 @@ export interface MemberProfile {
   next_of_kin_place_of_work: string;
   membership_status: MembershipStatus;
   is_legacy: boolean;
+  is_new_member: boolean;
   approved_by_name: string;
   officer_in_charge: string;
   approval_date: string | null;

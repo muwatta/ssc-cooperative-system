@@ -183,14 +183,12 @@ function ChangeRoleModal({
   const qc = useQueryClient();
   const [selectedRole, setSelectedRole] = useState<Role>(member.role);
   const [error, setError] = useState("");
-
   const ROLE_LABELS: Record<Role, string> = {
     staff: "Staff — standard member, view own records only",
     committee: "Committee — can review loans, post repayments",
     head_of_school: "Head of School — gives final loan approval",
     admin: "Admin — full system control",
   };
-
   const mutation = useMutation({
     mutationFn: () =>
       api.post(`/accounts/members/${member.id}/change-role/`, {
@@ -204,7 +202,6 @@ function ChangeRoleModal({
     onError: (e: any) =>
       setError(e?.response?.data?.error || "Failed to change role."),
   });
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="card w-full max-w-md">
@@ -235,11 +232,7 @@ function ChangeRoleModal({
               (role) => (
                 <label
                   key={role}
-                  className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
-                    selectedRole === role
-                      ? "border-primary-400 bg-primary-50"
-                      : "border-gray-200 hover:bg-gray-50"
-                  }`}
+                  className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${selectedRole === role ? "border-primary-400 bg-primary-50" : "border-gray-200 hover:bg-gray-50"}`}
                 >
                   <input
                     type="radio"
@@ -288,7 +281,6 @@ export default function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const { isAdmin } = useAuth();
-
   const [showApprove, setShowApprove] = useState(false);
   const [showDeactivate, setShowDeactivate] = useState(false);
   const [showChangeRole, setShowChangeRole] = useState(false);
@@ -366,7 +358,6 @@ export default function MemberDetailPage() {
       </div>
     );
   }
-
   if (error || !member) {
     return (
       <div className="card p-6">
@@ -387,7 +378,6 @@ export default function MemberDetailPage() {
     inactive: "badge-gray",
     exited: "badge-danger",
   };
-
   const ROLE_COLOR: Record<string, string> = {
     admin: "bg-primary-100 text-primary-700",
     committee: "bg-yellow-100 text-yellow-700",
@@ -403,7 +393,6 @@ export default function MemberDetailPage() {
         back={{ to: "/members", label: "Back to Members" }}
       />
 
-      {/* Header card */}
       <div className="card mb-6">
         <div className="card-body">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-4">
@@ -424,6 +413,11 @@ export default function MemberDetailPage() {
                 >
                   {member.role.replace(/_/g, " ")}
                 </span>
+                {member.is_new_member && (
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
+                    New
+                  </span>
+                )}
                 {member.is_legacy && (
                   <span className="badge-gray text-xs">Legacy</span>
                 )}
@@ -435,8 +429,6 @@ export default function MemberDetailPage() {
                 Branch
               </p>
             </div>
-
-            {/* Action buttons - stack on mobile */}
             {isAdmin && (
               <div className="flex flex-wrap gap-2">
                 {member.membership_status === "pending" && (
@@ -474,8 +466,6 @@ export default function MemberDetailPage() {
               </div>
             )}
           </div>
-
-          {/* Balance strip */}
           {balance && (
             <div className="mt-4 grid grid-cols-3 gap-4 border-t border-gray-100 pt-4">
               <div>
@@ -498,8 +488,6 @@ export default function MemberDetailPage() {
               </div>
             </div>
           )}
-
-          {/* Eligibility */}
           <div className="mt-3 flex flex-wrap gap-4 text-xs">
             <span
               className={
@@ -524,24 +512,18 @@ export default function MemberDetailPage() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="mb-6 flex w-fit gap-1 rounded-lg bg-gray-100 p-1">
         {(["profile", "savings"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${
-              activeTab === tab
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
+            className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${activeTab === tab ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
           >
             {tab === "profile" ? "👤 Profile" : "₦ Savings"}
           </button>
         ))}
       </div>
 
-      {/* Profile tab */}
       {activeTab === "profile" && (
         <div className="grid grid-cols-1 gap-0 md:grid-cols-2 md:gap-6">
           <div>
@@ -557,8 +539,6 @@ export default function MemberDetailPage() {
             <Section title="Contact">
               <InfoRow label="Primary Phone" value={member.phone_primary} />
               <InfoRow label="Secondary Phone" value={member.phone_secondary} />
-              
-              {/* Custom email row with word breaking */}
               <div className="grid grid-cols-2 gap-2 border-b border-gray-50 py-2 last:border-0">
                 <span className="text-xs uppercase tracking-wide text-gray-400">
                   Email
@@ -592,13 +572,13 @@ export default function MemberDetailPage() {
                       <p className="text-sm text-slate-500">
                         Monthly Contribution
                       </p>
-                      {!isEditingContribution ? (
+                      {!isEditingContribution && (
                         <p className="mt-1 text-lg font-semibold">
                           {formatNaira(member.approved_monthly_contribution)}
                         </p>
-                      ) : null}
+                      )}
                     </div>
-                    {!isEditingContribution ? (
+                    {!isEditingContribution && (
                       <button
                         type="button"
                         className="btn-secondary btn-sm"
@@ -606,7 +586,7 @@ export default function MemberDetailPage() {
                       >
                         Edit
                       </button>
-                    ) : null}
+                    )}
                   </div>
                   {isEditingContribution && (
                     <div className="mt-4 space-y-3">
@@ -705,7 +685,6 @@ export default function MemberDetailPage() {
         </div>
       )}
 
-      {/* Savings tab */}
       {activeTab === "savings" && (
         <div className="card">
           <div className="card-header">
@@ -768,7 +747,6 @@ export default function MemberDetailPage() {
         </div>
       )}
 
-      {/* Modals */}
       {showApprove && (
         <ApproveModal member={member} onClose={() => setShowApprove(false)} />
       )}
