@@ -280,6 +280,14 @@ export const loansApi = {
       params: { format },
       responseType: "blob",
     }),
+
+
+  saveDraft: (data: Record<string, unknown>) =>
+    api.post("/loans/draft/", { data }),
+  getDraft: () =>
+    api.get<{ data: Record<string, unknown>; updated_at: string }>(
+      "/loans/draft/",
+    ),
 };
 
 export const suretiesApi = {

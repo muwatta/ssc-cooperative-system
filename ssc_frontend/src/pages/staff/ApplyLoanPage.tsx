@@ -292,7 +292,7 @@ export default function ApplyLoanPage() {
   // ---------- DRAFT LOGIC ----------
 
   const [draftLoaded, setDraftLoaded] = useState(false);
-  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 1. Fetch existing draft on mount
   const { data: draftData } = useQuery({
@@ -308,7 +308,7 @@ export default function ApplyLoanPage() {
       Object.keys(draftData.data).length > 0 &&
       !draftLoaded
     ) {
-      reset(draftData.data as ApplyLoanFormValues);
+      reset(draftData.data as unknown as ApplyLoanFormValues);
     }
     setDraftLoaded(true);
   }, [draftData, reset, draftLoaded]);
@@ -319,16 +319,15 @@ export default function ApplyLoanPage() {
   });
 
   // 4. Auto-save on form changes (debounced 2 seconds)
-  const formValues = watch(); // subscribe to all form changes
+  const formValues = watch();
 
   useEffect(() => {
-    if (!draftLoaded) return; // wait until initial draft load
+    if (!draftLoaded) return;
 
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
 
     saveTimerRef.current = setTimeout(() => {
       const payload: Record<string, unknown> = { ...formValues };
-      // Clean sureties before saving (remove placeholder)
       if (payload.sureties) {
         payload.sureties = (payload.sureties as SuretyFormItem[]).filter(
           (s) => s.member_id > 0,
@@ -351,7 +350,6 @@ export default function ApplyLoanPage() {
         "✓ Loan application submitted successfully! Awaiting committee review.",
       );
       setError("");
-      // Clear draft after successful submission
       saveDraftMutation.mutate({ data: {} });
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
