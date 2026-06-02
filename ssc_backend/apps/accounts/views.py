@@ -186,7 +186,7 @@ class MemberSummaryListView(generics.ListAPIView):
             membership_status="active"
         ).only(
             "id", "file_number", "full_name", "school_branch",
-            "designation", "membership_status"
+            "designation", "membership_status", "is_new_member"
         )
 
 

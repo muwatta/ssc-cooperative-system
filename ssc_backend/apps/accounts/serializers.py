@@ -180,6 +180,7 @@ class MemberProfileSerializer(serializers.ModelSerializer):
             "next_of_kin_place_of_work",
             # Status
             "membership_status",
+            "is_new_member",
             "is_legacy",
             "approved_by_name",
             "officer_in_charge",
@@ -210,6 +211,7 @@ class MemberProfileSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Authentication is required to create a profile.")
 
         file_number, file_sequence = generate_file_number()
+        validated_data.setdefault("is_new_member", True)
         return MemberProfile.objects.create(
             user=request.user,
             file_number=file_number,
@@ -231,6 +233,7 @@ class MemberProfileSummarySerializer(serializers.ModelSerializer):
             "school_branch",
             "designation",
             "membership_status",
+            "is_new_member",
         ]
 
 class CreateMemberSerializer(serializers.Serializer):
@@ -324,6 +327,7 @@ class CreateMemberSerializer(serializers.Serializer):
             file_number=file_number,
             _file_sequence=file_sequence,
             approved_monthly_contribution=proposed_contribution,
+            is_new_member=not is_legacy,
             is_legacy=is_legacy,
             **validated_data,
         )

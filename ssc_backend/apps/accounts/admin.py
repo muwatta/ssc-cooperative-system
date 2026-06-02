@@ -31,8 +31,15 @@ class StaffIDRegistryAdmin(admin.ModelAdmin):
 
 @admin.register(MemberProfile)
 class MemberProfileAdmin(admin.ModelAdmin):
-    list_display = ["file_number", "full_name", "school_branch", "membership_status", "consecutive_savings_months"]
-    list_filter = ["membership_status", "school_branch", "is_legacy"]
+    list_display = [
+        "file_number",
+        "full_name",
+        "school_branch",
+        "membership_status",
+        "is_new_member",
+        "consecutive_savings_months",
+    ]
+    list_filter = ["membership_status", "is_new_member", "school_branch", "is_legacy"]
     search_fields = ["file_number", "full_name", "user__staff_id"]
     ordering = ["file_number"]
     readonly_fields = ["file_number", "_file_sequence", "created_at", "updated_at"]

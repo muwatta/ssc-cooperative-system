@@ -150,7 +150,11 @@ export default function DashboardPage() {
       </div>
 
       {isLeadership && (
-        <div className="card-panel mb-6">
+        <div className="card-panel mb-6 bg-primary-50 border-primary-100">
+          <div className="flex items-center justify-between mb-3">
+            <div />
+            <span className="badge badge-primary">Leadership</span>
+          </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
             <StatCard
               label="Your Role"
@@ -181,6 +185,10 @@ export default function DashboardPage() {
 
       {!isLeadership && (
         <div className="card-panel mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="sr-only">Quick Info</h3>
+            <span className="badge badge-gray">Member</span>
+          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Your Role"
@@ -287,25 +295,29 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="card-panel mb-6">
+      <div className="card-panel mb-6 bg-primary-50 border-primary-100">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold">Balance Overview</h2>
+            <div className="rounded-full bg-primary-100 px-3 py-1 text-sm font-semibold text-primary-800">
+              Balance Overview
+            </div>
             <button
               onClick={toggleBalances}
-              className="text-gray-500 hover:text-gray-700 transition-colors text-xl"
+              className="text-primary-700 hover:text-primary-900 transition-colors text-xl"
               aria-label={showBalances ? "Hide balances" : "Show balances"}
             >
               {showBalances ? "👁️" : "👁️‍🗨️"}
             </button>
           </div>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-primary-700/80 mt-1">
             {isAdmin || isCommittee
               ? "Your savings balance plus a cooperative summary for all members."
               : "Your personal savings balance and contribution details."}
           </p>
           {balanceLoading && (
-            <div className="text-sm text-gray-500">Loading balances...</div>
+            <div className="text-sm text-primary-700/80">
+              Loading balances...
+            </div>
           )}
         </div>
 
@@ -322,120 +334,77 @@ export default function DashboardPage() {
                 an administrator.
               </div>
             ) : null}
-            <div className="mt-6 overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
-              <div className="px-4 py-4 sm:px-6">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Balance Overview
-                    </h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {isAdmin || isCommittee
-                        ? "Your savings balance plus a cooperative summary for all members."
-                        : "Your personal savings balance and contribution details."}
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <div className="card-panel-light">
+                <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                  Your Total Savings
+                </p>
+                <p className="mt-3 text-2xl font-semibold text-gray-900">
+                  {hasMemberBalance
+                    ? maskIfNeeded(formatNaira(memberBalance!.total_savings))
+                    : "N/A"}
+                </p>
+              </div>
+              <div className="card-panel-light">
+                <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                  Your Available Balance
+                </p>
+                <p className="mt-3 text-2xl font-semibold text-gray-900">
+                  {hasMemberBalance
+                    ? maskIfNeeded(
+                        formatNaira(memberBalance!.available_balance),
+                      )
+                    : "N/A"}
+                </p>
+              </div>
+              <div className="card-panel-light">
+                <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                  Approved Contribution
+                </p>
+                <p className="mt-3 text-2xl font-semibold text-gray-900">
+                  {myProfile?.approved_monthly_contribution !== undefined
+                    ? maskIfNeeded(
+                        formatNaira(myProfile.approved_monthly_contribution),
+                      )
+                    : "N/A"}
+                </p>
+              </div>
+              <div className="card-panel-light">
+                <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                  Committed Savings
+                </p>
+                <p className="mt-3 text-2xl font-semibold text-gray-900">
+                  {hasMemberBalance
+                    ? maskIfNeeded(
+                        formatNaira(memberBalance!.suretyship_committed),
+                      )
+                    : "N/A"}
+                </p>
+              </div>
+              {(isAdmin || isCommittee) && (
+                <>
+                  <div className="card-panel-light">
+                    <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                      Cooperative Total Savings
+                    </p>
+                    <p className="mt-3 text-2xl font-semibold text-gray-900">
+                      {coopSummary
+                        ? maskIfNeeded(formatNaira(coopSummary.total_savings))
+                        : "₦0.00"}
                     </p>
                   </div>
-                  <button
-                    onClick={toggleBalances}
-                    className="inline-flex items-center rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 transition hover:border-gray-300 hover:bg-gray-50"
-                    aria-label={
-                      showBalances ? "Hide balances" : "Show balances"
-                    }
-                  >
-                    {showBalances ? "👁️ Show" : "🙈 Hide"}
-                  </button>
-                </div>
-              </div>
-
-              {balanceError ? (
-                <div className="border-t border-gray-100 bg-danger-50 p-4 text-sm text-danger-700">
-                  {balanceError}
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100 px-4 py-2 sm:px-6">
-                  <div className="grid gap-3 py-4 sm:grid-cols-2">
-                    <div className="card-panel-light">
-                      <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
-                        Your Total Savings
-                      </p>
-                      <p className="mt-3 text-2xl font-semibold text-gray-900">
-                        {hasMemberBalance
-                          ? maskIfNeeded(
-                              formatNaira(memberBalance!.total_savings),
-                            )
-                          : "N/A"}
-                      </p>
-                    </div>
-                    <div className="card-panel-light">
-                      <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
-                        Your Available Balance
-                      </p>
-                      <p className="mt-3 text-2xl font-semibold text-gray-900">
-                        {hasMemberBalance
-                          ? maskIfNeeded(
-                              formatNaira(memberBalance!.available_balance),
-                            )
-                          : "N/A"}
-                      </p>
-                    </div>
+                  <div className="card-panel-light">
+                    <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                      Total Available Across Members
+                    </p>
+                    <p className="mt-3 text-2xl font-semibold text-gray-900">
+                      {coopSummary
+                        ? maskIfNeeded(formatNaira(coopSummary.total_available))
+                        : "₦0.00"}
+                    </p>
                   </div>
-                  <div className="grid gap-3 py-4 sm:grid-cols-2">
-                    <div className="card-panel-light">
-                      <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
-                        Approved Contribution
-                      </p>
-                      <p className="mt-3 text-2xl font-semibold text-gray-900">
-                        {myProfile?.approved_monthly_contribution !== undefined
-                          ? maskIfNeeded(
-                              formatNaira(
-                                myProfile.approved_monthly_contribution,
-                              ),
-                            )
-                          : "N/A"}
-                      </p>
-                    </div>
-                    <div className="card-panel-light">
-                      <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
-                        Committed Savings
-                      </p>
-                      <p className="mt-3 text-2xl font-semibold text-gray-900">
-                        {hasMemberBalance
-                          ? maskIfNeeded(
-                              formatNaira(memberBalance!.suretyship_committed),
-                            )
-                          : "N/A"}
-                      </p>
-                    </div>
-                  </div>
-                  {(isAdmin || isCommittee) && (
-                    <div className="grid gap-3 py-4 sm:grid-cols-2">
-                      <div className="card-panel-light">
-                        <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
-                          Cooperative Total Savings
-                        </p>
-                        <p className="mt-3 text-2xl font-semibold text-gray-900">
-                          {coopSummary
-                            ? maskIfNeeded(
-                                formatNaira(coopSummary.total_savings),
-                              )
-                            : "₦0.00"}
-                        </p>
-                      </div>
-                      <div className="card-panel-light">
-                        <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
-                          Total Available Across Members
-                        </p>
-                        <p className="mt-3 text-2xl font-semibold text-gray-900">
-                          {coopSummary
-                            ? maskIfNeeded(
-                                formatNaira(coopSummary.total_available),
-                              )
-                            : "₦0.00"}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                </>
               )}
             </div>
           </>
@@ -443,7 +412,7 @@ export default function DashboardPage() {
       </div>
 
       {!isAdmin && !isCommittee && !isHOS && (
-        <div className="card-panel mb-6">
+        <div className="card-panel mb-6 bg-primary-50 border-primary-100">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold">Your personal dashboard</h2>

@@ -50,6 +50,7 @@ class LoanEligibilityView(APIView):
             "max_borrowable":                str(max_borrow),
             "consecutive_months":            profile.consecutive_savings_months,
             "required_consecutive_months":   config.consecutive_savings_months_required,
+            "is_new_member":                profile.is_new_member,
             "max_repayment_months":          config.max_repayment_months,
             "loan_amount_ratio":             str(config.self_surety_ratio),
             "max_sureties":                  config.max_sureties,

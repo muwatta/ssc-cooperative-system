@@ -199,6 +199,7 @@ class LoanRepaymentLedgerSerializer(serializers.ModelSerializer):
 class LoanEligibilitySerializer(serializers.Serializer):
     eligible                   = serializers.BooleanField()
     reasons                    = serializers.ListField(child=serializers.CharField())
+    is_new_member              = serializers.BooleanField()
     max_borrowable             = serializers.DecimalField(max_digits=14, decimal_places=2)
     consecutive_months         = serializers.IntegerField()
     required_consecutive_months = serializers.IntegerField()

@@ -274,6 +274,10 @@ class MemberProfile(models.Model):
         choices=MembershipStatus.choices,
         default=MembershipStatus.PENDING
     )
+    is_new_member = models.BooleanField(
+        default=False,
+        help_text="Indicates a new member who has not yet completed the introductory contribution period."
+    )
     is_legacy = models.BooleanField(
         default=False,
         help_text="True if imported via legacy CSV — file number preserved as-is"

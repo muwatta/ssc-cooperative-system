@@ -280,6 +280,7 @@ export interface LoanEligibilityResponse {
   max_borrowable: string;
   consecutive_months: number;
   required_consecutive_months: number;
+  is_new_member: boolean;
   max_repayment_months: number;
   loan_amount_ratio: string;
   max_sureties: number;

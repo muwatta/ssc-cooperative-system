@@ -197,6 +197,17 @@ export default function ApplyLoanPage() {
     queryFn: () => loansApi.eligibility().then((r) => r.data),
   });
 
+  const isBelowContributionRequirement =
+    eligibility?.consecutive_months !== undefined &&
+    eligibility?.required_consecutive_months !== undefined &&
+    eligibility.consecutive_months < eligibility.required_consecutive_months;
+
+  const contributionRequirementNote = isBelowContributionRequirement
+    ? eligibility?.is_new_member
+      ? `You have ${eligibility.consecutive_months} of ${eligibility.required_consecutive_months} consecutive months. As a new member, you must complete ${eligibility.required_consecutive_months} months before applying. Existing members may still qualify with sureties if allowed by the loan committee.`
+      : `You have ${eligibility.consecutive_months} of ${eligibility.required_consecutive_months} consecutive months. You must complete ${eligibility.required_consecutive_months} months before applying, or qualify through sureties as permitted by the loan committee.`
+    : `You have met the contribution requirement for application.`;
+
   const {
     control,
     register,
@@ -259,6 +270,30 @@ export default function ApplyLoanPage() {
         back={{ to: "/my-loans", label: "Back to My Loans" }}
       />
 
+      {eligibility && isBelowContributionRequirement && (
+        <div className="mb-6 rounded-2xl border border-warning-200 bg-warning-50 p-4 text-warning-900 shadow-sm">
+          <p className="text-sm font-semibold">
+            {eligibility.is_new_member
+              ? "New member contribution requirement"
+              : "Contribution requirement"}
+          </p>
+          <p className="mt-2 text-sm leading-6">
+            You have contributed {eligibility.consecutive_months} of{" "}
+            {eligibility.required_consecutive_months} required consecutive
+            months.{" "}
+            {eligibility.is_new_member
+              ? "As a new member, you must complete the full required contribution period before applying."
+              : "You must complete the full required contribution period before applying."}
+          </p>
+          {eligibility.is_new_member && (
+            <p className="mt-2 text-sm text-warning-800">
+              This account is currently marked as a new member. The 12-month
+              contribution rule applies before loan application.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Eligibility Card - Improved Design */}
       <div
         className={`mb-6 overflow-hidden rounded-xl border-2 shadow-md transition-all ${
@@ -306,6 +341,29 @@ export default function ApplyLoanPage() {
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+
+              {eligibility && (
+                <div
+                  className={`mt-4 rounded-xl border px-4 py-4 text-sm ${
+                    isBelowContributionRequirement
+                      ? "border-warning-200 bg-warning-50 text-warning-900"
+                      : "border-gray-200 bg-gray-50 text-gray-700"
+                  }`}
+                >
+                  <p className="font-semibold">Contribution requirement</p>
+                  <p className="mt-2 leading-6">
+                    {contributionRequirementNote}
+                  </p>
+                  {isBelowContributionRequirement && (
+                    <p className="mt-3 text-xs text-warning-700">
+                      This is a strict requirement for new applicants. If you
+                      are still below the required months, you must meet the
+                      12-month contribution rule or qualify through sureties as
+                      allowed by the loan committee.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
