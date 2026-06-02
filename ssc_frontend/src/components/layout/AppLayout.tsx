@@ -25,23 +25,59 @@ export default function AppLayout() {
 
     const adminCommitteeItems = [
       { label: "Members", path: "/members", icon: "👥", roles: ["admin"] },
-      { label: "Loan Queue", path: "/loans/queue", icon: "⏳", roles: ["admin", "committee"] },
-      { label: "Reports", path: "/reports", icon: "📈", roles: ["admin", "committee"] },
-      { label: "Loan Settings", path: "/loan-settings", icon: "⚙️", roles: ["admin"] },
-      { label: "Post Savings", path: "/savings/post", icon: "➕", roles: ["admin"] },
-      { label: "Post Dues", path: "/savings/dues", icon: "💳", roles: ["admin"] },
+      {
+        label: "Loan Queue",
+        path: "/loans/queue",
+        icon: "⏳",
+        roles: ["admin", "committee"],
+      },
+      {
+        label: "Reports",
+        path: "/reports",
+        icon: "📈",
+        roles: ["admin", "committee"],
+      },
+      {
+        label: "Loan Settings",
+        path: "/loan-settings",
+        icon: "⚙️",
+        roles: ["admin"],
+      },
+      {
+        label: "Post Savings",
+        path: "/savings/post",
+        icon: "➕",
+        roles: ["admin"],
+      },
+      {
+        label: "Post Dues",
+        path: "/savings/dues",
+        icon: "💳",
+        roles: ["admin"],
+      },
     ];
 
     const hosItems = [
-      { label: "Loan Approvals", path: "/loan-approvals", icon: "✅", roles: ["head_of_school"] },
+      {
+        label: "Loan Approvals",
+        path: "/loan-approvals",
+        icon: "✅",
+        roles: ["head_of_school"],
+      },
     ];
 
     let items = [...baseItems];
 
     if (isAdmin || isCommittee) {
-      items = [...items, ...adminCommitteeItems.filter(item =>
-        item.roles.some(r => (r === "admin" && isAdmin) || (r === "committee" && isCommittee))
-      )];
+      items = [
+        ...items,
+        ...adminCommitteeItems.filter((item) =>
+          item.roles.some(
+            (r) =>
+              (r === "admin" && isAdmin) || (r === "committee" && isCommittee),
+          ),
+        ),
+      ];
     }
 
     if (isHOS) {
@@ -54,7 +90,9 @@ export default function AppLayout() {
   const navItems = getNavItems();
 
   const isActive = (path: string) => {
-    return location.pathname === path || location.pathname.startsWith(path + "/");
+    return (
+      location.pathname === path || location.pathname.startsWith(path + "/")
+    );
   };
 
   return (
@@ -70,7 +108,10 @@ export default function AppLayout() {
             >
               ☰
             </button>
-            <Link to="/dashboard" className="flex items-center gap-2 font-bold text-lg">
+            <Link
+              to="/dashboard"
+              className="flex items-center gap-2 font-bold text-lg"
+            >
               <span className="w-8 h-8 bg-primary-600 text-white rounded-lg flex items-center justify-center text-sm font-bold">
                 S
               </span>
@@ -96,13 +137,23 @@ export default function AppLayout() {
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50">
                   <div className="px-4 py-2 border-b text-sm">
-                    <p className="font-medium text-gray-900">{user?.full_name}</p>
-                    <p className="text-xs text-gray-500">{user?.role.replace(/_/g, " ").toUpperCase()}</p>
+                    <p className="font-medium text-gray-900">
+                      {user?.full_name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {user?.role.replace(/_/g, " ").toUpperCase()}
+                    </p>
                   </div>
-                  <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                  <Link
+                    to="/profile"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
                     👤 My Profile
                   </Link>
-                  <Link to="/change-password" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                  <Link
+                    to="/change-password"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
                     🔐 Change Password
                   </Link>
                   <button
