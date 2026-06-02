@@ -265,19 +265,19 @@ export default function MySavingsPage() {
 
           {/* Personal summary cards – responsive grid */}
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 mb-6">
-            <div className="card p-4">
+            <div className="card-panel">
               <p className="text-sm text-gray-500">Total Savings</p>
               <p className="text-3xl font-semibold mt-2">
                 {summary.savingsBalance}
               </p>
             </div>
-            <div className="card p-4">
+            <div className="card-panel">
               <p className="text-sm text-gray-500">Available Balance</p>
               <p className="text-3xl font-semibold mt-2">
                 {summary.availableBalance}
               </p>
             </div>
-            <div className="card p-4">
+            <div className="card-panel">
               <p className="text-sm text-gray-500">
                 Approved Monthly Contribution
               </p>
@@ -285,26 +285,28 @@ export default function MySavingsPage() {
                 {summary.contribution}
               </p>
             </div>
-            <div className="card p-4">
+            <div className="card-panel">
               <p className="text-sm text-gray-500">Loan Eligible</p>
               <p className="text-3xl font-semibold mt-2">
                 {summary.loanEligibility}
               </p>
             </div>
-            <div className="card p-4">
-              <p className="text-sm text-gray-500">Request Change</p>
-              <button
-                onClick={() => setShowRequestModal(true)}
-                className="mt-2 btn-secondary w-full text-sm"
-              >
-                📝 Increase / Decrease
-              </button>
+            <div className="card-panel">
+              <div className="flex flex-col gap-3">
+                <p className="text-sm text-gray-500">Request Change</p>
+                <button
+                  onClick={() => setShowRequestModal(true)}
+                  className="mt-2 btn-secondary w-full text-sm"
+                >
+                  📝 Increase / Decrease
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Cooperative Balances (only admin/committee) */}
           {canSeeCoopBalances && (
-            <div className="card p-6 mb-6">
+            <div className="card-panel mb-6">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <h2 className="text-lg font-semibold">
@@ -321,7 +323,7 @@ export default function MySavingsPage() {
                 )}
               </div>
               <div className="mt-6 grid gap-4 lg:grid-cols-4">
-                <div className="card p-4">
+                <div className="card-panel">
                   <p className="text-sm text-gray-500">Total Savings</p>
                   <p className="text-3xl font-semibold mt-2">
                     {summaryLoading
@@ -333,7 +335,7 @@ export default function MySavingsPage() {
                         : "₦0.00"}
                   </p>
                 </div>
-                <div className="card p-4">
+                <div className="card-panel">
                   <p className="text-sm text-gray-500">Total Commitments</p>
                   <p className="text-3xl font-semibold mt-2">
                     {summaryLoading
@@ -345,7 +347,7 @@ export default function MySavingsPage() {
                         : "₦0.00"}
                   </p>
                 </div>
-                <div className="card p-4">
+                <div className="card-panel">
                   <p className="text-sm text-gray-500">Total Available</p>
                   <p className="text-3xl font-semibold mt-2">
                     {summaryLoading
@@ -357,7 +359,7 @@ export default function MySavingsPage() {
                         : "₦0.00"}
                   </p>
                 </div>
-                <div className="card p-4">
+                <div className="card-panel">
                   <p className="text-sm text-gray-500">Members Count</p>
                   <p className="text-3xl font-semibold mt-2">
                     {summaryLoading
@@ -373,19 +375,19 @@ export default function MySavingsPage() {
           {!profileMissing && (
             <>
               <div className="grid gap-4 lg:grid-cols-3 mb-8">
-                <div className="card p-4">
+                <div className="card-panel">
                   <p className="text-sm text-gray-500">Membership Status</p>
                   <p className="text-xl font-semibold mt-2 capitalize">
                     {summary.status}
                   </p>
                 </div>
-                <div className="card p-4">
+                <div className="card-panel">
                   <p className="text-sm text-gray-500">
                     Consecutive Savings Months
                   </p>
                   <p className="text-xl font-semibold mt-2">{summary.months}</p>
                 </div>
-                <div className="card p-4">
+                <div className="card-panel">
                   <p className="text-sm text-gray-500">SSC File Number</p>
                   <p className="text-xl font-semibold mt-2">
                     {profile?.file_number ?? "N/A"}
@@ -402,7 +404,7 @@ export default function MySavingsPage() {
                 </p>
               </div>
 
-              <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div className="card-panel-light mb-6">
                 <div className="grid gap-4 lg:grid-cols-4">
                   <div>
                     <label htmlFor="filter-hijri-month" className="label">
@@ -612,8 +614,8 @@ export default function MySavingsPage() {
       {/* Request Change Modal */}
       {showRequestModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="card w-full max-w-md">
-            <div className="card-header flex items-center justify-between">
+          <div className="card-panel w-full max-w-md">
+            <div className="flex items-center justify-between border-b border-gray-200 pb-4">
               <h2 className="font-semibold">Request Savings Change</h2>
               <button
                 onClick={() => setShowRequestModal(false)}
@@ -622,7 +624,7 @@ export default function MySavingsPage() {
                 ✕
               </button>
             </div>
-            <div className="card-body space-y-4">
+            <div className="space-y-4 py-4">
               {requestError && (
                 <div className="rounded-lg border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-700">
                   {requestError}

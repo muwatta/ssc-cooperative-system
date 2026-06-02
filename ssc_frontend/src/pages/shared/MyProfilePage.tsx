@@ -202,14 +202,86 @@ export default function MyProfilePage() {
 
   return (
     <div className="card p-6 max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold">My Profile</h1>
-        <p className="text-sm text-gray-500">
-          Your SSC member record.{" "}
-          {profileMissing
-            ? "Complete the form to create your profile."
-            : "You can update your contact and personal details here."}
-        </p>
+      <div className="mb-6 grid gap-4 xl:grid-cols-[1.6fr_0.9fr]">
+        <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold">My Profile</h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Your SSC member record.
+                {profileMissing
+                  ? " Complete the form to create your profile."
+                  : " Update your contact and personal details here."}
+              </p>
+            </div>
+            <span className="badge badge-primary">Profile Snapshot</span>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="rounded-3xl bg-slate-50 p-4">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
+                Phone
+              </p>
+              <p className="mt-3 font-semibold text-gray-900">
+                {profile?.phone_primary || "—"}
+              </p>
+            </div>
+            <div className="rounded-3xl bg-slate-50 p-4">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
+                School Branch
+              </p>
+              <p className="mt-3 font-semibold text-gray-900 capitalize">
+                {profile?.school_branch || "—"}
+              </p>
+            </div>
+            <div className="rounded-3xl bg-slate-50 p-4">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
+                Contribution
+              </p>
+              <p className="mt-3 font-semibold text-gray-900">
+                ₦{profile?.approved_monthly_contribution || "0"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Reports</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Quick access to profile metrics.
+              </p>
+            </div>
+            <span className="badge badge-gray">Live</span>
+          </div>
+          <div className="mt-5 grid gap-3">
+            <div className="rounded-3xl border border-gray-100 bg-slate-50 p-4">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
+                Profile Status
+              </p>
+              <p className="mt-3 font-semibold text-gray-900">
+                {profileMissing ? "Incomplete" : "Completed"}
+              </p>
+            </div>
+            <div className="rounded-3xl border border-gray-100 bg-slate-50 p-4">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
+                Membership
+              </p>
+              <p className="mt-3 font-semibold text-gray-900 capitalize">
+                {profile?.membership_status || "Pending"}
+              </p>
+            </div>
+            <div className="rounded-3xl border border-gray-100 bg-slate-50 p-4">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
+                File Number
+              </p>
+              <p className="mt-3 font-semibold text-gray-900">
+                {profile?.file_number || "Not assigned"}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {serverMessage && (
@@ -224,288 +296,327 @@ export default function MyProfilePage() {
         </div>
       )}
 
-      {/* Read-only identity fields – show only if profile exists */}
       {!profileMissing && (
-        <div className="mb-6 grid gap-4 md:grid-cols-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">
-              Staff ID
-            </p>
-            <p className="font-mono font-medium text-gray-900 mt-1">
-              {profile?.staff_id ?? "—"}
-            </p>
+        <div className="mb-6 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                Identity Summary
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Snapshot of your current member information.
+              </p>
+            </div>
+            <span className="badge badge-primary">Verified</span>
           </div>
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">
-              SSC File Number
-            </p>
-            <p className="font-mono font-medium text-primary-700 mt-1">
-              {profile?.file_number ?? "Not assigned"}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">
-              Membership Status
-            </p>
-            <p className="font-medium capitalize text-gray-900 mt-1">
-              {profile?.membership_status ?? "—"}
-            </p>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-3xl bg-slate-50 p-4">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
+                Staff ID
+              </p>
+              <p className="mt-2 font-mono font-semibold text-gray-900">
+                {profile?.staff_id ?? "—"}
+              </p>
+            </div>
+            <div className="rounded-3xl bg-slate-50 p-4">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
+                SSC File Number
+              </p>
+              <p className="mt-2 font-mono font-semibold text-primary-700">
+                {profile?.file_number ?? "Not assigned"}
+              </p>
+            </div>
+            <div className="rounded-3xl bg-slate-50 p-4">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
+                Membership
+              </p>
+              <p className="mt-2 font-semibold capitalize text-gray-900">
+                {profile?.membership_status ?? "—"}
+              </p>
+            </div>
           </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        {/* Personal */}
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-gray-400">
-          Personal Information
-        </h2>
-        <div className="mb-6 grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="label">Full Name *</label>
-            <input
-              {...register("full_name", { required: "Required" })}
-              className={`input ${errors.full_name ? "input-error" : ""}`}
-            />
-            {errors.full_name && (
-              <p className="field-error">{errors.full_name.message}</p>
-            )}
+      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
+        <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400">
+              Personal Information
+            </h2>
+            <span className="badge badge-gray">Core</span>
           </div>
-          <div>
-            <label className="label">Primary Phone *</label>
-            <input
-              {...register("phone_primary", { required: "Required" })}
-              className={`input ${errors.phone_primary ? "input-error" : ""}`}
-            />
-            {errors.phone_primary && (
-              <p className="field-error">{errors.phone_primary.message}</p>
-            )}
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="label">Full Name *</label>
+              <input
+                {...register("full_name", { required: "Required" })}
+                className={`input ${errors.full_name ? "input-error" : ""}`}
+              />
+              {errors.full_name && (
+                <p className="field-error">{errors.full_name.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="label">Primary Phone *</label>
+              <input
+                {...register("phone_primary", { required: "Required" })}
+                className={`input ${errors.phone_primary ? "input-error" : ""}`}
+              />
+              {errors.phone_primary && (
+                <p className="field-error">{errors.phone_primary.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="label">Secondary Phone</label>
+              <input {...register("phone_secondary")} className="input" />
+            </div>
+            <div>
+              <label className="label">Email Address</label>
+              <input
+                {...register("email_address")}
+                type="email"
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Gender</label>
+              <select {...register("gender")} className="input">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Marital Status</label>
+              <select {...register("marital_status")} className="input">
+                <option value="single">Single</option>
+                <option value="married">Married</option>
+                <option value="divorced">Divorced</option>
+                <option value="widowed">Widowed</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Date of Birth *</label>
+              <input
+                {...register("date_of_birth", { required: "Required" })}
+                type="date"
+                className={`input ${errors.date_of_birth ? "input-error" : ""}`}
+              />
+              {errors.date_of_birth && (
+                <p className="field-error">{errors.date_of_birth.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="label">Place of Birth *</label>
+              <input
+                {...register("place_of_birth", { required: "Required" })}
+                className={`input ${errors.place_of_birth ? "input-error" : ""}`}
+              />
+              {errors.place_of_birth && (
+                <p className="field-error">{errors.place_of_birth.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="label">State of Origin *</label>
+              <input
+                {...register("state_of_origin", { required: "Required" })}
+                className={`input ${errors.state_of_origin ? "input-error" : ""}`}
+              />
+              {errors.state_of_origin && (
+                <p className="field-error">{errors.state_of_origin.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="label">Local Government Area *</label>
+              <input
+                {...register("local_government_area", { required: "Required" })}
+                className={`input ${errors.local_government_area ? "input-error" : ""}`}
+              />
+              {errors.local_government_area && (
+                <p className="field-error">
+                  {errors.local_government_area.message}
+                </p>
+              )}
+            </div>
           </div>
-          <div>
-            <label className="label">Secondary Phone</label>
-            <input {...register("phone_secondary")} className="input" />
-          </div>
-          <div>
-            <label className="label">Email Address</label>
-            <input
-              {...register("email_address")}
-              type="email"
-              className="input"
-            />
-          </div>
-          <div>
-            <label className="label">Gender</label>
-            <select {...register("gender")} className="input">
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
-          </div>
-          <div>
-            <label className="label">Marital Status</label>
-            <select {...register("marital_status")} className="input">
-              <option value="single">Single</option>
-              <option value="married">Married</option>
-              <option value="divorced">Divorced</option>
-              <option value="widowed">Widowed</option>
-            </select>
-          </div>
-          <div>
-            <label className="label">Date of Birth *</label>
-            <input
-              {...register("date_of_birth", { required: "Required" })}
-              type="date"
-              className={`input ${errors.date_of_birth ? "input-error" : ""}`}
-            />
-            {errors.date_of_birth && (
-              <p className="field-error">{errors.date_of_birth.message}</p>
-            )}
-          </div>
-          <div>
-            <label className="label">Place of Birth *</label>
-            <input
-              {...register("place_of_birth", { required: "Required" })}
-              className={`input ${errors.place_of_birth ? "input-error" : ""}`}
-            />
-            {errors.place_of_birth && (
-              <p className="field-error">{errors.place_of_birth.message}</p>
-            )}
-          </div>
-          <div>
-            <label className="label">State of Origin *</label>
-            <input
-              {...register("state_of_origin", { required: "Required" })}
-              className={`input ${errors.state_of_origin ? "input-error" : ""}`}
-            />
-            {errors.state_of_origin && (
-              <p className="field-error">{errors.state_of_origin.message}</p>
-            )}
-          </div>
-          <div>
-            <label className="label">Local Government Area *</label>
-            <input
-              {...register("local_government_area", { required: "Required" })}
-              className={`input ${errors.local_government_area ? "input-error" : ""}`}
-            />
-            {errors.local_government_area && (
-              <p className="field-error">
-                {errors.local_government_area.message}
-              </p>
-            )}
-          </div>
-        </div>
+        </section>
 
-        {/* School */}
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-gray-400">
-          School Details
-        </h2>
-        <div className="mb-6 grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="label">School Branch</label>
-            <select {...register("school_branch")} className="input">
-              <option value="primary">Primary</option>
-              <option value="college">College</option>
-              <option value="other">Other</option>
-            </select>
+        <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400">
+              School Details
+            </h2>
+            <span className="badge badge-gray">Academic</span>
           </div>
-          <div>
-            <label className="label">Designation</label>
-            <input {...register("designation")} className="input" />
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="label">School Branch</label>
+              <select {...register("school_branch")} className="input">
+                <option value="primary">Primary</option>
+                <option value="college">College</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Designation</label>
+              <input {...register("designation")} className="input" />
+            </div>
+            <div>
+              <label className="label">Date Joined School</label>
+              <input
+                {...register("date_joined_school")}
+                type="date"
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Monthly Income *</label>
+              <input
+                {...register("monthly_income", { required: "Required" })}
+                type="number"
+                step="0.01"
+                className={`input ${errors.monthly_income ? "input-error" : ""}`}
+              />
+              {errors.monthly_income && (
+                <p className="field-error">{errors.monthly_income.message}</p>
+              )}
+            </div>
           </div>
-          <div>
-            <label className="label">Date Joined School</label>
-            <input
-              {...register("date_joined_school")}
-              type="date"
-              className="input"
-            />
-          </div>
-          <div>
-            <label className="label">Monthly Income *</label>
-            <input
-              {...register("monthly_income", { required: "Required" })}
-              type="number"
-              step="0.01"
-              className={`input ${errors.monthly_income ? "input-error" : ""}`}
-            />
-            {errors.monthly_income && (
-              <p className="field-error">{errors.monthly_income.message}</p>
-            )}
-          </div>
-        </div>
+        </section>
 
-        {/* Financial */}
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-gray-400">
-          Financial
-        </h2>
-        <div className="mb-6">
-          <label className="label">Approved Monthly Contribution (₦) *</label>
-          <input
-            {...register("approved_monthly_contribution", {
-              required: "Required",
-              min: 1000,
-            })}
-            type="number"
-            step="1000"
-            min="1000"
-            className={`input ${errors.approved_monthly_contribution ? "input-error" : ""}`}
-          />
-          <p className="text-xs text-gray-400 mt-1">
-            Minimum ₦1,000. This will be your regular monthly contribution.
-          </p>
-          {errors.approved_monthly_contribution && (
-            <p className="field-error">
-              {errors.approved_monthly_contribution.message}
-            </p>
-          )}
-        </div>
-
-        {/* Addresses */}
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-gray-400">
-          Addresses
-        </h2>
-        <div className="mb-6 grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="label">Residential Address *</label>
-            <textarea
-              {...register("residential_address", { required: "Required" })}
-              className={`input h-24 resize-none ${errors.residential_address ? "input-error" : ""}`}
-            />
-            {errors.residential_address && (
-              <p className="field-error">
-                {errors.residential_address.message}
-              </p>
-            )}
+        <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400">
+              Financial
+            </h2>
+            <span className="badge badge-gray">Budget</span>
           </div>
-          <div>
-            <label className="label">Permanent Home Address *</label>
-            <textarea
-              {...register("permanent_home_address", { required: "Required" })}
-              className={`input h-24 resize-none ${errors.permanent_home_address ? "input-error" : ""}`}
-            />
-            {errors.permanent_home_address && (
-              <p className="field-error">
-                {errors.permanent_home_address.message}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Next of Kin */}
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-gray-400">
-          Next of Kin
-        </h2>
-        <div className="mb-6 grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="label">Full Name *</label>
+          <div className="mt-5">
+            <label className="label">Approved Monthly Contribution (₦) *</label>
             <input
-              {...register("next_of_kin_name", { required: "Required" })}
-              className={`input ${errors.next_of_kin_name ? "input-error" : ""}`}
-            />
-            {errors.next_of_kin_name && (
-              <p className="field-error">{errors.next_of_kin_name.message}</p>
-            )}
-          </div>
-          <div>
-            <label className="label">Relationship *</label>
-            <input
-              {...register("next_of_kin_relationship", {
+              {...register("approved_monthly_contribution", {
                 required: "Required",
+                min: 1000,
               })}
-              className={`input ${errors.next_of_kin_relationship ? "input-error" : ""}`}
+              type="number"
+              step="1000"
+              min="1000"
+              className={`input ${errors.approved_monthly_contribution ? "input-error" : ""}`}
             />
-            {errors.next_of_kin_relationship && (
+            <p className="text-xs text-gray-400 mt-1">
+              Minimum ₦1,000. This will be your regular monthly contribution.
+            </p>
+            {errors.approved_monthly_contribution && (
               <p className="field-error">
-                {errors.next_of_kin_relationship.message}
+                {errors.approved_monthly_contribution.message}
               </p>
             )}
           </div>
-          <div>
-            <label className="label">Phone *</label>
-            <input
-              {...register("next_of_kin_phone", { required: "Required" })}
-              className={`input ${errors.next_of_kin_phone ? "input-error" : ""}`}
-            />
-            {errors.next_of_kin_phone && (
-              <p className="field-error">{errors.next_of_kin_phone.message}</p>
-            )}
+        </section>
+
+        <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400">
+              Addresses
+            </h2>
+            <span className="badge badge-gray">Location</span>
           </div>
-          <div>
-            <label className="label">Place of Work</label>
-            <input
-              {...register("next_of_kin_place_of_work")}
-              className="input"
-            />
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="label">Residential Address *</label>
+              <textarea
+                {...register("residential_address", { required: "Required" })}
+                className={`input h-24 resize-none ${errors.residential_address ? "input-error" : ""}`}
+              />
+              {errors.residential_address && (
+                <p className="field-error">
+                  {errors.residential_address.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="label">Permanent Home Address *</label>
+              <textarea
+                {...register("permanent_home_address", {
+                  required: "Required",
+                })}
+                className={`input h-24 resize-none ${errors.permanent_home_address ? "input-error" : ""}`}
+              />
+              {errors.permanent_home_address && (
+                <p className="field-error">
+                  {errors.permanent_home_address.message}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
-        <div className="mb-8">
-          <label className="label">Next of Kin Address *</label>
-          <textarea
-            {...register("next_of_kin_address", { required: "Required" })}
-            className={`input h-24 resize-none ${errors.next_of_kin_address ? "input-error" : ""}`}
-          />
-          {errors.next_of_kin_address && (
-            <p className="field-error">{errors.next_of_kin_address.message}</p>
-          )}
-        </div>
+        </section>
+
+        <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400">
+              Next of Kin
+            </h2>
+            <span className="badge badge-gray">Emergency</span>
+          </div>
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="label">Full Name *</label>
+              <input
+                {...register("next_of_kin_name", { required: "Required" })}
+                className={`input ${errors.next_of_kin_name ? "input-error" : ""}`}
+              />
+              {errors.next_of_kin_name && (
+                <p className="field-error">{errors.next_of_kin_name.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="label">Relationship *</label>
+              <input
+                {...register("next_of_kin_relationship", {
+                  required: "Required",
+                })}
+                className={`input ${errors.next_of_kin_relationship ? "input-error" : ""}`}
+              />
+              {errors.next_of_kin_relationship && (
+                <p className="field-error">
+                  {errors.next_of_kin_relationship.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="label">Phone *</label>
+              <input
+                {...register("next_of_kin_phone", { required: "Required" })}
+                className={`input ${errors.next_of_kin_phone ? "input-error" : ""}`}
+              />
+              {errors.next_of_kin_phone && (
+                <p className="field-error">
+                  {errors.next_of_kin_phone.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="label">Place of Work</label>
+              <input
+                {...register("next_of_kin_place_of_work")}
+                className="input"
+              />
+            </div>
+            <div className="mb-8">
+              <label className="label">Next of Kin Address *</label>
+              <textarea
+                {...register("next_of_kin_address", { required: "Required" })}
+                className={`input h-24 resize-none ${errors.next_of_kin_address ? "input-error" : ""}`}
+              />
+              {errors.next_of_kin_address && (
+                <p className="field-error">
+                  {errors.next_of_kin_address.message}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
 
         <button
           type="submit"

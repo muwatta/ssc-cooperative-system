@@ -150,7 +150,7 @@ export default function DashboardPage() {
       </div>
 
       {isLeadership && (
-        <div className="card p-4 mb-6 transition-all duration-200 shadow-sm hover:shadow-md">
+        <div className="card-panel mb-6">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
             <StatCard
               label="Your Role"
@@ -180,7 +180,7 @@ export default function DashboardPage() {
       )}
 
       {!isLeadership && (
-        <div className="card p-4 mb-6 transition-all duration-200 shadow-sm hover:shadow-md">
+        <div className="card-panel mb-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Your Role"
@@ -210,7 +210,7 @@ export default function DashboardPage() {
       )}
 
       {isLeadership && (
-        <div className="card p-6 mb-6 transition-all duration-200 shadow-sm hover:shadow-md">
+        <div className="card-panel mb-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-lg font-semibold">Membership Summary</h2>
@@ -232,83 +232,62 @@ export default function DashboardPage() {
           )}
 
           {stats && !loading && !error && (
-            <div className="mt-4 overflow-hidden rounded-3xl border border-gray-200 bg-white text-sm shadow-sm">
-              <div className="grid grid-cols-3 gap-4 px-4 py-4 text-xs font-semibold uppercase tracking-[0.24em] text-gray-500 sm:grid-cols-5">
-                <span className="col-span-2">Metric</span>
-                <span className="col-span-1 text-right sm:text-left">
-                  Value
-                </span>
-                <span className="hidden sm:block">Note</span>
-                <span className="hidden sm:block" />
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="card-panel-light">
+                <p className="text-xs uppercase tracking-[0.24em] text-gray-500">
+                  Total Members
+                </p>
+                <p className="mt-3 text-2xl font-semibold text-gray-900">
+                  {stats.totalMembers}
+                </p>
+                <p className="text-sm text-gray-500 mt-2">All registrations</p>
               </div>
-              <div className="divide-y divide-gray-100 px-4">
-                <div className="grid grid-cols-3 gap-4 py-4 items-center sm:grid-cols-5">
-                  <div className="col-span-2 font-medium text-gray-900">
-                    Total Members
-                  </div>
-                  <div className="text-right font-semibold text-gray-900 sm:text-left">
-                    {stats.totalMembers}
-                  </div>
-                  <div className="hidden text-gray-500 sm:block">
-                    All registrations
-                  </div>
-                  <div className="hidden sm:block" />
-                </div>
-                <div className="grid grid-cols-3 gap-4 py-4 items-center sm:grid-cols-5">
-                  <div className="col-span-2 font-medium text-gray-900">
-                    Active
-                  </div>
-                  <div className="text-right text-green-700 font-semibold sm:text-left">
-                    {stats.activeMembers}
-                  </div>
-                  <div className="hidden text-gray-500 sm:block">
-                    Currently active
-                  </div>
-                  <div className="hidden sm:block" />
-                </div>
-                <div className="grid grid-cols-3 gap-4 py-4 items-center sm:grid-cols-5">
-                  <div className="col-span-2 font-medium text-gray-900">
-                    Pending
-                  </div>
-                  <div className="text-right text-amber-700 font-semibold sm:text-left">
-                    {stats.pendingMembers}
-                  </div>
-                  <div className="hidden text-gray-500 sm:block">
-                    Awaiting approval
-                  </div>
-                  <div className="hidden sm:block" />
-                </div>
-                <div className="grid grid-cols-3 gap-4 py-4 items-center sm:grid-cols-5">
-                  <div className="col-span-2 font-medium text-gray-900">
-                    Inactive
-                  </div>
-                  <div className="text-right text-red-700 font-semibold sm:text-left">
-                    {stats.inactiveMembers}
-                  </div>
-                  <div className="hidden text-gray-500 sm:block">
-                    Temporarily inactive
-                  </div>
-                  <div className="hidden sm:block" />
-                </div>
-                <div className="grid grid-cols-3 gap-4 py-4 items-center sm:grid-cols-5">
-                  <div className="col-span-2 font-medium text-gray-900">
-                    Exited
-                  </div>
-                  <div className="text-right text-primary-700 font-semibold sm:text-left">
-                    {stats.exitedMembers}
-                  </div>
-                  <div className="hidden text-gray-500 sm:block">
-                    Left the cooperative
-                  </div>
-                  <div className="hidden sm:block" />
-                </div>
+              <div className="card-panel-light">
+                <p className="text-xs uppercase tracking-[0.24em] text-gray-500">
+                  Active Members
+                </p>
+                <p className="mt-3 text-2xl font-semibold text-green-700">
+                  {stats.activeMembers}
+                </p>
+                <p className="text-sm text-gray-500 mt-2">Currently active</p>
+              </div>
+              <div className="card-panel-light">
+                <p className="text-xs uppercase tracking-[0.24em] text-gray-500">
+                  Pending Members
+                </p>
+                <p className="mt-3 text-2xl font-semibold text-amber-700">
+                  {stats.pendingMembers}
+                </p>
+                <p className="text-sm text-gray-500 mt-2">Awaiting approval</p>
+              </div>
+              <div className="card-panel-light">
+                <p className="text-xs uppercase tracking-[0.24em] text-gray-500">
+                  Inactive Members
+                </p>
+                <p className="mt-3 text-2xl font-semibold text-red-700">
+                  {stats.inactiveMembers}
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  Temporarily inactive
+                </p>
+              </div>
+              <div className="card-panel-light">
+                <p className="text-xs uppercase tracking-[0.24em] text-gray-500">
+                  Exited Members
+                </p>
+                <p className="mt-3 text-2xl font-semibold text-primary-700">
+                  {stats.exitedMembers}
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  Left the cooperative
+                </p>
               </div>
             </div>
           )}
         </div>
       )}
 
-      <div className="card p-6 mb-6 transition-all duration-200 shadow-sm hover:shadow-md">
+      <div className="card-panel mb-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold">Balance Overview</h2>
@@ -375,7 +354,7 @@ export default function DashboardPage() {
               ) : (
                 <div className="divide-y divide-gray-100 px-4 py-2 sm:px-6">
                   <div className="grid gap-3 py-4 sm:grid-cols-2">
-                    <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4 transition-all duration-200 hover:shadow-lg">
+                    <div className="card-panel-light">
                       <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
                         Your Total Savings
                       </p>
@@ -387,7 +366,7 @@ export default function DashboardPage() {
                           : "N/A"}
                       </p>
                     </div>
-                    <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4 transition-all duration-200 hover:shadow-lg">
+                    <div className="card-panel-light">
                       <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
                         Your Available Balance
                       </p>
@@ -401,7 +380,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="grid gap-3 py-4 sm:grid-cols-2">
-                    <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4 transition-all duration-200 hover:shadow-lg">
+                    <div className="card-panel-light">
                       <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
                         Approved Contribution
                       </p>
@@ -415,7 +394,7 @@ export default function DashboardPage() {
                           : "N/A"}
                       </p>
                     </div>
-                    <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4 transition-all duration-200 hover:shadow-lg">
+                    <div className="card-panel-light">
                       <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
                         Committed Savings
                       </p>
@@ -430,7 +409,7 @@ export default function DashboardPage() {
                   </div>
                   {(isAdmin || isCommittee) && (
                     <div className="grid gap-3 py-4 sm:grid-cols-2">
-                      <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4 transition-all duration-200 hover:shadow-lg">
+                      <div className="card-panel-light">
                         <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
                           Cooperative Total Savings
                         </p>
@@ -442,7 +421,7 @@ export default function DashboardPage() {
                             : "₦0.00"}
                         </p>
                       </div>
-                      <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4 transition-all duration-200 hover:shadow-lg">
+                      <div className="card-panel-light">
                         <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
                           Total Available Across Members
                         </p>
@@ -464,20 +443,25 @@ export default function DashboardPage() {
       </div>
 
       {!isAdmin && !isCommittee && !isHOS && (
-        <div className="card p-6 mb-6 transition-all duration-200 shadow-sm hover:shadow-md">
-          <h2 className="text-lg font-semibold">Your personal dashboard</h2>
-          <p className="text-sm text-gray-500 mt-2">
-            This page highlights your account access and membership status. For
-            full cooperative reports, contact an administrator.
-          </p>
+        <div className="card-panel mb-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Your personal dashboard</h2>
+              <p className="text-sm text-gray-500 mt-2">
+                This page highlights your account access and membership status.
+                For full cooperative reports, contact an administrator.
+              </p>
+            </div>
+            <span className="badge badge-gray">Staff view</span>
+          </div>
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="rounded-3xl border border-gray-200 bg-white p-4 transition-all duration-200 hover:shadow-lg">
+            <div className="card-panel-light">
               <p className="text-sm text-gray-500">Profile</p>
               <p className="mt-2 text-lg font-semibold">
                 View and update your details anytime.
               </p>
             </div>
-            <div className="rounded-3xl border border-gray-200 bg-white p-4 transition-all duration-200 hover:shadow-lg">
+            <div className="card-panel-light">
               <p className="text-sm text-gray-500">Savings</p>
               <p className="mt-2 text-lg font-semibold">
                 Track your contribution records in the savings section.
