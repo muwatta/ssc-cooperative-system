@@ -21,8 +21,11 @@ function StatCard({
     warning: "bg-warning-50 text-warning-700 border-yellow-100",
     danger: "bg-danger-50 text-danger-700 border-red-100",
   };
+
   return (
-    <div className={`card p-4 border ${colorMap[color]}`}>
+    <div
+      className={`card p-4 border ${colorMap[color]} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
+    >
       <p className="text-[11px] font-semibold uppercase tracking-[0.2em] opacity-70">
         {label}
       </p>
@@ -44,15 +47,15 @@ export default function DashboardPage() {
   const { user, isAdmin, isCommittee, isHOS } = useAuth();
   const isLeadership = isAdmin || isCommittee || isHOS;
 
-  // Balance toggle state (persisted in localStorage)
   const [showBalances, setShowBalances] = useState(() => {
+    if (typeof window === "undefined") return true;
     return localStorage.getItem("showBalances") !== "false";
   });
 
   const toggleBalances = () => {
-    const newVal = !showBalances;
-    setShowBalances(newVal);
-    localStorage.setItem("showBalances", String(newVal));
+    const nextValue = !showBalances;
+    setShowBalances(nextValue);
+    localStorage.setItem("showBalances", String(nextValue));
   };
 
   const memberStatsQuery = useQuery<DashboardStats>({
@@ -118,7 +121,10 @@ export default function DashboardPage() {
     const amount = Number(value);
     return Number.isNaN(amount)
       ? "₦0.00"
-      : `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      : `₦${amount.toLocaleString("en-NG", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`;
   };
 
   const memberBalance = balances?.member;
@@ -128,14 +134,13 @@ export default function DashboardPage() {
   const displayName =
     myProfile?.full_name || user?.full_name || user?.staff_id || "Guest";
 
-  // Helper to conditionally show masked value
   const maskIfNeeded = (value: string) => {
     if (!showBalances) return "•••••";
     return value;
   };
 
   return (
-    <div>
+    <div className="space-y-6 animate-fade-in">
       <div className="mb-6">
         <h1 className="page-title">Dashboard</h1>
         <p className="page-subtitle">
@@ -145,63 +150,67 @@ export default function DashboardPage() {
       </div>
 
       {isLeadership && (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
-          <StatCard
-            label="Your Role"
-            value={user ? user.role.replace(/_/g, " ").toUpperCase() : "N/A"}
-            sub="Access level assigned by Admin"
-          />
-          <StatCard
-            label="Full Name"
-            value={displayName}
-            sub="Your registered name"
-            color="primary"
-          />
-          <StatCard
-            label="Staff ID"
-            value={user?.staff_id ?? "—"}
-            sub="Your login identity"
-            color="success"
-          />
-          <StatCard
-            label="Member File"
-            value={user?.file_number ?? "Not assigned"}
-            sub="SSC membership record"
-            color="warning"
-          />
+        <div className="card p-4 mb-6 transition-all duration-200 shadow-sm hover:shadow-md">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+            <StatCard
+              label="Your Role"
+              value={user ? user.role.replace(/_/g, " ").toUpperCase() : "N/A"}
+              sub="Access level assigned by Admin"
+            />
+            <StatCard
+              label="Full Name"
+              value={displayName}
+              sub="Your registered name"
+              color="primary"
+            />
+            <StatCard
+              label="Staff ID"
+              value={user?.staff_id ?? "—"}
+              sub="Your login identity"
+              color="success"
+            />
+            <StatCard
+              label="Member File"
+              value={user?.file_number ?? "Not assigned"}
+              sub="SSC membership record"
+              color="warning"
+            />
+          </div>
         </div>
       )}
 
       {!isLeadership && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <StatCard
-            label="Your Role"
-            value={user ? user.role.replace(/_/g, " ").toUpperCase() : "N/A"}
-            sub="Staff access level"
-          />
-          <StatCard
-            label="Full Name"
-            value={displayName}
-            sub="Your registered name"
-            color="primary"
-          />
-          <StatCard
-            label="Staff ID"
-            value={user?.staff_id ?? "—"}
-            sub="Used for login"
-            color="success"
-          />
-          <StatCard
-            label="Member File"
-            value={user?.file_number ?? "Pending"}
-            sub="Assigned by Admin"
-            color="warning"
-          />
+        <div className="card p-4 mb-6 transition-all duration-200 shadow-sm hover:shadow-md">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              label="Your Role"
+              value={user ? user.role.replace(/_/g, " ").toUpperCase() : "N/A"}
+              sub="Staff access level"
+            />
+            <StatCard
+              label="Full Name"
+              value={displayName}
+              sub="Your registered name"
+              color="primary"
+            />
+            <StatCard
+              label="Staff ID"
+              value={user?.staff_id ?? "—"}
+              sub="Used for login"
+              color="success"
+            />
+            <StatCard
+              label="Member File"
+              value={user?.file_number ?? "Pending"}
+              sub="Assigned by Admin"
+              color="warning"
+            />
+          </div>
         </div>
       )}
 
       {isLeadership && (
-        <div className="card p-6 mb-6">
+        <div className="card p-6 mb-6 transition-all duration-200 shadow-sm hover:shadow-md">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-lg font-semibold">Membership Summary</h2>
@@ -217,7 +226,7 @@ export default function DashboardPage() {
           </div>
 
           {error && (
-            <div className="mt-4 rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700">
+            <div className="mt-4 rounded-3xl border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700">
               {error}
             </div>
           )}
@@ -299,7 +308,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="card p-6 mb-6">
+      <div className="card p-6 mb-6 transition-all duration-200 shadow-sm hover:shadow-md">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold">Balance Overview</h2>
@@ -366,7 +375,7 @@ export default function DashboardPage() {
               ) : (
                 <div className="divide-y divide-gray-100 px-4 py-2 sm:px-6">
                   <div className="grid gap-3 py-4 sm:grid-cols-2">
-                    <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4">
+                    <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4 transition-all duration-200 hover:shadow-lg">
                       <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
                         Your Total Savings
                       </p>
@@ -378,7 +387,7 @@ export default function DashboardPage() {
                           : "N/A"}
                       </p>
                     </div>
-                    <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4">
+                    <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4 transition-all duration-200 hover:shadow-lg">
                       <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
                         Your Available Balance
                       </p>
@@ -392,7 +401,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="grid gap-3 py-4 sm:grid-cols-2">
-                    <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4">
+                    <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4 transition-all duration-200 hover:shadow-lg">
                       <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
                         Approved Contribution
                       </p>
@@ -406,7 +415,7 @@ export default function DashboardPage() {
                           : "N/A"}
                       </p>
                     </div>
-                    <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4">
+                    <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4 transition-all duration-200 hover:shadow-lg">
                       <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
                         Committed Savings
                       </p>
@@ -421,7 +430,7 @@ export default function DashboardPage() {
                   </div>
                   {(isAdmin || isCommittee) && (
                     <div className="grid gap-3 py-4 sm:grid-cols-2">
-                      <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4">
+                      <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4 transition-all duration-200 hover:shadow-lg">
                         <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
                           Cooperative Total Savings
                         </p>
@@ -433,7 +442,7 @@ export default function DashboardPage() {
                             : "₦0.00"}
                         </p>
                       </div>
-                      <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4">
+                      <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4 transition-all duration-200 hover:shadow-lg">
                         <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
                           Total Available Across Members
                         </p>
@@ -455,20 +464,20 @@ export default function DashboardPage() {
       </div>
 
       {!isAdmin && !isCommittee && !isHOS && (
-        <div className="card p-6 mb-6">
+        <div className="card p-6 mb-6 transition-all duration-200 shadow-sm hover:shadow-md">
           <h2 className="text-lg font-semibold">Your personal dashboard</h2>
           <p className="text-sm text-gray-500 mt-2">
             This page highlights your account access and membership status. For
             full cooperative reports, contact an administrator.
           </p>
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <div className="rounded-3xl border border-gray-200 bg-white p-4 transition-all duration-200 hover:shadow-lg">
               <p className="text-sm text-gray-500">Profile</p>
               <p className="mt-2 text-lg font-semibold">
                 View and update your details anytime.
               </p>
             </div>
-            <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <div className="rounded-3xl border border-gray-200 bg-white p-4 transition-all duration-200 hover:shadow-lg">
               <p className="text-sm text-gray-500">Savings</p>
               <p className="mt-2 text-lg font-semibold">
                 Track your contribution records in the savings section.

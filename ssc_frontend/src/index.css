@@ -69,24 +69,53 @@
 
   /* Cards */
   .card {
-    @apply bg-white rounded-xl border border-gray-200 shadow-sm;
+    @apply bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col gap-2 p-3;
   }
   .card-header {
-    @apply px-6 py-4 border-b border-gray-100;
+    @apply px-4 py-3 border-b border-gray-100;
   }
   .card-body {
-    @apply px-6 py-4;
+    @apply px-4 py-3;
+  }
+
+  /* Compact utilities for denser mobile layouts */
+  .compact {
+    @apply p-2 text-sm;
+  }
+  .compact-card {
+    @apply p-2 rounded-lg;
+  }
+  .card-row {
+    @apply flex items-center justify-between gap-3;
+  }
+  .compact-row {
+    @apply flex items-center gap-3 flex-wrap;
+  }
+  @screen sm {
+    .compact-row-sm {
+      @apply flex-row;
+    }
   }
 
   /* Badges */
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
-  .badge-success { @apply badge bg-success-50 text-success-700; }
-  .badge-warning { @apply badge bg-warning-50 text-warning-700; }
-  .badge-danger  { @apply badge bg-danger-50 text-danger-700; }
-  .badge-gray    { @apply badge bg-gray-100 text-gray-700; }
-  .badge-primary { @apply badge bg-primary-50 text-primary-700; }
+  .badge-success {
+    @apply badge bg-success-50 text-success-700;
+  }
+  .badge-warning {
+    @apply badge bg-warning-50 text-warning-700;
+  }
+  .badge-danger {
+    @apply badge bg-danger-50 text-danger-700;
+  }
+  .badge-gray {
+    @apply badge bg-gray-100 text-gray-700;
+  }
+  .badge-primary {
+    @apply badge bg-primary-50 text-primary-700;
+  }
 
   /* Table */
   .table-container {
