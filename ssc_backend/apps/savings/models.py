@@ -10,6 +10,8 @@ class LedgerEntryType(models.TextChoices):
     ADJUSTMENT       = "adjustment",       "Adjustment"
     LEGACY_IMPORT    = "legacy_import",    "Legacy Import"
     LOAN_REPAYMENT   = "loan_repayment",   "Loan Repayment"
+    LOAN_DISBURSEMENT = "loan_disbursement", "Loan Disbursement"
+
 
 
 class SavingsChangeStatus(models.TextChoices):

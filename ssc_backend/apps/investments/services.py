@@ -96,7 +96,6 @@ class DistributionListCreateView(generics.ListCreateAPIView):
 
 
 class DistributeProfit(APIView):
-    """POST /api/v1/investments/distributions/<id>/distribute/ — actually credit members"""
     permission_classes = [IsAdminOrCommittee]
 
     @transaction.atomic

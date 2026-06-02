@@ -27,8 +27,8 @@ interface ApplyLoanFormValues {
   proposed_duration_months: number;
   date_of_last_loan?: string;
   amount_outstanding_prev?: string;
-  repayment_start_hijri_month: number;
-  repayment_start_hijri_year: number;
+  repayment_start_hijri_month?: number; // optional now, not submitted
+  repayment_start_hijri_year?: number; // optional now, not submitted
   sureties?: SuretyFormItem[];
 }
 
@@ -213,7 +213,7 @@ export default function ApplyLoanPage() {
     queryFn: () => loansApi.eligibility().then((r) => r.data),
   });
 
-  // ---------- Dynamic limits from backend ----------
+  // Dynamic limits from backend
   const selfSuretyMax = eligibility?.self_surety_max
     ? Number(eligibility.self_surety_max)
     : 0;
@@ -225,6 +225,20 @@ export default function ApplyLoanPage() {
     : 75;
   const maxSureties = eligibility?.max_sureties ?? 5;
   const canApply = eligibility?.eligible ?? false;
+
+  // Compute next Hijri month for repayment start
+  const currentHijriMonth = eligibility?.current_hijri_month ?? 1;
+  const currentHijriYear = eligibility?.current_hijri_year ?? 1446;
+
+  let startMonth = currentHijriMonth + 1;
+  let startYear = currentHijriYear;
+  if (startMonth > 12) {
+    startMonth = 1;
+    startYear++;
+  }
+  const startMonthLabel =
+    HM.find((m) => m.value === startMonth)?.label ?? startMonth;
+  const repaymentStartLabel = `${startMonthLabel} ${startYear}`;
 
   const {
     control,
@@ -242,9 +256,8 @@ export default function ApplyLoanPage() {
       phone_numbers: "",
       proposed_monthly_repayment: "",
       proposed_duration_months: 6,
-      repayment_start_hijri_month: 1,
-      repayment_start_hijri_year: new Date().getFullYear() + 1,
-      sureties: [{ member_id: 0, member_label: "", amount: "" }], // placeholder row; removed on submit if not needed
+      // repayment start defaults removed – auto‑calculated by backend
+      sureties: [{ member_id: 0, member_label: "", amount: "" }],
     },
   });
 
@@ -257,7 +270,6 @@ export default function ApplyLoanPage() {
   const duration = watch("proposed_duration_months") || 6;
   const monthlyRepayment = duration > 0 ? amountApplied / duration : 0;
 
-  // Determine if external sureties are needed (gap between self-surety and max borrowable)
   const needsExternalSureties =
     amountApplied > selfSuretyMax && amountApplied <= maxBorrowable;
   const exceedsMax = amountApplied > maxBorrowable;
@@ -314,7 +326,6 @@ export default function ApplyLoanPage() {
 
   if (isLoading) return <PageLoader />;
 
-  // Determine if submit is allowed
   const sufficientSureties =
     !needsExternalSureties ||
     (needsExternalSureties && fields.filter((f) => f.member_id > 0).length > 0);
@@ -644,46 +655,17 @@ export default function ApplyLoanPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Repayment Start – Hijri Month
-                    </label>
-                    <select
-                      {...register("repayment_start_hijri_month", {
-                        required: true,
-                        valueAsNumber: true,
-                      })}
-                      disabled={!canApply}
-                      className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                        !canApply ? "bg-gray-50 text-gray-500" : ""
-                      }`}
-                    >
-                      {HM.map((m) => (
-                        <option key={m.value} value={m.value}>
-                          {m.label}
-                        </option>
-                      ))}
-                    </select>
+                {/* Repayment start – auto‑calculated */}
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Repayment Start
+                  </label>
+                  <div className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-700">
+                    {repaymentStartLabel}
                   </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Repayment Start – Hijri Year
-                    </label>
-                    <input
-                      {...register("repayment_start_hijri_year", {
-                        required: true,
-                        valueAsNumber: true,
-                      })}
-                      type="number"
-                      min="1440"
-                      disabled={!canApply}
-                      className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                        !canApply ? "bg-gray-50 text-gray-500" : ""
-                      }`}
-                      defaultValue={new Date().getFullYear() + 1}
-                    />
-                  </div>
+                  <p className="mt-1 text-xs text-gray-400">
+                    Repayment begins the month after approval (auto‑calculated).
+                  </p>
                 </div>
               </div>
 

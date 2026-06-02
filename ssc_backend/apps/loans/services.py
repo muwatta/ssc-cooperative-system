@@ -58,7 +58,6 @@ def check_loan_eligibility(member: MemberProfile) -> dict:
 
 
 def calculate_max_borrowable(member: MemberProfile) -> Decimal:
-    """Loan borrowing limit based on available balance and configured ratio."""
     config = get_loan_configuration()
     balance = get_or_create_balance(member)
     return (balance.available_balance * config.self_surety_ratio).quantize(Decimal("0.01"))
@@ -67,29 +66,40 @@ def calculate_max_borrowable(member: MemberProfile) -> Decimal:
 @transaction.atomic
 @transaction.atomic
 def submit_loan_application(member: MemberProfile, data: dict, sureties: list = None) -> LoanApplication:
-    
+    # Auto-set repayment start to the next Hijri month
+    from utils.hijri import current_hijri
+    h_now_month, h_now_year = current_hijri()
+
+    # Compute next month
+    if h_now_month == 12:
+        start_month = 1
+        start_year = h_now_year + 1
+    else:
+        start_month = h_now_month + 1
+        start_year = h_now_year
+
+    loan.repayment_start_hijri_month = start_month
+    loan.repayment_start_hijri_year  = start_year
+    loan.save(update_fields=["repayment_start_hijri_month", "repayment_start_hijri_year"])
+
     from utils.hijri import current_hijri
     eligibility = check_loan_eligibility(member)
     if not eligibility["eligible"]:
         raise ValueError(" | ".join(eligibility["reasons"]))
 
-    # 1. Duration 1–6
     duration = data.get("proposed_duration_months", 6)
     if duration < 1 or duration > 6:
         raise ValueError("Repayment duration must be between 1 and 6 months.")
 
-    # 2. Amount positive
     amount_applied = Decimal(str(data["amount_applied"]))
     if amount_applied <= 0:
         raise ValueError("Loan amount must be positive.")
 
-    # 3. Configurable self‑surety cap
     config = get_loan_configuration()
     balance = get_or_create_balance(member)
     self_surety_max = (balance.available_balance * config.self_surety_ratio).quantize(Decimal("0.01"))
     shortfall = amount_applied - self_surety_max
 
-    # 4. External sureties required if shortfall > 0
     if shortfall > 0:
         if not sureties:
             raise ValueError(f"External sureties are required to cover the shortfall of ₦{shortfall}.")
@@ -194,28 +204,45 @@ def committee_reject_loan(loan: LoanApplication, rejected_by, note: str = "") ->
 
 
 @transaction.atomic
+@transaction.atomic
+@transaction.atomic
 def admin_final_approve_loan(loan: LoanApplication, admin_user) -> LoanApplication:
-    """Admin final approval — activates loan and locks sureties."""
     if loan.status != LoanStatus.APPROVED:
         raise ValueError("Loan must be committee-approved before final approval.")
 
+    # Debit the approved amount from borrower's savings
+    from utils.hijri import current_hijri
+    from apps.savings.services import post_debit_entry
+    from apps.savings.models import LedgerEntryType
+
+    h_month, h_year = current_hijri()
+    try:
+        post_debit_entry(
+            member=loan.applicant,
+            amount=loan.amount_approved,
+            hijri_month=h_month,
+            hijri_year=h_year,
+            posted_by=admin_user,
+            entry_type=LedgerEntryType.LOAN_DISBURSEMENT,
+            details=f"Loan disbursement — Loan #{loan.id}",
+        )
+    except ValueError as e:
+        raise ValueError(f"Failed to deduct loan from savings: {e}")
+
     loan.status = LoanStatus.ACTIVE
-    # Optionally store who approved (add a field like `final_approved_by` to model)
-    # loan.final_approved_by = admin_user
-    # loan.final_approved_at = timezone.now()
     loan.save()
 
-    # Lock sureties (same as previously done in HOS approval)
     lock_sureties_for_loan(loan)
 
     return loan
 
-
+@transaction.atomic
+@transaction.atomic
 @transaction.atomic
 def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hijri_year: int, posted_by) -> LoanRepaymentLedger:
     """
     SRS Rules L7, S6 — manual repayment posting.
-    Reduces outstanding balance. Releases sureties proportionally.
+    Reduces outstanding balance, credits savings, releases sureties proportionally.
     Auto-closes loan when balance reaches zero.
     """
     if loan.status != LoanStatus.ACTIVE:
@@ -246,13 +273,24 @@ def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hij
         loan.status = LoanStatus.COMPLETED
     loan.save(update_fields=["outstanding_balance", "status", "updated_at"])
 
-    release_sureties_proportionally(loan, amount)
+    from apps.savings.services import post_savings_entry
+    from apps.savings.models import LedgerEntryType
 
+    post_savings_entry(
+        member=loan.applicant,
+        amount=amount,
+        hijri_month=hijri_month,
+        hijri_year=hijri_year,
+        posted_by=posted_by,
+        entry_type=LedgerEntryType.LOAN_REPAYMENT,
+        details=f"Loan repayment — Loan #{loan.id}",
+    )
+
+    release_sureties_proportionally(loan, amount)
     if balance_after == Decimal("0.00"):
         release_all_sureties(loan)
 
     return repayment
-
 
 @transaction.atomic
 def handle_default_or_exit(loan: LoanApplication) -> dict:

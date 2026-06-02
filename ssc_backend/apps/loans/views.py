@@ -24,10 +24,10 @@ from .services import (
     check_loan_eligibility, calculate_max_borrowable,
     get_loan_configuration, submit_loan_application, create_surety_records,
     committee_approve_loan, committee_reject_loan,
-    admin_final_approve_loan,  # <-- ADD THIS
+    admin_final_approve_loan,
     post_repayment, handle_default_or_exit,
 )
-
+from utils.hijri import current_hijri
 
 class LoanEligibilityView(APIView):
     permission_classes = [IsAuthenticated]
@@ -42,15 +42,16 @@ class LoanEligibilityView(APIView):
         max_borrow = calculate_max_borrowable(profile)
         config     = get_loan_configuration()
 
-        # Self‑surety cap (amount that needs no external guarantors)
         balance = get_or_create_balance(profile)
         self_surety_max = (balance.available_balance * config.self_surety_ratio).quantize(Decimal("0.01"))
+
+        h_now_month, h_now_year = current_hijri()
 
         return Response({
             "eligible":                      result["eligible"],
             "reasons":                       result["reasons"],
             "max_borrowable":                str(max_borrow),
-            "self_surety_max":               str(self_surety_max),   # ← new field
+            "self_surety_max":               str(self_surety_max),
             "consecutive_months":            profile.consecutive_savings_months,
             "required_consecutive_months":   config.consecutive_savings_months_required,
             "is_new_member":                 profile.is_new_member,
@@ -61,6 +62,8 @@ class LoanEligibilityView(APIView):
             "max_loan_amount":               str(config.max_loan_amount),
             "require_no_active_loan":        config.require_no_active_loan,
             "require_no_surety_liabilities": config.require_no_surety_liabilities,
+            "current_hijri_month":           h_now_month,
+            "current_hijri_year":            h_now_year, 
         })
     
 
@@ -123,23 +126,15 @@ class SubmitLoanView(APIView):
         sureties = d.pop("sureties", [])
 
         try:
-            loan = submit_loan_application(
-                member=profile,
-                data={
-                    **d,
-                    "monthly_salary": d.get("monthly_salary", profile.monthly_income),
-                },
-                sureties=sureties if sureties else None,
-            )
+            loan = submit_loan_application(member=profile, data={
+            **d,
+            "monthly_salary": d.get("monthly_salary", profile.monthly_income),
+        }, sureties=sureties if sureties else None)
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Set repayment start dates (service didn't do it)
-        loan.repayment_start_hijri_month = d["repayment_start_hijri_month"]
-        loan.repayment_start_hijri_year  = d["repayment_start_hijri_year"]
-        loan.save(update_fields=["repayment_start_hijri_month", "repayment_start_hijri_year"])
-
         return Response(LoanApplicationSerializer(loan).data, status=status.HTTP_201_CREATED)
+    
 
 class CommitteeDecisionView(APIView):
     permission_classes = [CanApproveLoan]

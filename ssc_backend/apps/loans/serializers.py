@@ -49,9 +49,9 @@ class SubmitLoanSerializer(serializers.Serializer):
     proposed_duration_months   = serializers.IntegerField(min_value=1, max_value=6)
     date_of_last_loan          = serializers.DateField(required=False, allow_null=True)
     amount_outstanding_prev    = serializers.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
-    repayment_start_hijri_month = serializers.IntegerField(min_value=1, max_value=12)
-    repayment_start_hijri_year  = serializers.IntegerField(min_value=1400)
-
+    repayment_start_hijri_month = serializers.IntegerField(min_value=1, max_value=12, required=False, default=1)
+    repayment_start_hijri_year  = serializers.IntegerField(min_value=1400, required=False, default=1446)
+    
     class SuretyItemSerializer(serializers.Serializer):
         member_id = serializers.IntegerField()
         amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))

@@ -290,6 +290,8 @@ export interface LoanEligibilityResponse {
   require_no_active_loan: boolean;
   require_no_surety_liabilities: boolean;
   self_surety_max: string;
+  current_hijri_month: number;
+  current_hijri_year: number;
 }
 
 export interface LoanSettings {
