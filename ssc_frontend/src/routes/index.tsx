@@ -47,8 +47,7 @@ const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { index: true, element: <DashboardPage /> },
-
-          // { path: "/dashboard", element: <DashboardPage /> },
+          { path: "/dashboard", element: <DashboardPage /> },
           { path: "/profile", element: <MyProfilePage /> },
           { path: "/my-savings", element: <MySavingsPage /> },
           { path: "/my-loans", element: <MyLoansPage /> },
