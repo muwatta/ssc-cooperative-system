@@ -43,3 +43,19 @@ class MemberProfileAdmin(admin.ModelAdmin):
     search_fields = ["file_number", "full_name", "user__staff_id"]
     ordering = ["file_number"]
     readonly_fields = ["file_number", "_file_sequence", "created_at", "updated_at"]
+
+    actions = ["mark_as_not_new", "mark_as_new"]
+
+    def mark_as_not_new(self, request, queryset):
+        """Admin action: mark selected members as not new (is_new_member=False)."""
+        updated = queryset.update(is_new_member=False)
+        self.message_user(request, f"Marked {updated} member(s) as not new.")
+
+    mark_as_not_new.short_description = "Mark selected members as NOT new"
+
+    def mark_as_new(self, request, queryset):
+        """Admin action: mark selected members as new (is_new_member=True)."""
+        updated = queryset.update(is_new_member=True)
+        self.message_user(request, f"Marked {updated} member(s) as new.")
+
+    mark_as_new.short_description = "Mark selected members as NEW"
