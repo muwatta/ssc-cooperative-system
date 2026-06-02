@@ -34,6 +34,14 @@ class LoanConfiguration(models.Model):
         default=Decimal("0.75"),
         help_text="Fraction of available balance a member may borrow.",
     )
+    
+    max_borrowable_ratio = models.DecimalField(
+    max_digits=4,
+    decimal_places=2,
+    default=Decimal("0.75"),
+    help_text="Absolute maximum borrowable as a fraction of available balance (e.g. 1.00 for 100%).",
+    )
+
     max_sureties = models.PositiveSmallIntegerField(
         default=5,
         help_text="Maximum number of surety members allowed for a loan application.",

@@ -266,6 +266,7 @@ class LoanSettingsSerializer(serializers.ModelSerializer):
             "max_loans_per_year",
             "max_repayment_months",
             "self_surety_ratio",
+            "max_borrowable_ratio",
             "max_sureties",
             "min_loan_amount",
             "max_loan_amount",

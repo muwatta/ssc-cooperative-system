@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm, useFieldArray } from "react-hook-form";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { loansApi, membersApi, savingsApi } from "@/api/services";
 import {
   PageHeader,
@@ -27,8 +27,8 @@ interface ApplyLoanFormValues {
   proposed_duration_months: number;
   date_of_last_loan?: string;
   amount_outstanding_prev?: string;
-  repayment_start_hijri_month?: number; // optional now, not submitted
-  repayment_start_hijri_year?: number; // optional now, not submitted
+  repayment_start_hijri_month?: number;
+  repayment_start_hijri_year?: number;
   sureties?: SuretyFormItem[];
 }
 
@@ -246,6 +246,7 @@ export default function ApplyLoanPage() {
     handleSubmit,
     watch,
     setValue,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<ApplyLoanFormValues>({
     defaultValues: {
@@ -256,7 +257,6 @@ export default function ApplyLoanPage() {
       phone_numbers: "",
       proposed_monthly_repayment: "",
       proposed_duration_months: 6,
-      // repayment start defaults removed – auto‑calculated by backend
       sureties: [{ member_id: 0, member_label: "", amount: "" }],
     },
   });
@@ -289,6 +289,61 @@ export default function ApplyLoanPage() {
     }
   }, [monthlyRepayment, setValue]);
 
+  // ---------- DRAFT LOGIC ----------
+
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 1. Fetch existing draft on mount
+  const { data: draftData } = useQuery({
+    queryKey: ["loan-draft"],
+    queryFn: () => loansApi.getDraft(),
+    staleTime: 0,
+  });
+
+  // 2. Populate form with draft data (only once after load)
+  useEffect(() => {
+    if (
+      draftData?.data &&
+      Object.keys(draftData.data).length > 0 &&
+      !draftLoaded
+    ) {
+      reset(draftData.data as ApplyLoanFormValues);
+    }
+    setDraftLoaded(true);
+  }, [draftData, reset, draftLoaded]);
+
+  // 3. Save draft mutation
+  const saveDraftMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) => loansApi.saveDraft(data),
+  });
+
+  // 4. Auto-save on form changes (debounced 2 seconds)
+  const formValues = watch(); // subscribe to all form changes
+
+  useEffect(() => {
+    if (!draftLoaded) return; // wait until initial draft load
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+
+    saveTimerRef.current = setTimeout(() => {
+      const payload: Record<string, unknown> = { ...formValues };
+      // Clean sureties before saving (remove placeholder)
+      if (payload.sureties) {
+        payload.sureties = (payload.sureties as SuretyFormItem[]).filter(
+          (s) => s.member_id > 0,
+        );
+      }
+      saveDraftMutation.mutate(payload);
+    }, 2000);
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [formValues, draftLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---------- SUBMIT ----------
+
   const applyMutation = useMutation({
     mutationFn: (data: any) => loansApi.apply(data),
     onSuccess: () => {
@@ -296,6 +351,8 @@ export default function ApplyLoanPage() {
         "✓ Loan application submitted successfully! Awaiting committee review.",
       );
       setError("");
+      // Clear draft after successful submission
+      saveDraftMutation.mutate({ data: {} });
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
     onError: (e: any) => {
