@@ -22,11 +22,11 @@ function StatCard({
     danger: "bg-danger-50 text-danger-700 border-red-100",
   };
   return (
-    <div className={`card p-4 border ${colorMap[color]}`}>
+    <div className={`card p-5 border ${colorMap[color]}`}>
       <p className="text-xs font-medium uppercase tracking-wider opacity-70">
         {label}
       </p>
-      <p className="text-2xl sm:text-3xl font-bold mt-1 break-words">{value}</p>
+      <p className="text-3xl font-bold mt-1">{value}</p>
       {sub && <p className="text-xs mt-1 opacity-60">{sub}</p>}
     </div>
   );
@@ -44,6 +44,7 @@ export default function DashboardPage() {
   const { user, isAdmin, isCommittee, isHOS } = useAuth();
   const isLeadership = isAdmin || isCommittee || isHOS;
 
+  // Balance toggle state (persisted in localStorage)
   const [showBalances, setShowBalances] = useState(() => {
     return localStorage.getItem("showBalances") !== "false";
   });
@@ -117,10 +118,7 @@ export default function DashboardPage() {
     const amount = Number(value);
     return Number.isNaN(amount)
       ? "₦0.00"
-      : `₦${amount.toLocaleString("en-NG", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}`;
+      : `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const memberBalance = balances?.member;
@@ -130,27 +128,24 @@ export default function DashboardPage() {
   const displayName =
     myProfile?.full_name || user?.full_name || user?.staff_id || "Guest";
 
+  // Helper to conditionally show masked value
   const maskIfNeeded = (value: string) => {
     if (!showBalances) return "•••••";
     return value;
   };
 
   return (
-    <div className="space-y-6">
-      {/* Welcome header */}
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-          Dashboard
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
+    <div>
+      <div className="mb-6">
+        <h1 className="page-title">Dashboard</h1>
+        <p className="page-subtitle">
           Welcome back,{" "}
           <span className="font-medium text-gray-700">{displayName}</span>
         </p>
       </div>
 
-      {/* Role & ID cards */}
       {isLeadership && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
           <StatCard
             label="Your Role"
             value={user ? user.role.replace(/_/g, " ").toUpperCase() : "N/A"}
@@ -178,7 +173,7 @@ export default function DashboardPage() {
       )}
 
       {!isLeadership && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <StatCard
             label="Your Role"
             value={user ? user.role.replace(/_/g, " ").toUpperCase() : "N/A"}
@@ -205,29 +200,30 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Membership Summary (only for leadership) */}
       {isLeadership && (
-        <div className="card p-5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div className="card p-6 mb-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-lg font-semibold">Membership Summary</h2>
               <p className="text-sm text-gray-500">
-                Live member counts for your role
+                Live member counts for your role.
               </p>
             </div>
             {loading && (
-              <div className="text-sm text-gray-500">Loading stats...</div>
+              <div className="text-sm text-gray-500">
+                Loading membership stats...
+              </div>
             )}
           </div>
 
           {error && (
-            <div className="mb-4 rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700">
+            <div className="mt-4 rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700">
               {error}
             </div>
           )}
 
           {stats && !loading && !error && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mt-4">
               <StatCard
                 label="Total Members"
                 value={stats.totalMembers}
@@ -262,20 +258,19 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Balance Overview */}
-      <div className="card p-5">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2">
+      <div className="card p-6 mb-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold">Balance Overview</h2>
             <button
               onClick={toggleBalances}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors text-xl"
+              className="text-gray-500 hover:text-gray-700 transition-colors text-xl"
               aria-label={showBalances ? "Hide balances" : "Show balances"}
             >
               {showBalances ? "👁️" : "👁️‍🗨️"}
             </button>
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 mt-1">
             {isAdmin || isCommittee
               ? "Your savings balance plus a cooperative summary for all members."
               : "Your personal savings balance and contribution details."}
@@ -286,24 +281,22 @@ export default function DashboardPage() {
         </div>
 
         {balanceError ? (
-          <div className="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700">
+          <div className="mt-4 rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700">
             {balanceError}
           </div>
         ) : (
           <>
             {balances?.member === null && balances ? (
-              <div className="mb-4 rounded-lg border border-warning-200 bg-warning-50 p-4 text-sm text-warning-700">
+              <div className="mt-4 rounded-lg border border-warning-200 bg-warning-50 p-4 text-sm text-warning-700">
                 ℹ️ No savings profile linked to this account. Personal balance
-                will appear once a member profile is created and linked by an
-                administrator.
+                will appear here once a member profile is created and linked by
+                an administrator.
               </div>
             ) : null}
-
-            {/* Personal balances */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
               <div className="card p-4">
                 <p className="text-sm text-gray-500">Your Total Savings</p>
-                <p className="text-2xl font-bold mt-2 break-words">
+                <p className="text-3xl font-semibold mt-2">
                   {hasMemberBalance
                     ? maskIfNeeded(formatNaira(memberBalance!.total_savings))
                     : "N/A"}
@@ -311,7 +304,7 @@ export default function DashboardPage() {
               </div>
               <div className="card p-4">
                 <p className="text-sm text-gray-500">Your Available Balance</p>
-                <p className="text-2xl font-bold mt-2 break-words">
+                <p className="text-3xl font-semibold mt-2">
                   {hasMemberBalance
                     ? maskIfNeeded(
                         formatNaira(memberBalance!.available_balance),
@@ -323,7 +316,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-500">
                   Approved Monthly Contribution
                 </p>
-                <p className="text-2xl font-bold mt-2 break-words">
+                <p className="text-3xl font-semibold mt-2">
                   {myProfile?.approved_monthly_contribution !== undefined
                     ? maskIfNeeded(
                         formatNaira(myProfile.approved_monthly_contribution),
@@ -333,7 +326,7 @@ export default function DashboardPage() {
               </div>
               <div className="card p-4">
                 <p className="text-sm text-gray-500">Committed Savings</p>
-                <p className="text-2xl font-bold mt-2 break-words">
+                <p className="text-3xl font-semibold mt-2">
                   {hasMemberBalance
                     ? maskIfNeeded(
                         formatNaira(memberBalance!.suretyship_committed),
@@ -343,14 +336,13 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Cooperative totals (admin/committee only) */}
             {(isAdmin || isCommittee) && (
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-4">
                 <div className="card p-4">
                   <p className="text-sm text-gray-500">
                     Cooperative Total Savings
                   </p>
-                  <p className="text-2xl font-bold mt-2 break-words">
+                  <p className="text-3xl font-semibold mt-2">
                     {coopSummary
                       ? maskIfNeeded(formatNaira(coopSummary.total_savings))
                       : "₦0.00"}
@@ -360,7 +352,7 @@ export default function DashboardPage() {
                   <p className="text-sm text-gray-500">
                     Total Available Across Members
                   </p>
-                  <p className="text-2xl font-bold mt-2 break-words">
+                  <p className="text-3xl font-semibold mt-2">
                     {coopSummary
                       ? maskIfNeeded(formatNaira(coopSummary.total_available))
                       : "₦0.00"}
@@ -372,24 +364,23 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Staff informational card (optional – can be removed if not needed) */}
       {!isAdmin && !isCommittee && !isHOS && (
-        <div className="card p-5">
+        <div className="card p-6 mb-6">
           <h2 className="text-lg font-semibold">Your personal dashboard</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 mt-2">
             This page highlights your account access and membership status. For
             full cooperative reports, contact an administrator.
           </p>
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="rounded-xl border border-gray-200 bg-white p-4">
               <p className="text-sm text-gray-500">Profile</p>
-              <p className="mt-2 text-base font-semibold">
+              <p className="mt-2 text-lg font-semibold">
                 View and update your details anytime.
               </p>
             </div>
             <div className="rounded-xl border border-gray-200 bg-white p-4">
               <p className="text-sm text-gray-500">Savings</p>
-              <p className="mt-2 text-base font-semibold">
+              <p className="mt-2 text-lg font-semibold">
                 Track your contribution records in the savings section.
               </p>
             </div>
@@ -397,8 +388,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Hijri calendar footer */}
-      <div className="card p-4 bg-primary-50 border border-primary-100 text-center">
+      <div className="card p-5 bg-primary-50 border border-primary-100">
         <p className="text-sm font-medium text-primary-800">
           🕌 SSC uses the Islamic (Hijri) calendar as its primary calendar.
         </p>

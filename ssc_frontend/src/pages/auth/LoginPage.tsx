@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/context/AuthContext";
 import type { LoginRequest } from "@/types";
@@ -8,8 +8,13 @@ import { AxiosError } from "axios";
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [serverError, setServerError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  const from =
+    (location.state as { from?: { pathname: string } })?.from?.pathname ||
+    "/dashboard";
 
   const {
     register,
@@ -22,9 +27,9 @@ export default function LoginPage() {
     try {
       const result = await login(data);
       if (result.is_first_login) {
-        navigate("/set-password", { replace: true });
+        navigate("/set-password");
       } else {
-        navigate("/dashboard", { replace: true });
+        navigate(from, { replace: true });
       }
     } catch (err) {
       const error = err as AxiosError<Record<string, string[]>>;
@@ -46,25 +51,21 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-6 sm:mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/10 backdrop-blur mb-3 sm:mb-4">
-            <span className="text-2xl sm:text-3xl font-black text-white">
-              S
-            </span>
+        {/* Logo / Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur mb-4">
+            <span className="text-3xl font-black text-white">S</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-white">
             Solace Staff Cooperative
           </h1>
-          <p className="text-primary-200 text-xs sm:text-sm mt-1">
-            Management System
-          </p>
+          <p className="text-primary-200 text-sm mt-1">Management System</p>
         </div>
 
-        <div className="card p-6 sm:p-8">
-          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">
-            Sign in
-          </h2>
-          <p className="text-xs sm:text-sm text-gray-500 mb-4 sm:mb-6">
+        {/* Card */}
+        <div className="card p-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">Sign in</h2>
+          <p className="text-sm text-gray-500 mb-6">
             Use your school Staff ID to access the system.
           </p>
 
@@ -75,8 +76,9 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
+            {/* Staff ID */}
             <div className="mb-4">
-              <label className="label text-sm">Staff ID</label>
+              <label className="label">Staff ID</label>
               <input
                 {...register("staff_id", {
                   required: "Staff ID is required",
@@ -85,53 +87,49 @@ export default function LoginPage() {
                     message: "Format must be S{YY}-{NNNN} e.g. S43-0094",
                   },
                 })}
-                className={`input uppercase py-3 ${errors.staff_id ? "input-error" : ""}`}
+                className={`input uppercase ${errors.staff_id ? "input-error" : ""}`}
                 placeholder="S43-0094"
                 autoFocus
                 autoComplete="username"
-                onChange={(e) =>
-                  (e.target.value = e.target.value.toUpperCase())
-                }
+                onChange={(e) => {
+                  e.target.value = e.target.value.toUpperCase();
+                }}
               />
               {errors.staff_id && (
-                <p className="field-error text-xs mt-1">
-                  {errors.staff_id.message}
-                </p>
+                <p className="field-error">{errors.staff_id.message}</p>
               )}
             </div>
 
+            {/* Password */}
             <div className="mb-6">
-              <label className="label text-sm">Password</label>
+              <label className="label">Password</label>
               <div className="relative">
                 <input
                   {...register("password", {
                     required: "Password is required",
                   })}
                   type={showPassword ? "text" : "password"}
-                  className={`input w-full pr-12 py-3 ${errors.password ? "input-error" : ""}`}
+                  className={`input pr-10 ${errors.password ? "input-error" : ""}`}
                   placeholder="Enter your password"
                   autoComplete="current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showPassword ? "🙈" : "👁"}
                 </button>
               </div>
               {errors.password && (
-                <p className="field-error text-xs mt-1">
-                  {errors.password.message}
-                </p>
+                <p className="field-error">{errors.password.message}</p>
               )}
             </div>
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="btn-primary w-full py-3 text-base font-medium rounded-lg flex items-center justify-center gap-2"
+              className="btn-primary w-full py-2.5"
             >
               {isSubmitting ? (
                 <>

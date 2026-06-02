@@ -1,259 +1,250 @@
 import { useState } from "react";
-import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import api from "@/api/client";
+import clsx from "clsx";
+
+interface NavItem {
+  label: string;
+  to: string;
+  icon: string;
+}
+
+function useNavItems(): NavItem[] {
+  const { isAdmin, isCommittee, isHOS } = useAuth();
+
+  const shared: NavItem[] = [
+    { label: "Dashboard", to: "/dashboard", icon: "⊞" },
+    { label: "My Savings", to: "/my-savings", icon: "₦" },
+    { label: "My Loans", to: "/my-loans", icon: "🏦" },
+    { label: "My Profile", to: "/profile", icon: "👤" },
+  ];
+
+  const adminItems: NavItem[] = [
+    { label: "Members", to: "/members", icon: "👥" },
+    { label: "Create User", to: "/users/create", icon: "➕" },
+    { label: "Staff IDs", to: "/staff-ids", icon: "🪪" },
+    { label: "Loan Rules", to: "/loan-settings", icon: "⚙️" },
+    { label: "Post Savings", to: "/savings/post", icon: "📥" },
+    { label: "Post Dues", to: "/savings/dues", icon: "📋" },
+  ];
+
+  const committeeItems: NavItem[] = [
+    { label: "Loan Queue", to: "/loans/queue", icon: "📑" },
+    { label: "Reports", to: "/reports", icon: "📊" },
+    { label: "Change Requests", to: "/savings/change-requests", icon: "📝" },
+  ];
+
+  const hosItems: NavItem[] = [
+    { label: "Loan Approvals", to: "/loan-approvals", icon: "✅" },
+    { label: "Reports", to: "/reports", icon: "📊" },
+  ];
+
+  if (isAdmin) return [...shared, ...adminItems, ...committeeItems];
+  if (isCommittee) return [...shared, ...committeeItems];
+  if (isHOS) return [...shared, ...hosItems];
+  return shared;
+}
 
 export default function AppLayout() {
-  const { user, logout, isAdmin, isCommittee, isHOS } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { user, logout, isAdmin, isCommittee } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const navigate = useNavigate();
+  const navItems = useNavItems();
+
+  // Fetch pending savings change requests count (only for admin/committee)
+  const { data: pendingCountData } = useQuery({
+    queryKey: ["pending-change-requests-count"],
+    queryFn: () =>
+      api
+        .get<{ count: number }>("/savings/change-requests/pending-count/")
+        .then((r) => r.data.count),
+    refetchInterval: 30000,
+    enabled: isAdmin || isCommittee,
+  });
+  const pendingCount = pendingCountData ?? 0;
 
   const handleLogout = async () => {
     await logout();
-    navigate("/login", { replace: true });
+    navigate("/login");
   };
 
-  // Navigation items based on role
-  const getNavItems = () => {
-    const baseItems = [
-      { label: "Dashboard", path: "/dashboard", icon: "📊" },
-      { label: "My Savings", path: "/my-savings", icon: "💰" },
-      { label: "My Loans", path: "/my-loans", icon: "📋" },
-      { label: "My Profile", path: "/profile", icon: "👤" },
-    ];
+  const roleLabel = {
+    admin: "Administrator",
+    committee: "Committee Member",
+    head_of_school: "Head of School",
+    staff: "Staff Member",
+  }[user?.role ?? "staff"];
 
-    const adminCommitteeItems = [
-      { label: "Members", path: "/members", icon: "👥", roles: ["admin"] },
-      {
-        label: "Loan Queue",
-        path: "/loans/queue",
-        icon: "⏳",
-        roles: ["admin", "committee"],
-      },
-      {
-        label: "Reports",
-        path: "/reports",
-        icon: "📈",
-        roles: ["admin", "committee"],
-      },
-      {
-        label: "Loan Settings",
-        path: "/loan-settings",
-        icon: "⚙️",
-        roles: ["admin"],
-      },
-      {
-        label: "Post Savings",
-        path: "/savings/post",
-        icon: "➕",
-        roles: ["admin"],
-      },
-      {
-        label: "Post Dues",
-        path: "/savings/dues",
-        icon: "💳",
-        roles: ["admin"],
-      },
-    ];
-
-    const hosItems = [
-      {
-        label: "Loan Approvals",
-        path: "/loan-approvals",
-        icon: "✅",
-        roles: ["head_of_school"],
-      },
-    ];
-
-    let items = [...baseItems];
-
-    if (isAdmin || isCommittee) {
-      items = [
-        ...items,
-        ...adminCommitteeItems.filter((item) =>
-          item.roles.some(
-            (r) =>
-              (r === "admin" && isAdmin) || (r === "committee" && isCommittee),
-          ),
-        ),
-      ];
-    }
-
-    if (isHOS) {
-      items = [...items, ...hosItems];
-    }
-
-    return items;
-  };
-
-  const navItems = getNavItems();
-
-  const isActive = (path: string) => {
-    return (
-      location.pathname === path || location.pathname.startsWith(path + "/")
-    );
-  };
+  const roleBadgeClass = {
+    admin: "badge-primary",
+    committee: "badge-warning",
+    head_of_school: "badge-success",
+    staff: "badge-gray",
+  }[user?.role ?? "staff"];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Top Header */}
-      <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-40">
-        <div className="px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition"
-              aria-label="Toggle sidebar"
-            >
-              ☰
-            </button>
-            <Link
-              to="/dashboard"
-              className="flex items-center gap-2 font-bold text-lg"
-            >
-              <span className="w-8 h-8 bg-primary-600 text-white rounded-lg flex items-center justify-center text-sm font-bold">
-                S
-              </span>
-              <span className="hidden sm:inline text-gray-900">SSC</span>
-            </Link>
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Sidebar */}
+      <aside
+        className={clsx(
+          "flex flex-col bg-white border-r border-gray-200 transition-all duration-200 shrink-0",
+          sidebarOpen ? "w-60" : "w-16",
+        )}
+      >
+        <div className="flex items-center gap-3 px-4 py-5 border-b border-gray-100">
+          <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+            S
           </div>
+          {sidebarOpen && (
+            <div className="overflow-hidden">
+              <p className="font-bold text-sm text-gray-900 truncate">SSC</p>
+              <p className="text-xs text-gray-400 truncate">Cooperative</p>
+            </div>
+          )}
+        </div>
 
-          <div className="flex items-center gap-4">
-            {/* User Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition"
-              >
-                <div className="w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center font-bold text-sm">
-                  {user?.full_name?.charAt(0).toUpperCase() || "U"}
-                </div>
-                <span className="hidden sm:inline text-sm text-gray-700 font-medium">
-                  {user?.staff_id}
-                </span>
-              </button>
-
-              {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50">
-                  <div className="px-4 py-2 border-b text-sm">
-                    <p className="font-medium text-gray-900">
-                      {user?.full_name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {user?.role.replace(/_/g, " ").toUpperCase()}
-                    </p>
-                  </div>
-                  <Link
-                    to="/profile"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    👤 My Profile
-                  </Link>
-                  <Link
-                    to="/change-password"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    🔐 Change Password
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-sm text-danger-600 hover:bg-danger-50 border-t"
-                  >
-                    🚪 Logout
-                  </button>
-                </div>
+        <nav className="flex-1 overflow-y-auto py-4 px-2">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                clsx(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary-50 text-primary-700"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+                )
+              }
+            >
+              <span className="text-base shrink-0">{item.icon}</span>
+              {sidebarOpen && (
+                <span className="truncate flex-1">{item.label}</span>
               )}
+              {item.to === "/savings/change-requests" && pendingCount > 0 && (
+                <span
+                  className={clsx(
+                    "ml-auto inline-flex items-center justify-center rounded-full bg-primary-600 px-2 py-0.5 text-xs font-medium text-white",
+                    !sidebarOpen && "ml-0",
+                  )}
+                >
+                  {pendingCount}
+                </span>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* User section with Change Password and Logout */}
+        <div className="border-t border-gray-100 p-3 space-y-2">
+          {sidebarOpen ? (
+            <div className="flex items-start gap-2">
+              <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-xs shrink-0">
+                {(user?.full_name || user?.staff_id)?.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <p className="text-xs font-medium text-gray-900 truncate">
+                  {user?.full_name || user?.staff_id}
+                </p>
+                <span className={clsx("badge text-xs mt-0.5", roleBadgeClass)}>
+                  {roleLabel}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-center">
+              <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-xs">
+                {(user?.full_name || user?.staff_id)?.slice(0, 2).toUpperCase()}
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={() => navigate("/change-password")}
+            className={clsx(
+              "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-100 transition-colors",
+              !sidebarOpen && "justify-center px-2",
+            )}
+          >
+            <span>🔒</span>
+            {sidebarOpen && "Change Password"}
+          </button>
+
+          <button
+            onClick={() => setShowLogoutConfirm(true)}
+            className={clsx(
+              "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-100 transition-colors",
+              !sidebarOpen && "justify-center px-2",
+            )}
+          >
+            <span>🚪</span>
+            {sidebarOpen && "Logout"}
+          </button>
+        </div>
+      </aside>
+
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-3 shrink-0">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="btn-ghost p-2"
+          >
+            ☰
+          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="btn-secondary btn-sm px-3 py-2"
+            >
+              ← Back
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(1)}
+              className="btn-primary btn-sm px-3 py-2"
+            >
+              Next →
+            </button>
+          </div>
+          <div className="flex-1" />
+          <span className="text-sm text-gray-500">
+            {user?.full_name || user?.staff_id}
+          </span>
+        </header>
+        <main className="flex-1 overflow-y-auto p-6">
+          <Outlet />
+        </main>
+      </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="card w-full max-w-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Confirm Logout
+            </h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Are you sure you want to logout? You will need to login again to
+              access your account.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="btn-secondary px-4 py-2"
+              >
+                Cancel
+              </button>
+              <button onClick={handleLogout} className="btn-danger px-4 py-2">
+                Logout
+              </button>
             </div>
           </div>
         </div>
-      </header>
-
-      {/* Main Layout */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <aside
-          className={`${
-            sidebarOpen ? "w-64" : "w-0"
-          } bg-white border-r border-gray-200 overflow-y-auto transition-all duration-300 hidden lg:flex lg:flex-col lg:w-64`}
-        >
-          <nav className="flex-1 px-4 py-6 space-y-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`block px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  isActive(item.path)
-                    ? "bg-primary-100 text-primary-600"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                <span className="mr-2">{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="px-4 py-4 border-t border-gray-200 text-xs text-gray-500">
-            <p>SSC Cooperative v1.2</p>
-          </div>
-        </aside>
-
-        {/* Mobile Sidebar Overlay */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black/40 lg:hidden z-30"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-
-        {/* Mobile Sidebar */}
-        <aside
-          className={`fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-200 overflow-y-auto transition-transform duration-300 z-40 ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } lg:hidden`}
-        >
-          <div className="p-4 border-b flex items-center justify-between">
-            <Link to="/dashboard" className="flex items-center gap-2 font-bold">
-              <span className="w-8 h-8 bg-primary-600 text-white rounded-lg flex items-center justify-center text-sm font-bold">
-                S
-              </span>
-              <span>SSC</span>
-            </Link>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition"
-            >
-              ✕
-            </button>
-          </div>
-
-          <nav className="px-4 py-6 space-y-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setSidebarOpen(false)}
-                className={`block px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  isActive(item.path)
-                    ? "bg-primary-100 text-primary-600"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                <span className="mr-2">{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="px-4 sm:px-6 lg:px-8 py-6">
-            <Outlet />
-          </div>
-        </main>
-      </div>
+      )}
     </div>
   );
 }

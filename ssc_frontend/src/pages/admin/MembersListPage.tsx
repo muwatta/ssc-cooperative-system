@@ -17,6 +17,8 @@ export default function MembersListPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
+
+  // Success message passed from AddMemberPage on redirect
   const successMsg = (location.state as { success?: string })?.success;
 
   const [skeletonVisible, setSkeletonVisible] = useState(true);
@@ -35,6 +37,7 @@ export default function MembersListPage() {
         .then((r) => r.data),
   });
 
+  // Pending count for badge — separate lightweight query
   const { data: pendingData, isLoading: isLoadingPending } = useQuery({
     queryKey: ["members-pending-count"],
     queryFn: () =>
@@ -44,11 +47,15 @@ export default function MembersListPage() {
 
   useEffect(() => {
     let timeout: number | undefined;
+
     if (isLoading) {
       loadStartRef.current = Date.now();
       setSkeletonVisible(true);
-      return () => clearTimeout(timeout);
+      return () => {
+        if (timeout) window.clearTimeout(timeout);
+      };
     }
+
     const elapsed = Date.now() - loadStartRef.current;
     if (elapsed >= 2000) {
       setSkeletonVisible(false);
@@ -58,7 +65,10 @@ export default function MembersListPage() {
         2000 - elapsed,
       );
     }
-    return () => clearTimeout(timeout);
+
+    return () => {
+      if (timeout) window.clearTimeout(timeout);
+    };
   }, [isLoading]);
 
   const totalPages = Math.ceil((data?.count ?? 0) / 50);
@@ -81,19 +91,26 @@ export default function MembersListPage() {
             {data?.count ?? 0} total members
           </p>
         </div>
-        {/* Add Member button is removed – use Create User instead */}
+        {/* <Link
+          to="/members/add"
+          className="btn-primary w-full px-4 py-2 text-center md:w-auto"
+        >
+          + Add Member
+        </Link> */}
       </div>
 
+      {/* Success toast */}
       {successMsg && (
         <div className="rounded-lg border border-green-200 bg-success-50 px-4 py-3 text-sm text-success-700">
           ✅ {successMsg}
         </div>
       )}
 
-      {/* Filters – stack on mobile, inline on larger screens */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <div className="relative flex-1 min-w-[200px]">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        {/* Search input */}
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
             🔍
           </span>
           <input
@@ -104,13 +121,16 @@ export default function MembersListPage() {
               setPage(1);
             }}
             placeholder="Search name or file number..."
-            className="input w-full pl-9"
+            aria-label="Search members"
+            className="input w-64 pl-9"
           />
         </div>
+
+        {/* Status Filter with label */}
         <div className="flex items-center gap-2">
           <label
             htmlFor="status-filter"
-            className="text-sm font-medium text-gray-700"
+            className="text-sm font-medium text-gray-700 whitespace-nowrap"
           >
             Status:
           </label>
@@ -120,17 +140,19 @@ export default function MembersListPage() {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="">All</option>
+            <option value="">All Status</option>
             <option value="active">Active</option>
             <option value="pending">Pending</option>
             <option value="inactive">Inactive</option>
             <option value="exited">Exited</option>
           </select>
         </div>
+
+        {/* Branch Filter with label */}
         <div className="flex items-center gap-2">
           <label
             htmlFor="branch-filter"
-            className="text-sm font-medium text-gray-700"
+            className="text-sm font-medium text-gray-700 whitespace-nowrap"
           >
             Branch:
           </label>
@@ -140,12 +162,14 @@ export default function MembersListPage() {
             value={branchFilter}
             onChange={(e) => setBranchFilter(e.target.value)}
           >
-            <option value="">All</option>
+            <option value="">All Branches</option>
             <option value="primary">Primary</option>
             <option value="college">College</option>
             <option value="other">Other</option>
           </select>
         </div>
+
+        {/* Clear button */}
         {hasFilters && (
           <button
             onClick={() => {
@@ -161,12 +185,14 @@ export default function MembersListPage() {
         )}
       </div>
 
+      {/* Error */}
       {error && (
         <div className="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700">
           Unable to load members. Please refresh.
         </div>
       )}
 
+      {/* Loading skeleton */}
       {skeletonVisible && (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -180,13 +206,13 @@ export default function MembersListPage() {
         </div>
       )}
 
+      {/* Desktop table */}
       {!isLoading && !error && (
         <>
-          {/* Desktop table */}
-          <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-200">
+          <div className="hidden overflow-x-auto rounded-lg border border-gray-200 md:block">
             <table className="w-full text-left">
-              <thead className="bg-gray-50">
-                <tr>
+              <thead>
+                <tr className="bg-gray-50">
                   {[
                     "File #",
                     "Name",
@@ -215,7 +241,16 @@ export default function MembersListPage() {
                       colSpan={10}
                       className="py-16 text-center text-gray-400"
                     >
-                      No members found
+                      <p className="text-4xl">👥</p>
+                      <p className="mt-2">No members found.</p>
+                      {!hasFilters && (
+                        <Link
+                          to="/members/add"
+                          className="mt-2 inline-block text-sm text-primary-600 hover:underline"
+                        >
+                          Add the first member →
+                        </Link>
+                      )}
                     </td>
                   </tr>
                 ) : (
@@ -238,10 +273,11 @@ export default function MembersListPage() {
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {member.designation}
                       </td>
+                      {/* Role column */}
                       <td className="px-4 py-3 text-sm capitalize text-gray-600">
                         {member.role?.replace(/_/g, " ") || "staff"}
                       </td>
-                      <td className="px-4 py-3 text-sm">
+                      <td className="px-4 py-3 text-sm text-gray-600">
                         ₦
                         {Number(
                           member.approved_monthly_contribution,
@@ -260,7 +296,7 @@ export default function MembersListPage() {
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <span
-                          className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${STATUS_BADGE[member.membership_status]}`}
+                          className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${STATUS_BADGE[member.membership_status] ?? "bg-gray-100 text-gray-600"}`}
                         >
                           {member.membership_status}
                         </span>
@@ -280,59 +316,52 @@ export default function MembersListPage() {
             </table>
           </div>
 
-          {/* Mobile card view (enhanced) */}
-          <div className="md:hidden space-y-3">
+          {/* Mobile card view */}
+          <div className="space-y-3 md:hidden">
             {data?.results?.map((member) => (
               <Link
                 key={member.id}
                 to={`/members/${member.id}`}
-                className="block bg-white rounded-xl border border-gray-200 p-4 active:bg-gray-50 transition"
+                className="block rounded-lg border border-gray-200 bg-white p-4 active:bg-gray-50"
               >
-                <div className="flex justify-between items-start gap-2">
+                <div className="mb-2 flex items-start justify-between gap-2">
                   <div>
                     <h3 className="font-bold text-gray-900">
                       {member.full_name}
                     </h3>
-                    <p className="text-xs text-gray-500 font-mono">
+                    <p className="font-mono text-sm text-gray-500">
                       {member.file_number}
                     </p>
                   </div>
                   <span
-                    className={`inline-block rounded-full px-2 py-1 text-xs font-semibold ${STATUS_BADGE[member.membership_status]}`}
+                    className={`inline-block rounded-full px-2 py-1 text-xs font-semibold ${STATUS_BADGE[member.membership_status] ?? ""}`}
                   >
                     {member.membership_status}
                   </span>
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                <div className="space-y-1 text-xs text-gray-600">
                   <div>
-                    <span className="text-gray-500">Staff ID:</span>{" "}
+                    <span className="font-semibold text-gray-700">
+                      Staff ID:
+                    </span>{" "}
                     {member.staff_id}
                   </div>
                   <div>
-                    <span className="text-gray-500">Branch:</span>{" "}
+                    <span className="font-semibold text-gray-700">Branch:</span>{" "}
                     <span className="capitalize">{member.school_branch}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Role:</span>{" "}
-                    {member.role?.replace(/_/g, " ") || "staff"}
+                    <span className="font-semibold text-gray-700">
+                      Designation:
+                    </span>{" "}
+                    {member.designation}
                   </div>
+                  {/* Role in mobile card */}
                   <div>
-                    <span className="text-gray-500">Savings Months:</span>{" "}
-                    <span
-                      className={
-                        member.consecutive_savings_months >= 6
-                          ? "text-success-700 font-medium"
-                          : ""
-                      }
-                    >
-                      {member.consecutive_savings_months}/6
+                    <span className="font-semibold text-gray-700">Role:</span>{" "}
+                    <span className="capitalize">
+                      {member.role?.replace(/_/g, " ") || "staff"}
                     </span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-gray-500">Contribution:</span> ₦
-                    {Number(
-                      member.approved_monthly_contribution,
-                    ).toLocaleString()}
                   </div>
                 </div>
               </Link>
@@ -341,7 +370,7 @@ export default function MembersListPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 text-sm text-gray-500">
+            <div className="flex items-center justify-between text-sm text-gray-500">
               <span>
                 Showing {Math.min((page - 1) * 50 + 1, data?.count ?? 0)}–
                 {Math.min(page * 50, data?.count ?? 0)} of {data?.count ?? 0}

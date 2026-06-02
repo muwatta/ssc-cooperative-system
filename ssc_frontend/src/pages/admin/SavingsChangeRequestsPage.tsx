@@ -117,10 +117,11 @@ function ApproveModal({
 
 export default function SavingsChangeRequestsPage() {
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user } = useAuth(); // current logged‑in user
   const [selectedRequest, setSelectedRequest] =
     useState<SavingsChangeRequest | null>(null);
   const [statusFilter, setStatusFilter] = useState("pending");
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["savings-change-requests", statusFilter],
     queryFn: () =>
@@ -128,10 +129,12 @@ export default function SavingsChangeRequestsPage() {
         .list({ status: statusFilter })
         .then((r) => r.data),
   });
+
   const rejectMutation = useMutation({
     mutationFn: (id: number) => savingsApi.changeRequests.reject(id),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["savings-change-requests"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["savings-change-requests"] });
+    },
   });
 
   if (isLoading) return <PageLoader />;
@@ -140,20 +143,25 @@ export default function SavingsChangeRequestsPage() {
   const requests = data?.results || [];
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl">
       <PageHeader
         title="Savings Change Requests"
-        subtitle="Review and approve member requests"
+        subtitle="Review and approve member requests to increase or decrease monthly contributions"
       />
-      {/* Scrollable filter tabs on mobile */}
-      <div className="mb-6 flex gap-2 border-b border-gray-200 overflow-x-auto pb-1">
+
+      {/* Filter tabs */}
+      <div className="mb-6 flex gap-2 border-b border-gray-200">
         {["pending", "approved", "rejected"].map((status) => (
           <button
             key={status}
             onClick={() => setStatusFilter(status)}
-            className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-all ${statusFilter === status ? "border-b-2 border-primary-600 text-primary-700" : "text-gray-500"}`}
+            className={`px-6 py-2 text-sm font-medium transition-all ${
+              statusFilter === status
+                ? "border-b-2 border-primary-600 text-primary-700"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
           >
-            {status.charAt(0).toUpperCase() + status.slice(1)}{" "}
+            {status.charAt(0).toUpperCase() + status.slice(1)}
             {status === "pending" && requests.length > 0 && (
               <span className="ml-2 rounded-full bg-primary-100 px-2 py-0.5 text-xs">
                 {requests.length}
@@ -162,6 +170,7 @@ export default function SavingsChangeRequestsPage() {
           </button>
         ))}
       </div>
+
       {requests.length === 0 ? (
         <div className="card p-12 text-center">
           <EmptyState icon="📋" title="No change requests" />
@@ -174,11 +183,11 @@ export default function SavingsChangeRequestsPage() {
               <div key={req.id} className="card p-4">
                 <div className="flex flex-wrap justify-between gap-4">
                   <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <p className="font-semibold text-gray-900">
                         {req.member_name}
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-gray-400 font-mono">
                         {req.member_file_number}
                       </p>
                       {req.status === "pending" && (
@@ -191,13 +200,15 @@ export default function SavingsChangeRequestsPage() {
                         <span className="badge-danger text-xs">Rejected</span>
                       )}
                     </div>
-                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
                       <div>
-                        <span className="text-gray-500">Current:</span>{" "}
-                        {formatNaira(req.current_amount)}
+                        <span className="text-gray-500">Current amount:</span>{" "}
+                        <span className="font-medium">
+                          {formatNaira(req.current_amount)}
+                        </span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Requested:</span>{" "}
+                        <span className="text-gray-500">Requested amount:</span>{" "}
                         <span className="font-medium text-primary-700">
                           {formatNaira(req.requested_amount)}
                         </span>
@@ -214,7 +225,7 @@ export default function SavingsChangeRequestsPage() {
                       )}
                     </div>
                     {req.status === "pending" && (
-                      <div className="mt-4 flex flex-col sm:flex-row gap-2">
+                      <div className="mt-3 flex gap-2">
                         {isOwnRequest ? (
                           <span className="text-xs text-gray-400 italic">
                             You cannot approve your own request
@@ -223,16 +234,16 @@ export default function SavingsChangeRequestsPage() {
                           <>
                             <button
                               onClick={() => setSelectedRequest(req)}
-                              className="btn-primary btn-sm flex-1 py-2"
+                              className="btn-primary btn-sm"
                             >
                               Approve
                             </button>
                             <button
-                              onClick={() =>
-                                confirm("Reject this request?") &&
-                                rejectMutation.mutate(req.id)
-                              }
-                              className="btn-danger btn-sm flex-1 py-2"
+                              onClick={() => {
+                                if (confirm("Reject this request?"))
+                                  rejectMutation.mutate(req.id);
+                              }}
+                              className="btn-danger btn-sm"
                             >
                               Reject
                             </button>
@@ -247,13 +258,14 @@ export default function SavingsChangeRequestsPage() {
           })}
         </div>
       )}
+
       {selectedRequest && (
         <ApproveModal
           request={selectedRequest}
           onClose={() => setSelectedRequest(null)}
-          onSuccess={() =>
-            qc.invalidateQueries({ queryKey: ["savings-change-requests"] })
-          }
+          onSuccess={() => {
+            qc.invalidateQueries({ queryKey: ["savings-change-requests"] });
+          }}
         />
       )}
     </div>
