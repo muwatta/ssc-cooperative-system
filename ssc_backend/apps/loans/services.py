@@ -65,22 +65,65 @@ def calculate_max_borrowable(member: MemberProfile) -> Decimal:
 
 
 @transaction.atomic
-def submit_loan_application(member: MemberProfile, data: dict) -> LoanApplication:
-    """Creates a loan application after eligibility check."""
+@transaction.atomic
+def submit_loan_application(member: MemberProfile, data: dict, sureties: list = None) -> LoanApplication:
+    
     from utils.hijri import current_hijri
     eligibility = check_loan_eligibility(member)
     if not eligibility["eligible"]:
         raise ValueError(" | ".join(eligibility["reasons"]))
 
+    # 1. Duration 1–6
     duration = data.get("proposed_duration_months", 6)
-    config = get_loan_configuration()
-    if duration > config.max_repayment_months:
-        raise ValueError(
-            f"Repayment duration cannot exceed {config.max_repayment_months} months."
-        )
+    if duration < 1 or duration > 6:
+        raise ValueError("Repayment duration must be between 1 and 6 months.")
 
+    # 2. Amount positive
+    amount_applied = Decimal(str(data["amount_applied"]))
+    if amount_applied <= 0:
+        raise ValueError("Loan amount must be positive.")
+
+    # 3. Configurable self‑surety cap
+    config = get_loan_configuration()
+    balance = get_or_create_balance(member)
+    self_surety_max = (balance.available_balance * config.self_surety_ratio).quantize(Decimal("0.01"))
+    shortfall = amount_applied - self_surety_max
+
+    # 4. External sureties required if shortfall > 0
+    if shortfall > 0:
+        if not sureties:
+            raise ValueError(f"External sureties are required to cover the shortfall of ₦{shortfall}.")
+        total_external = Decimal("0")
+        for surety_item in sureties:
+            amount = Decimal(str(surety_item.get("amount", 0)))
+            if amount <= 0:
+                raise ValueError("Each surety guarantee amount must be positive.")
+            total_external += amount
+
+            surety_member = MemberProfile.objects.select_related("user").get(pk=surety_item["member_id"])
+            surety_balance = get_or_create_balance(surety_member)
+            max_surety = (surety_balance.available_balance * Decimal("0.85")).quantize(Decimal("0.01"))
+            if amount > max_surety:
+                raise ValueError(
+                    f"{surety_member.full_name} can guarantee at most ₦{max_surety} (85% of their available balance)."
+                )
+        if total_external < shortfall:
+            raise ValueError(
+                f"Total external guarantees (₦{total_external}) are less than the required shortfall of ₦{shortfall}."
+            )
+    else:
+        if sureties:
+            raise ValueError("External sureties are not required because the loan amount does not exceed your self‑surety limit.")
+
+    # 5. Absolute max borrowable
+    max_borrowable = calculate_max_borrowable(member)
+    if amount_applied > max_borrowable:
+        raise ValueError(f"Loan amount cannot exceed ₦{max_borrowable}.")
+
+    # 6. Hijri date
     h_month, h_year = current_hijri()
 
+    # Create loan
     loan = LoanApplication.objects.create(
         applicant=member,
         home_address=data["home_address"],
@@ -89,11 +132,11 @@ def submit_loan_application(member: MemberProfile, data: dict) -> LoanApplicatio
         designation=member.designation,
         date_joined_cooperative=member.created_at.date(),
         monthly_contribution=member.approved_monthly_contribution,
-        total_amount_saved=get_or_create_balance(member).total_savings,
+        total_amount_saved=balance.total_savings,
         monthly_salary=data.get("monthly_salary", member.monthly_income),
         date_of_last_loan=data.get("date_of_last_loan"),
         amount_outstanding_prev=data.get("amount_outstanding_prev", Decimal("0.00")),
-        amount_applied=data["amount_applied"],
+        amount_applied=amount_applied,
         purpose=data["purpose"],
         proposed_monthly_repayment=data["proposed_monthly_repayment"],
         proposed_duration_months=duration,
@@ -102,8 +145,26 @@ def submit_loan_application(member: MemberProfile, data: dict) -> LoanApplicatio
         application_hijri_display=hijri_month_display(h_month, h_year),
         status=LoanStatus.SUBMITTED,
     )
-    return loan
 
+    # 7. Always create self‑surety record (layer 1)
+    create_surety_records(loan, [
+        {"member_id": member.pk, "amount": amount_applied, "layer": 1}
+    ])
+
+    # 8. Create external surety records if needed
+    if sureties:
+        surety_items = []
+        for idx, s in enumerate(sureties, start=2):
+            surety_items.append({
+                "member_id": s["member_id"],
+                "amount": Decimal(str(s["amount"])),
+                "layer": idx,
+            })
+        create_surety_records(loan, surety_items)
+        loan.status = LoanStatus.PENDING_SURETIES
+        loan.save(update_fields=["status"])
+
+    return loan
 
 @transaction.atomic
 def committee_approve_loan(loan: LoanApplication, approved_by, amount_approved: Decimal, note: str = "") -> LoanApplication:
@@ -185,10 +246,8 @@ def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hij
         loan.status = LoanStatus.COMPLETED
     loan.save(update_fields=["outstanding_balance", "status", "updated_at"])
 
-    # Release sureties proportionally
     release_sureties_proportionally(loan, amount)
 
-    # If completed — fully release all sureties (SRS SR8)
     if balance_after == Decimal("0.00"):
         release_all_sureties(loan)
 

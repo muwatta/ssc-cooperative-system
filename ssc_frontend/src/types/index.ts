@@ -289,6 +289,7 @@ export interface LoanEligibilityResponse {
   max_loan_amount: string;
   require_no_active_loan: boolean;
   require_no_surety_liabilities: boolean;
+  self_surety_max: string;
 }
 
 export interface LoanSettings {

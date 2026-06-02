@@ -1,4 +1,3 @@
-"""SSC Cooperative — Loans Views"""
 
 from decimal import Decimal
 import csv
@@ -31,7 +30,6 @@ from .services import (
 
 
 class LoanEligibilityView(APIView):
-    """GET /api/v1/loans/eligibility/ — check own eligibility"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -40,17 +38,22 @@ class LoanEligibilityView(APIView):
         except Exception:
             return Response({"error": "No member profile."}, status=status.HTTP_404_NOT_FOUND)
 
-        result    = check_loan_eligibility(profile)
+        result     = check_loan_eligibility(profile)
         max_borrow = calculate_max_borrowable(profile)
         config     = get_loan_configuration()
+
+        # Self‑surety cap (amount that needs no external guarantors)
+        balance = get_or_create_balance(profile)
+        self_surety_max = (balance.available_balance * config.self_surety_ratio).quantize(Decimal("0.01"))
 
         return Response({
             "eligible":                      result["eligible"],
             "reasons":                       result["reasons"],
             "max_borrowable":                str(max_borrow),
+            "self_surety_max":               str(self_surety_max),   # ← new field
             "consecutive_months":            profile.consecutive_savings_months,
             "required_consecutive_months":   config.consecutive_savings_months_required,
-            "is_new_member":                profile.is_new_member,
+            "is_new_member":                 profile.is_new_member,
             "max_repayment_months":          config.max_repayment_months,
             "loan_amount_ratio":             str(config.self_surety_ratio),
             "max_sureties":                  config.max_sureties,
@@ -59,10 +62,9 @@ class LoanEligibilityView(APIView):
             "require_no_active_loan":        config.require_no_active_loan,
             "require_no_surety_liabilities": config.require_no_surety_liabilities,
         })
-
+    
 
 class LoanSettingsView(APIView):
-    """GET/PATCH /api/v1/loans/settings/ — admin-configured loan rules"""
     permission_classes = [IsAdmin]
 
     def get(self, request):
@@ -105,7 +107,6 @@ class MyLoanListView(generics.ListAPIView):
 
 
 class SubmitLoanView(APIView):
-    """POST /api/v1/loans/apply/"""
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -118,47 +119,29 @@ class SubmitLoanView(APIView):
         serializer.is_valid(raise_exception=True)
         d = serializer.validated_data
 
+        # The serializer now sends empty list for sureties if not needed
+        sureties = d.pop("sureties", [])
+
         try:
-            loan = submit_loan_application(member=profile, data={
-                **d,
-                "monthly_salary": d.get("monthly_salary", profile.monthly_income),
-            })
+            loan = submit_loan_application(
+                member=profile,
+                data={
+                    **d,
+                    "monthly_salary": d.get("monthly_salary", profile.monthly_income),
+                },
+                sureties=sureties if sureties else None,
+            )
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        surety_items = [
-            {
-                "member_id": profile.pk,
-                "amount": d["amount_applied"],
-                "layer": 1,
-            }
-        ]
-        for idx, item in enumerate(d.get("sureties", []), start=2):
-            surety_items.append({
-                "member_id": item["member_id"],
-                "amount": item["amount"],
-                "layer": idx,
-            })
-
-        if surety_items:
-            create_surety_records(loan, surety_items)
-            if len(d.get("sureties", [])) > 0:
-                loan.status = LoanStatus.PENDING_SURETIES
-                loan.save(update_fields=["status"])
-
-        # Update repayment schedule dates on the loan
+        # Set repayment start dates (service didn't do it)
         loan.repayment_start_hijri_month = d["repayment_start_hijri_month"]
         loan.repayment_start_hijri_year  = d["repayment_start_hijri_year"]
         loan.save(update_fields=["repayment_start_hijri_month", "repayment_start_hijri_year"])
 
         return Response(LoanApplicationSerializer(loan).data, status=status.HTTP_201_CREATED)
 
-
 class CommitteeDecisionView(APIView):
-    """
-    POST /api/v1/loans/<id>/committee-decision/
-    SRS L10 stage 1. Admin cannot approve own loan (enforced here).
-    """
     permission_classes = [CanApproveLoan]
 
     def post(self, request, pk):
@@ -181,7 +164,6 @@ class CommitteeDecisionView(APIView):
         try:
             if d["decision"] == "approve":
                 loan = committee_approve_loan(loan, request.user, d["amount_approved"], d.get("note", ""))
-                # Override status: committee approval should not activate loan
                 loan.status = LoanStatus.APPROVED
                 loan.save(update_fields=["status"])
             else:
@@ -193,10 +175,6 @@ class CommitteeDecisionView(APIView):
 
 
 class AdminFinalApprovalView(APIView):
-    """
-    POST /api/v1/loans/<id>/admin-approve/
-    Admin gives final approval after committee approval.
-    """
     permission_classes = [IsAdmin]
 
     def post(self, request, pk):
@@ -224,7 +202,6 @@ class AdminFinalApprovalView(APIView):
 
 
 class PostRepaymentView(APIView):
-    """POST /api/v1/loans/<id>/repayment/"""
     permission_classes = [IsAdminOrCommittee]
 
     def post(self, request, pk):
@@ -252,7 +229,6 @@ class PostRepaymentView(APIView):
 
 
 class LoanRepaymentHistoryView(generics.ListAPIView):
-    """GET /api/v1/loans/<id>/repayments/"""
     serializer_class   = LoanRepaymentLedgerSerializer
     permission_classes = [IsAdminOrCommitteeOrHOS]
 
@@ -261,7 +237,6 @@ class LoanRepaymentHistoryView(generics.ListAPIView):
 
 
 class LoanRepaymentExportView(APIView):
-    """GET /api/v1/loans/<id>/repayments/export/"""
     permission_classes = [IsAdminOrCommitteeOrHOS]
 
     def get(self, request, pk):
@@ -377,14 +352,12 @@ class LoanRepaymentExportView(APIView):
 
 
 class LoanDetailView(generics.RetrieveAPIView):
-    """GET /api/v1/loans/<id>/"""
     serializer_class   = LoanApplicationSerializer
     permission_classes = [IsAdminOrCommitteeOrHOS]
     queryset           = LoanApplication.objects.select_related("applicant").all()
 
 
 class HandleDefaultView(APIView):
-    """POST /api/v1/loans/<id>/default/ — SRS M4, SR7"""
     permission_classes = [IsAdmin]
 
     def post(self, request, pk):
@@ -400,7 +373,6 @@ class HandleDefaultView(APIView):
 
 
 class LoanRepaymentExportAsyncView(APIView):
-    """POST /api/v1/loans/<id>/repayments/export-async/ — queue async PDF export"""
     permission_classes = [IsAdminOrCommitteeOrHOS]
 
     def post(self, request, pk):

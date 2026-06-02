@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm, useFieldArray } from "react-hook-form";
-import { useState } from "react";
-import { loansApi, membersApi } from "@/api/services";
+import { useState, useEffect } from "react";
+import { loansApi, membersApi, savingsApi } from "@/api/services";
 import {
   PageHeader,
   ErrorAlert,
@@ -29,7 +29,7 @@ interface ApplyLoanFormValues {
   amount_outstanding_prev?: string;
   repayment_start_hijri_month: number;
   repayment_start_hijri_year: number;
-  sureties: SuretyFormItem[];
+  sureties?: SuretyFormItem[];
 }
 
 function SuretyRow({
@@ -192,21 +192,39 @@ export default function ApplyLoanPage() {
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
+  // Get member profile and balance
+  const { data: profile } = useQuery({
+    queryKey: ["member-profile"],
+    queryFn: () => membersApi.me().then((r) => r.data),
+  });
+
+  const { data: balanceData } = useQuery({
+    queryKey: ["member-balance", profile?.id],
+    queryFn: () => savingsApi.getBalance(profile!.id).then((r) => r.data),
+    enabled: !!profile?.id,
+  });
+
+  const availableBalance = balanceData?.available_balance
+    ? Number(balanceData.available_balance)
+    : 0;
+
   const { data: eligibility, isLoading } = useQuery({
     queryKey: ["loan-eligibility"],
     queryFn: () => loansApi.eligibility().then((r) => r.data),
   });
 
-  const isBelowContributionRequirement =
-    eligibility?.consecutive_months !== undefined &&
-    eligibility?.required_consecutive_months !== undefined &&
-    eligibility.consecutive_months < eligibility.required_consecutive_months;
-
-  const contributionRequirementNote = isBelowContributionRequirement
-    ? eligibility?.is_new_member
-      ? `You have ${eligibility.consecutive_months} of ${eligibility.required_consecutive_months} consecutive months. As a new member, you must complete ${eligibility.required_consecutive_months} months before applying. Existing members may still qualify with sureties if allowed by the loan committee.`
-      : `You have ${eligibility.consecutive_months} of ${eligibility.required_consecutive_months} consecutive months. You must complete ${eligibility.required_consecutive_months} months before applying, or qualify through sureties as permitted by the loan committee.`
-    : `You have met the contribution requirement for application.`;
+  // ---------- Dynamic limits from backend ----------
+  const selfSuretyMax = eligibility?.self_surety_max
+    ? Number(eligibility.self_surety_max)
+    : 0;
+  const maxBorrowable = eligibility?.max_borrowable
+    ? Number(eligibility.max_borrowable)
+    : 0;
+  const ratioPercent = eligibility?.loan_amount_ratio
+    ? Math.round(Number(eligibility.loan_amount_ratio) * 100)
+    : 75;
+  const maxSureties = eligibility?.max_sureties ?? 5;
+  const canApply = eligibility?.eligible ?? false;
 
   const {
     control,
@@ -226,7 +244,7 @@ export default function ApplyLoanPage() {
       proposed_duration_months: 6,
       repayment_start_hijri_month: 1,
       repayment_start_hijri_year: new Date().getFullYear() + 1,
-      sureties: [{ member_id: 0, member_label: "", amount: "" }],
+      sureties: [{ member_id: 0, member_label: "", amount: "" }], // placeholder row; removed on submit if not needed
     },
   });
 
@@ -234,6 +252,30 @@ export default function ApplyLoanPage() {
     control,
     name: "sureties",
   });
+
+  const amountApplied = Number(watch("amount_applied")) || 0;
+  const duration = watch("proposed_duration_months") || 6;
+  const monthlyRepayment = duration > 0 ? amountApplied / duration : 0;
+
+  // Determine if external sureties are needed (gap between self-surety and max borrowable)
+  const needsExternalSureties =
+    amountApplied > selfSuretyMax && amountApplied <= maxBorrowable;
+  const exceedsMax = amountApplied > maxBorrowable;
+
+  // Clear extra surety rows when not needed
+  useEffect(() => {
+    if (!needsExternalSureties && fields.length > 1) {
+      while (fields.length > 1) remove(1);
+    }
+  }, [needsExternalSureties, fields, remove]);
+
+  useEffect(() => {
+    if (monthlyRepayment > 0) {
+      setValue("proposed_monthly_repayment", monthlyRepayment.toFixed(2));
+    } else {
+      setValue("proposed_monthly_repayment", "");
+    }
+  }, [monthlyRepayment, setValue]);
 
   const applyMutation = useMutation({
     mutationFn: (data: any) => loansApi.apply(data),
@@ -260,7 +302,24 @@ export default function ApplyLoanPage() {
     },
   });
 
+  const onSubmit = (data: ApplyLoanFormValues) => {
+    const payload = { ...data };
+    if (needsExternalSureties) {
+      payload.sureties = (data.sureties ?? []).filter((s) => s.member_id > 0);
+    } else {
+      delete payload.sureties;
+    }
+    applyMutation.mutate(payload);
+  };
+
   if (isLoading) return <PageLoader />;
+
+  // Determine if submit is allowed
+  const sufficientSureties =
+    !needsExternalSureties ||
+    (needsExternalSureties && fields.filter((f) => f.member_id > 0).length > 0);
+  const isSubmitDisabled =
+    isSubmitting || !canApply || exceedsMax || !sufficientSureties;
 
   return (
     <div className="mx-auto max-w-3xl p-4 md:p-6">
@@ -270,34 +329,10 @@ export default function ApplyLoanPage() {
         back={{ to: "/my-loans", label: "Back to My Loans" }}
       />
 
-      {eligibility && isBelowContributionRequirement && (
-        <div className="mb-6 rounded-2xl border border-warning-200 bg-warning-50 p-4 text-warning-900 shadow-sm">
-          <p className="text-sm font-semibold">
-            {eligibility.is_new_member
-              ? "New member contribution requirement"
-              : "Contribution requirement"}
-          </p>
-          <p className="mt-2 text-sm leading-6">
-            You have contributed {eligibility.consecutive_months} of{" "}
-            {eligibility.required_consecutive_months} required consecutive
-            months.{" "}
-            {eligibility.is_new_member
-              ? "As a new member, you must complete the full required contribution period before applying."
-              : "You must complete the full required contribution period before applying."}
-          </p>
-          {eligibility.is_new_member && (
-            <p className="mt-2 text-sm text-warning-800">
-              This account is currently marked as a new member. The 12-month
-              contribution rule applies before loan application.
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Eligibility Card - Improved Design */}
+      {/* Eligibility Card */}
       <div
         className={`mb-6 overflow-hidden rounded-xl border-2 shadow-md transition-all ${
-          eligibility?.eligible
+          canApply
             ? "border-green-200 bg-gradient-to-r from-green-50 to-emerald-50"
             : "border-red-200 bg-gradient-to-r from-red-50 to-rose-50"
         }`}
@@ -307,25 +342,25 @@ export default function ApplyLoanPage() {
             <div className="flex-shrink-0">
               <div
                 className={`flex h-12 w-12 items-center justify-center rounded-full text-2xl ${
-                  eligibility?.eligible
+                  canApply
                     ? "bg-green-100 text-green-700"
                     : "bg-red-100 text-red-700"
                 }`}
               >
-                {eligibility?.eligible ? "✓" : "✗"}
+                {canApply ? "✓" : "✗"}
               </div>
             </div>
             <div className="flex-1">
               <h3
                 className={`text-lg font-semibold ${
-                  eligibility?.eligible ? "text-green-800" : "text-red-800"
+                  canApply ? "text-green-800" : "text-red-800"
                 }`}
               >
-                {eligibility?.eligible
+                {canApply
                   ? "You are eligible to apply for a loan"
                   : "You are not eligible to apply at this time"}
               </h3>
-              {!eligibility?.eligible && eligibility?.reasons && (
+              {!canApply && eligibility?.reasons && (
                 <div className="mt-3">
                   <p className="text-sm font-medium text-red-700">
                     Please address the following:
@@ -336,60 +371,28 @@ export default function ApplyLoanPage() {
                         key={i}
                         className="flex items-center gap-2 text-sm text-red-600"
                       >
-                        <span className="text-red-400">•</span>
-                        {r}
+                        <span className="text-red-400">•</span> {r}
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
-
-              {eligibility && (
-                <div
-                  className={`mt-4 rounded-xl border px-4 py-4 text-sm ${
-                    isBelowContributionRequirement
-                      ? "border-warning-200 bg-warning-50 text-warning-900"
-                      : "border-gray-200 bg-gray-50 text-gray-700"
-                  }`}
-                >
-                  <p className="font-semibold">Contribution requirement</p>
-                  <p className="mt-2 leading-6">
-                    {contributionRequirementNote}
-                  </p>
-                  {isBelowContributionRequirement && (
-                    <p className="mt-3 text-xs text-warning-700">
-                      This is a strict requirement for new applicants. If you
-                      are still below the required months, you must meet the
-                      12-month contribution rule or qualify through sureties as
-                      allowed by the loan committee.
-                    </p>
-                  )}
-                </div>
-              )}
             </div>
           </div>
 
-          {eligibility?.eligible && (
+          {canApply && (
             <div className="mt-4 grid grid-cols-2 gap-4 rounded-lg bg-white/50 p-4">
               <div>
                 <p className="text-sm text-gray-600">Maximum Borrowable</p>
                 <p className="text-xl font-bold text-primary-700">
-                  {formatNaira(eligibility.max_borrowable)}
+                  {formatNaira(maxBorrowable)}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">
-                  Consecutive Savings Months
-                </p>
+                <p className="text-sm text-gray-600">Consecutive Savings</p>
                 <p className="text-xl font-bold text-primary-700">
-                  {eligibility.consecutive_months} /{" "}
-                  {eligibility.required_consecutive_months}
-                  <span className="ml-2 text-sm font-normal text-gray-500">
-                    {eligibility.consecutive_months >=
-                    eligibility.required_consecutive_months
-                      ? "(Required met)"
-                      : `(Required: ${eligibility.required_consecutive_months} months)`}
-                  </span>
+                  {eligibility?.consecutive_months ?? 0} /{" "}
+                  {eligibility?.required_consecutive_months ?? 6}
                 </p>
               </div>
             </div>
@@ -397,36 +400,68 @@ export default function ApplyLoanPage() {
         </div>
       </div>
 
-      {/* Alerts */}
       {success && (
-        <div className="mb-6 animate-fade-in">
+        <div className="mb-4">
           <SuccessAlert message={success} />
         </div>
       )}
       {error && (
-        <div className="mb-6 animate-fade-in">
+        <div className="mb-4">
           <ErrorAlert message={error} />
         </div>
       )}
 
-      {/* Application Form Card */}
-      {eligibility?.eligible && !success && (
+      {/* Form */}
+      {canApply && (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
           <div className="border-b border-gray-200 bg-gradient-to-r from-primary-50 to-white px-6 py-4">
             <h2 className="text-xl font-semibold text-gray-800">
               Loan Application Form
             </h2>
             <p className="mt-1 text-sm text-gray-600">
-              Fill in the details below to submit your loan application
+              Fill in the details below
             </p>
           </div>
 
           <div className="p-6">
-            <form
-              onSubmit={handleSubmit((data) => applyMutation.mutate(data))}
-              className="space-y-6"
-            >
-              {/* Personal & Financial Section */}
+            {/* Self-surety panel – dynamic ratio */}
+            <div className="mb-6 rounded-lg bg-primary-50 p-4 text-sm">
+              <p className="font-semibold text-primary-800">
+                Your Self‑surety capacity ({ratioPercent}% of Available Balance)
+              </p>
+              <p className="text-primary-700">
+                Available balance:{" "}
+                <strong>{formatNaira(availableBalance)}</strong>
+              </p>
+              <p className="text-primary-700">
+                You can self‑surety up to:{" "}
+                <strong>{formatNaira(selfSuretyMax)}</strong>
+              </p>
+              {amountApplied > 0 && (
+                <div className="mt-3">
+                  {exceedsMax ? (
+                    <p className="font-medium text-red-700">
+                      ❌ Requested amount exceeds maximum borrowable (
+                      {formatNaira(maxBorrowable)}).
+                    </p>
+                  ) : needsExternalSureties ? (
+                    <p className="font-medium text-amber-700">
+                      ⚠️ You need external sureties to cover ₦
+                      {(amountApplied - selfSuretyMax).toLocaleString()} (the
+                      gap above your self‑surety).
+                    </p>
+                  ) : (
+                    <p className="font-medium text-green-700">
+                      ✅ Your self‑surety fully covers this amount – no external
+                      sureties required.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              {/* Loan Details */}
               <div className="space-y-4">
                 <h3 className="text-md font-semibold text-gray-700">
                   Loan Details
@@ -439,15 +474,24 @@ export default function ApplyLoanPage() {
                     <input
                       {...register("amount_applied", {
                         required: "Amount requested is required",
+                        min: {
+                          value: 1,
+                          message: "Amount must be at least ₦1",
+                        },
+                        max: {
+                          value: maxBorrowable,
+                          message: `Amount exceeds maximum borrowable (${formatNaira(maxBorrowable)})`,
+                        },
                       })}
                       type="number"
                       step="0.01"
+                      disabled={!canApply}
                       className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
                         errors.amount_applied
                           ? "border-red-300 focus:ring-red-500"
                           : "border-gray-300 focus:border-primary-500 focus:ring-primary-500"
-                      }`}
-                      placeholder={`Max: ${formatNaira(eligibility.max_borrowable)}`}
+                      } ${!canApply ? "bg-gray-50 text-gray-500" : ""}`}
+                      placeholder={`Max: ${formatNaira(maxBorrowable)}`}
                     />
                     {errors.amount_applied && (
                       <p className="mt-1 text-xs text-red-600">
@@ -465,11 +509,12 @@ export default function ApplyLoanPage() {
                       })}
                       type="number"
                       step="0.01"
+                      disabled={!canApply}
                       className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
                         errors.monthly_salary
                           ? "border-red-300 focus:ring-red-500"
                           : "border-gray-300 focus:border-primary-500 focus:ring-primary-500"
-                      }`}
+                      } ${!canApply ? "bg-gray-50 text-gray-500" : ""}`}
                     />
                     {errors.monthly_salary && (
                       <p className="mt-1 text-xs text-red-600">
@@ -488,11 +533,12 @@ export default function ApplyLoanPage() {
                       required: "Purpose is required",
                     })}
                     rows={3}
+                    disabled={!canApply}
                     className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
                       errors.purpose
                         ? "border-red-300 focus:ring-red-500"
                         : "border-gray-300 focus:border-primary-500 focus:ring-primary-500"
-                    }`}
+                    } ${!canApply ? "bg-gray-50 text-gray-500" : ""}`}
                     placeholder="Please describe the purpose of this loan..."
                   />
                   {errors.purpose && (
@@ -511,11 +557,12 @@ export default function ApplyLoanPage() {
                       required: "Home address is required",
                     })}
                     rows={2}
+                    disabled={!canApply}
                     className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
                       errors.home_address
                         ? "border-red-300 focus:ring-red-500"
                         : "border-gray-300 focus:border-primary-500 focus:ring-primary-500"
-                    }`}
+                    } ${!canApply ? "bg-gray-50 text-gray-500" : ""}`}
                   />
                   {errors.home_address && (
                     <p className="mt-1 text-xs text-red-600">
@@ -532,11 +579,12 @@ export default function ApplyLoanPage() {
                     {...register("phone_numbers", {
                       required: "Phone number is required",
                     })}
+                    disabled={!canApply}
                     className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
                       errors.phone_numbers
                         ? "border-red-300 focus:ring-red-500"
                         : "border-gray-300 focus:border-primary-500 focus:ring-primary-500"
-                    }`}
+                    } ${!canApply ? "bg-gray-50 text-gray-500" : ""}`}
                     placeholder="e.g., 08012345678, 08098765432"
                   />
                   {errors.phone_numbers && (
@@ -547,7 +595,7 @@ export default function ApplyLoanPage() {
                 </div>
               </div>
 
-              {/* Repayment Section */}
+              {/* Repayment Plan */}
               <div className="space-y-4">
                 <h3 className="text-md font-semibold text-gray-700">
                   Repayment Plan
@@ -555,65 +603,61 @@ export default function ApplyLoanPage() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Monthly Repayment Amount (₦)
+                      Duration (months, 1–6)
                     </label>
-                    <input
-                      {...register("proposed_monthly_repayment", {
-                        required: "Monthly repayment amount is required",
+                    <select
+                      {...register("proposed_duration_months", {
+                        required: true,
+                        valueAsNumber: true,
                       })}
-                      type="number"
-                      step="0.01"
-                      className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                        errors.proposed_monthly_repayment
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                      disabled={!canApply}
+                      className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                        !canApply ? "bg-gray-50 text-gray-500" : ""
                       }`}
-                    />
-                    {errors.proposed_monthly_repayment && (
-                      <p className="mt-1 text-xs text-red-600">
-                        {String(errors.proposed_monthly_repayment.message)}
-                      </p>
-                    )}
+                    >
+                      <option value="6">6 months</option>
+                      <option value="5">5 months</option>
+                      <option value="4">4 months</option>
+                      <option value="3">3 months</option>
+                      <option value="2">2 months</option>
+                      <option value="1">1 month</option>
+                    </select>
                   </div>
                   <div>
                     <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Duration (Months, max 12)
+                      Monthly Repayment (₦)
                     </label>
                     <input
-                      {...register("proposed_duration_months", {
-                        required: "Duration is required",
-                        min: 1,
-                        max: 12,
-                        valueAsNumber: true,
-                      })}
                       type="number"
-                      min="1"
-                      max="12"
-                      className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                        errors.proposed_duration_months
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-gray-300 focus:border-primary-500 focus:ring-primary-500"
-                      }`}
+                      step="0.01"
+                      value={
+                        monthlyRepayment > 0 ? monthlyRepayment.toFixed(2) : ""
+                      }
+                      className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-600"
+                      disabled
+                      aria-label="Calculated monthly repayment amount"
+                      title="Calculated monthly repayment"
                     />
-                    {errors.proposed_duration_months && (
-                      <p className="mt-1 text-xs text-red-600">
-                        {String(errors.proposed_duration_months.message)}
-                      </p>
-                    )}
+                    <p className="mt-1 text-xs text-gray-400">
+                      Calculated automatically
+                    </p>
                   </div>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Repayment Start - Hijri Month
+                      Repayment Start – Hijri Month
                     </label>
                     <select
                       {...register("repayment_start_hijri_month", {
                         required: true,
                         valueAsNumber: true,
                       })}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      disabled={!canApply}
+                      className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                        !canApply ? "bg-gray-50 text-gray-500" : ""
+                      }`}
                     >
                       {HM.map((m) => (
                         <option key={m.value} value={m.value}>
@@ -624,7 +668,7 @@ export default function ApplyLoanPage() {
                   </div>
                   <div>
                     <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Repayment Start - Hijri Year
+                      Repayment Start – Hijri Year
                     </label>
                     <input
                       {...register("repayment_start_hijri_year", {
@@ -633,108 +677,90 @@ export default function ApplyLoanPage() {
                       })}
                       type="number"
                       min="1440"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      disabled={!canApply}
+                      className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                        !canApply ? "bg-gray-50 text-gray-500" : ""
+                      }`}
                       defaultValue={new Date().getFullYear() + 1}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Sureties Section */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-md font-semibold text-gray-700">
-                      Sureties
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Add members who will guarantee this loan. They will
-                      receive a confirmation request.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      append({ member_id: 0, member_label: "", amount: "" })
-                    }
-                    className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                  >
-                    <svg
-                      className="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+              {/* Sureties Section — only shown when external sureties are required */}
+              {needsExternalSureties && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <h3 className="text-md font-semibold text-gray-800">
+                        Sureties
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Add members who will guarantee this loan. They will
+                        receive a confirmation request.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        append({ member_id: 0, member_label: "", amount: "" })
+                      }
+                      disabled={
+                        !canApply ||
+                        fields.filter((f) => f.member_id > 0).length >=
+                          maxSureties
+                      }
+                      className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4v16m8-8H4"
-                      />
-                    </svg>
-                    Add Surety
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {fields.map((field, index) => (
-                    <SuretyRow
-                      key={field.id}
-                      index={index}
-                      register={register}
-                      setValue={setValue}
-                      watch={watch}
-                      remove={remove}
-                      errors={errors}
-                    />
-                  ))}
-                </div>
-
-                {fields.length === 0 && (
-                  <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-                    <p className="text-gray-500">No sureties added yet</p>
-                    <p className="mt-1 text-sm text-gray-400">
-                      Click "Add Surety" to include guarantors for your loan
-                    </p>
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
+                      </svg>
+                      Add Surety
+                    </button>
                   </div>
-                )}
-              </div>
 
-              {/* Submit Button */}
+                  <div className="space-y-3">
+                    {fields.map((field, index) => (
+                      <SuretyRow
+                        key={field.id}
+                        index={index}
+                        register={register}
+                        setValue={setValue}
+                        watch={watch}
+                        remove={remove}
+                        errors={errors}
+                      />
+                    ))}
+                  </div>
+
+                  {fields.length === 0 && (
+                    <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+                      <p className="text-gray-500">No sureties added yet</p>
+                      <p className="mt-1 text-sm text-gray-400">
+                        Click "Add Surety" to include guarantors for your loan
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitDisabled}
                 className="w-full transform rounded-lg bg-primary-600 px-6 py-3 text-base font-semibold text-white transition-all hover:bg-primary-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg
-                      className="h-5 w-5 animate-spin"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Submitting...
-                  </span>
-                ) : (
-                  "Submit Loan Application"
-                )}
+                {isSubmitting ? "Submitting..." : "Submit Loan Application"}
               </button>
-
               <p className="text-center text-xs text-gray-500">
                 By submitting this application, you confirm that all information
                 provided is accurate and complete.

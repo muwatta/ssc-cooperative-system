@@ -5,6 +5,7 @@ from decimal import Decimal
 from .models import LoanApplication, LoanRepaymentLedger, LoanStatus, LoanConfiguration
 from .services import calculate_max_borrowable, check_loan_eligibility, get_loan_configuration
 from apps.sureties.serializers import SuretyRecordSerializer
+from apps.accounts.models import MemberProfile   # <-- added this import
 
 
 class LoanApplicationSerializer(serializers.ModelSerializer):
@@ -45,7 +46,7 @@ class SubmitLoanSerializer(serializers.Serializer):
     home_address               = serializers.CharField()
     phone_numbers              = serializers.CharField(max_length=100)
     proposed_monthly_repayment = serializers.DecimalField(max_digits=12, decimal_places=2)
-    proposed_duration_months   = serializers.IntegerField(min_value=1, max_value=120)
+    proposed_duration_months   = serializers.IntegerField(min_value=1, max_value=6)
     date_of_last_loan          = serializers.DateField(required=False, allow_null=True)
     amount_outstanding_prev    = serializers.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     repayment_start_hijri_month = serializers.IntegerField(min_value=1, max_value=12)
@@ -57,8 +58,8 @@ class SubmitLoanSerializer(serializers.Serializer):
 
     sureties = serializers.ListSerializer(
         child=SuretyItemSerializer(),
-        min_length=1,
-        allow_empty=False,
+        required=False,
+        default=[],
         max_length=5,
     )
 
@@ -88,7 +89,8 @@ class SubmitLoanSerializer(serializers.Serializer):
         return value
 
     def validate_sureties(self, value):
-        from apps.accounts.models import MemberProfile
+        # MemberProfile is now imported at the top of the file
+        from apps.sureties.services import check_surety_eligibility
 
         request = self.context.get("request")
         if not request:
@@ -144,20 +146,63 @@ class SubmitLoanSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         request = self.context.get("request")
-        if request:
-            try:
-                profile = request.user.member_profile
-            except MemberProfile.DoesNotExist:
-                raise serializers.ValidationError("No member profile found.")
+        if not request:
+            raise serializers.ValidationError("Request context required.")
 
-            eligibility = check_loan_eligibility(profile)
-            if not eligibility["eligible"]:
-                raise serializers.ValidationError({"eligibility": eligibility["reasons"]})
+        try:
+            profile = request.user.member_profile
+        except MemberProfile.DoesNotExist:
+            raise serializers.ValidationError("No member profile found.")
 
-            max_amount = calculate_max_borrowable(profile)
-            if attrs["amount_applied"] > max_amount:
+        # 1. Basic eligibility
+        eligibility = check_loan_eligibility(profile)
+        if not eligibility["eligible"]:
+            raise serializers.ValidationError({"eligibility": eligibility["reasons"]})
+
+        # 2. Absolute borrowable cap
+        max_amount = calculate_max_borrowable(profile)
+        amount_applied = attrs["amount_applied"]
+        if amount_applied > max_amount:
+            raise serializers.ValidationError({
+                "amount_applied": f"Maximum borrowable is ₦{max_amount}."
+            })
+
+        # 3. Repayment cross‑check (amount ÷ duration)
+        duration = attrs["proposed_duration_months"]
+        monthly = attrs["proposed_monthly_repayment"]
+        expected = (amount_applied / duration).quantize(Decimal("0.01"))
+        if abs(monthly - expected) > Decimal("0.02"):
+            raise serializers.ValidationError({
+                "proposed_monthly_repayment": (
+                    f"Monthly repayment must be ₦{expected} (amount ÷ duration)."
+                )
+            })
+
+        # 4. Surety gap logic
+        config = get_loan_configuration()
+        from apps.savings.services import get_or_create_balance
+        balance = get_or_create_balance(profile)
+        self_surety_max = (balance.available_balance * config.self_surety_ratio).quantize(Decimal("0.01"))
+
+        if amount_applied > self_surety_max:
+            sureties = attrs.get("sureties", [])
+            if not sureties:
                 raise serializers.ValidationError({
-                    "amount_applied": f"Maximum borrowable is ₦{max_amount} based on configured borrow ratio."
+                    "sureties": f"External sureties required for amount above ₦{self_surety_max}."
+                })
+            total_external = sum(Decimal(str(s["amount"])) for s in sureties)
+            shortfall = amount_applied - self_surety_max
+            if total_external < shortfall:
+                raise serializers.ValidationError({
+                    "sureties": (
+                        f"Total surety guarantees (₦{total_external}) must cover "
+                        f"the gap of ₦{shortfall}."
+                    )
+                })
+        else:
+            if attrs.get("sureties"):
+                raise serializers.ValidationError({
+                    "sureties": "External sureties are not required for this amount."
                 })
 
         return attrs
@@ -210,6 +255,7 @@ class LoanEligibilitySerializer(serializers.Serializer):
     max_loan_amount            = serializers.DecimalField(max_digits=14, decimal_places=2)
     require_no_active_loan     = serializers.BooleanField()
     require_no_surety_liabilities = serializers.BooleanField()
+    self_surety_max = serializers.DecimalField(max_digits=14, decimal_places=2)
 
 
 class LoanSettingsSerializer(serializers.ModelSerializer):
