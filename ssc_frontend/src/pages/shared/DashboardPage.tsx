@@ -22,11 +22,11 @@ function StatCard({
     danger: "bg-danger-50 text-danger-700 border-red-100",
   };
   return (
-    <div className={`card p-5 border ${colorMap[color]}`}>
-      <p className="text-xs font-medium uppercase tracking-wider opacity-70">
+    <div className={`card p-4 border ${colorMap[color]}`}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] opacity-70">
         {label}
       </p>
-      <p className="text-3xl font-bold mt-1">{value}</p>
+      <p className="text-2xl font-bold mt-2">{value}</p>
       {sub && <p className="text-xs mt-1 opacity-60">{sub}</p>}
     </div>
   );
@@ -223,36 +223,77 @@ export default function DashboardPage() {
           )}
 
           {stats && !loading && !error && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mt-4">
-              <StatCard
-                label="Total Members"
-                value={stats.totalMembers}
-                sub="All registrations"
-              />
-              <StatCard
-                label="Active"
-                value={stats.activeMembers}
-                sub="Currently active"
-                color="success"
-              />
-              <StatCard
-                label="Pending"
-                value={stats.pendingMembers}
-                sub="Awaiting approval"
-                color="warning"
-              />
-              <StatCard
-                label="Inactive"
-                value={stats.inactiveMembers}
-                sub="Temporarily inactive"
-                color="danger"
-              />
-              <StatCard
-                label="Exited"
-                value={stats.exitedMembers}
-                sub="Left the cooperative"
-                color="primary"
-              />
+            <div className="mt-4 overflow-hidden rounded-3xl border border-gray-200 bg-white text-sm shadow-sm">
+              <div className="grid grid-cols-3 gap-4 px-4 py-4 text-xs font-semibold uppercase tracking-[0.24em] text-gray-500 sm:grid-cols-5">
+                <span className="col-span-2">Metric</span>
+                <span className="col-span-1 text-right sm:text-left">
+                  Value
+                </span>
+                <span className="hidden sm:block">Note</span>
+                <span className="hidden sm:block" />
+              </div>
+              <div className="divide-y divide-gray-100 px-4">
+                <div className="grid grid-cols-3 gap-4 py-4 items-center sm:grid-cols-5">
+                  <div className="col-span-2 font-medium text-gray-900">
+                    Total Members
+                  </div>
+                  <div className="text-right font-semibold text-gray-900 sm:text-left">
+                    {stats.totalMembers}
+                  </div>
+                  <div className="hidden text-gray-500 sm:block">
+                    All registrations
+                  </div>
+                  <div className="hidden sm:block" />
+                </div>
+                <div className="grid grid-cols-3 gap-4 py-4 items-center sm:grid-cols-5">
+                  <div className="col-span-2 font-medium text-gray-900">
+                    Active
+                  </div>
+                  <div className="text-right text-green-700 font-semibold sm:text-left">
+                    {stats.activeMembers}
+                  </div>
+                  <div className="hidden text-gray-500 sm:block">
+                    Currently active
+                  </div>
+                  <div className="hidden sm:block" />
+                </div>
+                <div className="grid grid-cols-3 gap-4 py-4 items-center sm:grid-cols-5">
+                  <div className="col-span-2 font-medium text-gray-900">
+                    Pending
+                  </div>
+                  <div className="text-right text-amber-700 font-semibold sm:text-left">
+                    {stats.pendingMembers}
+                  </div>
+                  <div className="hidden text-gray-500 sm:block">
+                    Awaiting approval
+                  </div>
+                  <div className="hidden sm:block" />
+                </div>
+                <div className="grid grid-cols-3 gap-4 py-4 items-center sm:grid-cols-5">
+                  <div className="col-span-2 font-medium text-gray-900">
+                    Inactive
+                  </div>
+                  <div className="text-right text-red-700 font-semibold sm:text-left">
+                    {stats.inactiveMembers}
+                  </div>
+                  <div className="hidden text-gray-500 sm:block">
+                    Temporarily inactive
+                  </div>
+                  <div className="hidden sm:block" />
+                </div>
+                <div className="grid grid-cols-3 gap-4 py-4 items-center sm:grid-cols-5">
+                  <div className="col-span-2 font-medium text-gray-900">
+                    Exited
+                  </div>
+                  <div className="text-right text-primary-700 font-semibold sm:text-left">
+                    {stats.exitedMembers}
+                  </div>
+                  <div className="hidden text-gray-500 sm:block">
+                    Left the cooperative
+                  </div>
+                  <div className="hidden sm:block" />
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -293,73 +334,122 @@ export default function DashboardPage() {
                 an administrator.
               </div>
             ) : null}
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-              <div className="card p-4">
-                <p className="text-sm text-gray-500">Your Total Savings</p>
-                <p className="text-3xl font-semibold mt-2">
-                  {hasMemberBalance
-                    ? maskIfNeeded(formatNaira(memberBalance!.total_savings))
-                    : "N/A"}
-                </p>
+            <div className="mt-6 overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+              <div className="px-4 py-4 sm:px-6">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Balance Overview
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {isAdmin || isCommittee
+                        ? "Your savings balance plus a cooperative summary for all members."
+                        : "Your personal savings balance and contribution details."}
+                    </p>
+                  </div>
+                  <button
+                    onClick={toggleBalances}
+                    className="inline-flex items-center rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 transition hover:border-gray-300 hover:bg-gray-50"
+                    aria-label={
+                      showBalances ? "Hide balances" : "Show balances"
+                    }
+                  >
+                    {showBalances ? "👁️ Show" : "🙈 Hide"}
+                  </button>
+                </div>
               </div>
-              <div className="card p-4">
-                <p className="text-sm text-gray-500">Your Available Balance</p>
-                <p className="text-3xl font-semibold mt-2">
-                  {hasMemberBalance
-                    ? maskIfNeeded(
-                        formatNaira(memberBalance!.available_balance),
-                      )
-                    : "N/A"}
-                </p>
-              </div>
-              <div className="card p-4">
-                <p className="text-sm text-gray-500">
-                  Approved Monthly Contribution
-                </p>
-                <p className="text-3xl font-semibold mt-2">
-                  {myProfile?.approved_monthly_contribution !== undefined
-                    ? maskIfNeeded(
-                        formatNaira(myProfile.approved_monthly_contribution),
-                      )
-                    : "N/A"}
-                </p>
-              </div>
-              <div className="card p-4">
-                <p className="text-sm text-gray-500">Committed Savings</p>
-                <p className="text-3xl font-semibold mt-2">
-                  {hasMemberBalance
-                    ? maskIfNeeded(
-                        formatNaira(memberBalance!.suretyship_committed),
-                      )
-                    : "N/A"}
-                </p>
-              </div>
-            </div>
 
-            {(isAdmin || isCommittee) && (
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-4">
-                <div className="card p-4">
-                  <p className="text-sm text-gray-500">
-                    Cooperative Total Savings
-                  </p>
-                  <p className="text-3xl font-semibold mt-2">
-                    {coopSummary
-                      ? maskIfNeeded(formatNaira(coopSummary.total_savings))
-                      : "₦0.00"}
-                  </p>
+              {balanceError ? (
+                <div className="border-t border-gray-100 bg-danger-50 p-4 text-sm text-danger-700">
+                  {balanceError}
                 </div>
-                <div className="card p-4">
-                  <p className="text-sm text-gray-500">
-                    Total Available Across Members
-                  </p>
-                  <p className="text-3xl font-semibold mt-2">
-                    {coopSummary
-                      ? maskIfNeeded(formatNaira(coopSummary.total_available))
-                      : "₦0.00"}
-                  </p>
+              ) : (
+                <div className="divide-y divide-gray-100 px-4 py-2 sm:px-6">
+                  <div className="grid gap-3 py-4 sm:grid-cols-2">
+                    <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                        Your Total Savings
+                      </p>
+                      <p className="mt-3 text-2xl font-semibold text-gray-900">
+                        {hasMemberBalance
+                          ? maskIfNeeded(
+                              formatNaira(memberBalance!.total_savings),
+                            )
+                          : "N/A"}
+                      </p>
+                    </div>
+                    <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                        Your Available Balance
+                      </p>
+                      <p className="mt-3 text-2xl font-semibold text-gray-900">
+                        {hasMemberBalance
+                          ? maskIfNeeded(
+                              formatNaira(memberBalance!.available_balance),
+                            )
+                          : "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 py-4 sm:grid-cols-2">
+                    <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                        Approved Contribution
+                      </p>
+                      <p className="mt-3 text-2xl font-semibold text-gray-900">
+                        {myProfile?.approved_monthly_contribution !== undefined
+                          ? maskIfNeeded(
+                              formatNaira(
+                                myProfile.approved_monthly_contribution,
+                              ),
+                            )
+                          : "N/A"}
+                      </p>
+                    </div>
+                    <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                        Committed Savings
+                      </p>
+                      <p className="mt-3 text-2xl font-semibold text-gray-900">
+                        {hasMemberBalance
+                          ? maskIfNeeded(
+                              formatNaira(memberBalance!.suretyship_committed),
+                            )
+                          : "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                  {(isAdmin || isCommittee) && (
+                    <div className="grid gap-3 py-4 sm:grid-cols-2">
+                      <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4">
+                        <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                          Cooperative Total Savings
+                        </p>
+                        <p className="mt-3 text-2xl font-semibold text-gray-900">
+                          {coopSummary
+                            ? maskIfNeeded(
+                                formatNaira(coopSummary.total_savings),
+                              )
+                            : "₦0.00"}
+                        </p>
+                      </div>
+                      <div className="rounded-3xl border border-gray-200 bg-slate-50 p-4">
+                        <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                          Total Available Across Members
+                        </p>
+                        <p className="mt-3 text-2xl font-semibold text-gray-900">
+                          {coopSummary
+                            ? maskIfNeeded(
+                                formatNaira(coopSummary.total_available),
+                              )
+                            : "₦0.00"}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </>
         )}
       </div>
