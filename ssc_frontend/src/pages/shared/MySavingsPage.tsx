@@ -146,7 +146,10 @@ export default function MySavingsPage() {
 
         setBalance(balanceResponse.data);
         setLedger(ledgerResponse.data.results);
-        setPageCount(Math.max(1, Math.ceil(ledgerResponse.data.count / 10)));
+        const pageSize = ledgerResponse.data.results.length || 1;
+        setPageCount(
+          Math.max(1, Math.ceil(ledgerResponse.data.count / pageSize)),
+        );
       } catch {
         setError("Unable to load savings history. Please refresh the page.");
       } finally {
