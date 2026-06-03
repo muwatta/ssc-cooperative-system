@@ -1,10 +1,6 @@
 // SSC Cooperative — Common Reusable Components
 
-import {
-  type ChangeEvent,
-  type ComponentPropsWithoutRef,
-  type ReactNode,
-} from "react";
+import { type ChangeEvent, type ReactNode } from "react";
 import { motion, type HTMLMotionProps } from "framer-motion";
 import { useCurrentDate } from "@/hooks/useCurrentDate";
 import { Link } from "react-router-dom";
