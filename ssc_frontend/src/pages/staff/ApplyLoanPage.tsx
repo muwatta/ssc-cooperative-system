@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { loansApi, membersApi, savingsApi, suretiesApi } from "@/api/services";
 import {
+  AnimatedCard,
   PageHeader,
   ErrorAlert,
   Spinner,
@@ -21,6 +22,7 @@ interface SuretyFormItem {
 interface ApplyLoanFormValues {
   amount_applied: string;
   purpose: string;
+  note?: string;
   monthly_salary: string;
   home_address: string;
   phone_numbers: string;
@@ -78,7 +80,7 @@ function SuretyRow({
   });
 
   return (
-    <div className="relative rounded-lg border border-gray-200 bg-white p-4 transition-all hover:shadow-sm">
+    <AnimatedCard className="relative border-gray-200 bg-white p-4">
       <div className="grid gap-3 md:grid-cols-12">
         <div className="md:col-span-6">
           <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -230,7 +232,7 @@ function SuretyRow({
           )}
         </div>
       </div>
-    </div>
+    </AnimatedCard>
   );
 }
 
@@ -298,6 +300,7 @@ export default function ApplyLoanPage() {
     defaultValues: {
       amount_applied: "",
       purpose: "",
+      note: "",
       monthly_salary: "",
       home_address: "",
       phone_numbers: "",
@@ -587,14 +590,14 @@ export default function ApplyLoanPage() {
       )}
 
       {/* Eligibility Card */}
-      <div
-        className={`mb-6 overflow-hidden rounded-xl border-2 shadow-md transition-all ${
+      <AnimatedCard
+        className={`mb-6 overflow-hidden border-2 shadow-md ${
           canApply
             ? "border-green-200 bg-gradient-to-r from-green-50 to-emerald-50"
             : "border-red-200 bg-gradient-to-r from-red-50 to-rose-50"
         }`}
       >
-        <div className="p-5">
+        <div>
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0">
               <div
@@ -638,7 +641,7 @@ export default function ApplyLoanPage() {
           </div>
 
           {canApply && (
-            <div className="mt-4 grid grid-cols-2 gap-4 rounded-lg bg-white/50 p-4">
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg bg-white/50 p-4">
               <div>
                 <p className="text-sm text-gray-600">Maximum Borrowable</p>
                 <p className="text-xl font-bold text-primary-700">
@@ -655,7 +658,7 @@ export default function ApplyLoanPage() {
             </div>
           )}
         </div>
-      </div>
+      </AnimatedCard>
 
       {isApplying && (
         <div className="mb-4 rounded-lg border border-primary-200 bg-primary-50 p-4 text-primary-800">
@@ -673,7 +676,7 @@ export default function ApplyLoanPage() {
 
       {/* Form */}
       {canApply && (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+        <AnimatedCard className="overflow-hidden border border-gray-200 bg-white shadow-lg">
           <div className="border-b border-gray-200 bg-gradient-to-r from-primary-50 to-white px-6 py-4">
             <h2 className="text-xl font-semibold text-gray-800">
               Loan Application Form
@@ -806,6 +809,19 @@ export default function ApplyLoanPage() {
                       {String(errors.purpose.message)}
                     </p>
                   )}
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Applicant Note (optional)
+                  </label>
+                  <textarea
+                    {...register("note")}
+                    rows={3}
+                    disabled={!canApply}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
+                    placeholder="Add any note you want your sureties to see..."
+                  />
                 </div>
 
                 <div>
@@ -1020,7 +1036,7 @@ export default function ApplyLoanPage() {
               </p>
             </form>
           </div>
-        </div>
+        </AnimatedCard>
       )}
     </div>
   );

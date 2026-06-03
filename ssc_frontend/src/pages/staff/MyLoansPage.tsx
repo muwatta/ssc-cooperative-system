@@ -108,23 +108,21 @@ export default function MyLoansPage() {
                 <p className="mt-1 text-lg font-bold text-amber-600 md:text-2xl">
                   {formatNaira(activeLoan.outstanding_balance)}
                 </p>
-                <div className="mt-2">
-                  <progress
-                    role="progressbar"
-                    aria-label="Outstanding balance percentage"
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={Math.round(activePercent)}
-                    className="w-full h-1.5 overflow-hidden rounded-full bg-gray-200 appearance-none"
-                    value={activePercent}
-                    max={100}
-                  />
-                </div>
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    activePercent >= 80
+                      ? "bg-green-500"
+                      : activePercent >= 50
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
+                  }`}
+                  style={{ width: `${Math.round(activePercent)}%` }}
+                />
                 <p className="mt-1 text-xs text-gray-400">
                   {(
                     (parseFloat(activeLoan.outstanding_balance) /
                       parseFloat(activeLoan.amount_applied)) *
-                    100
+                    100c
                   ).toFixed(0)}
                   % remaining
                 </p>

@@ -1,6 +1,12 @@
 // SSC Cooperative — Common Reusable Components
 
-import { type ChangeEvent, type ReactNode } from "react";
+import {
+  type ChangeEvent,
+  type ComponentPropsWithoutRef,
+  type ReactNode,
+} from "react";
+import { motion } from "framer-motion";
+import { useCurrentDate } from "@/hooks/useCurrentDate";
 import { Link } from "react-router-dom";
 import type {
   LoanStatus,
@@ -109,6 +115,26 @@ function HeaderNavButton({
   );
 }
 
+const sectionFade = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0 },
+};
+
+export function AnimatedCard(props: ComponentPropsWithoutRef<"div">) {
+  const { className = "", ...rest } = props;
+  return (
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={sectionFade}
+      whileHover={{ y: -2, scale: 1.01 }}
+      transition={{ duration: 0.22, ease: "easeOut" }}
+      className={`rounded-3xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 ${className}`}
+      {...rest}
+    />
+  );
+}
+
 // Page Header
 export function PageHeader({
   title,
@@ -124,8 +150,14 @@ export function PageHeader({
   next?: PageHeaderNavAction;
 }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={sectionFade}
+      transition={{ duration: 0.28, ease: "easeOut" }}
+      className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6"
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-0">
         {(back || next) && (
           <div className="flex flex-wrap gap-2 items-center">
             {back && <HeaderNavButton action={back} defaultLabel="Back" />}
@@ -139,12 +171,63 @@ export function PageHeader({
           </div>
         )}
 
-        <div>
+        <div className="min-w-0">
           <h1 className="page-title">{title}</h1>
           {subtitle && <p className="page-subtitle">{subtitle}</p>}
         </div>
       </div>
-      {action && <div>{action}</div>}
+
+      <div className="flex flex-col items-start sm:items-end gap-2 min-w-0">
+        {action && <div>{action}</div>}
+        <DateBadge />
+      </div>
+    </motion.div>
+  );
+}
+
+// Compact, responsive date badge showing Gregorian and Hijri dates
+export function DateBadge() {
+  const { data: currentDate } = useCurrentDate();
+
+  const gregorianMobile = currentDate?.gregorian
+    ? new Date(currentDate.gregorian).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "…";
+
+  const gregorianDesktop = currentDate?.gregorian
+    ? new Date(currentDate.gregorian).toLocaleDateString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "…";
+
+  const hijriFull = currentDate?.hijri
+    ? `${currentDate.hijri.day} ${currentDate.hijri.display} ${currentDate.hijri.year} AH`
+    : "…";
+
+  const mobileCompact = `${gregorianMobile} · ${hijriFull}`;
+
+  return (
+    <div className="max-w-full min-w-0">
+      <div className="rounded-2xl border border-gray-200 bg-white px-3 py-2 shadow-sm text-right min-w-0">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <p className="truncate text-sm font-semibold text-gray-900">
+            <span className="hidden sm:inline">{gregorianDesktop}</span>
+            <span className="inline sm:hidden">{mobileCompact}</span>
+          </p>
+          <span className="rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary-700 hidden sm:inline">
+            Today
+          </span>
+        </div>
+      </div>
+      <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-gray-500 sm:hidden">
+        Today
+      </p>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { membersApi, savingsApi } from "@/api/services";
 import { useAuth } from "@/context/AuthContext";
+import { AnimatedCard } from "@/components/common";
 import type { MemberBalance, MemberProfile, SavingsLedgerEntry } from "@/types";
 import { HIJRI_MONTHS } from "@/types";
 
@@ -233,7 +234,7 @@ export default function MySavingsPage() {
   };
 
   return (
-    <div className="card p-6">
+    <AnimatedCard className="p-6">
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">My Savings</h1>
@@ -265,33 +266,33 @@ export default function MySavingsPage() {
 
           {/* Personal summary cards – responsive grid */}
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 mb-6">
-            <div className="card-panel">
+            <AnimatedCard className="bg-gradient-to-br from-primary-50 to-white p-5">
               <p className="text-sm text-gray-500">Total Savings</p>
               <p className="text-3xl font-semibold mt-2">
                 {summary.savingsBalance}
               </p>
-            </div>
-            <div className="card-panel">
+            </AnimatedCard>
+            <AnimatedCard className="bg-gradient-to-br from-emerald-50 via-emerald-100 to-white p-5">
               <p className="text-sm text-gray-500">Available Balance</p>
               <p className="text-3xl font-semibold mt-2">
                 {summary.availableBalance}
               </p>
-            </div>
-            <div className="card-panel">
+            </AnimatedCard>
+            <AnimatedCard className="bg-gradient-to-br from-sky-50 via-sky-100 to-white p-5">
               <p className="text-sm text-gray-500">
                 Approved Monthly Contribution
               </p>
               <p className="text-3xl font-semibold mt-2">
                 {summary.contribution}
               </p>
-            </div>
-            <div className="card-panel">
+            </AnimatedCard>
+            <AnimatedCard className="bg-gradient-to-br from-amber-50 via-amber-100 to-white p-5">
               <p className="text-sm text-gray-500">Loan Eligible</p>
               <p className="text-3xl font-semibold mt-2">
                 {summary.loanEligibility}
               </p>
-            </div>
-            <div className="card-panel">
+            </AnimatedCard>
+            <AnimatedCard className="p-5">
               <div className="flex flex-col gap-3">
                 <p className="text-sm text-gray-500">Request Change</p>
                 <button
@@ -301,7 +302,7 @@ export default function MySavingsPage() {
                   📝 Increase / Decrease
                 </button>
               </div>
-            </div>
+            </AnimatedCard>
           </div>
 
           {/* Cooperative Balances (only admin/committee) */}
@@ -534,8 +535,8 @@ export default function MySavingsPage() {
                   No ledger entries found yet.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
+                <div className="table-container">
+                  <table className="table border-collapse">
                     <thead>
                       <tr className="bg-gray-50 text-sm text-gray-500">
                         <th className="px-4 py-3">Date</th>
@@ -678,6 +679,6 @@ export default function MySavingsPage() {
           </div>
         </div>
       )}
-    </div>
+    </AnimatedCard>
   );
 }

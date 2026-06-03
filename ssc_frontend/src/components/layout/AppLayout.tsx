@@ -3,7 +3,6 @@ import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/client";
-import { useCurrentDate } from "@/hooks/useCurrentDate";
 import clsx from "clsx";
 
 interface NavItem {
@@ -58,7 +57,6 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const navItems = useNavItems();
-  const { data: currentDate } = useCurrentDate();
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -206,92 +204,62 @@ export default function AppLayout() {
 
       <div className="flex flex-col flex-1 overflow-hidden">
         <header className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 py-3 flex flex-col gap-3 lg:px-6">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleToggleSidebar}
-                className="btn-ghost p-2 rounded-md text-gray-700 hover:bg-gray-100 lg:hidden"
-              >
-                ☰
-              </button>
+          <div className="w-full max-w-screen-2xl mx-auto">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleToggleSidebar}
+                  className="btn-ghost p-2 rounded-md text-gray-700 hover:bg-gray-100 lg:hidden"
+                >
+                  ☰
+                </button>
 
-              <button
-                onClick={handleToggleSidebar}
-                className="btn-ghost p-2 rounded-md text-gray-700 hover:bg-gray-100 hidden lg:inline-flex"
-              >
-                {sidebarOpen ? "⟨" : "⟩"}
-              </button>
+                <button
+                  onClick={handleToggleSidebar}
+                  className="btn-ghost p-2 rounded-md text-gray-700 hover:bg-gray-100 hidden lg:inline-flex"
+                >
+                  {sidebarOpen ? "⟨" : "⟩"}
+                </button>
 
-              <div className="flex flex-col gap-1">
-                <p className="text-sm font-semibold text-gray-900">
-                  SSC Cooperative
-                </p>
-                <p className="text-xs text-gray-500">
-                  Quick access to your dashboard and reports
-                </p>
+                <div className="flex flex-col gap-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">
+                    SSC Cooperative
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    Quick access to your dashboard and reports
+                  </p>
+                </div>
               </div>
+
+              {/* date badge removed; banner below shows canonical date */}
             </div>
 
-            {/* date badge removed; banner below shows canonical date */}
-          </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="btn-secondary btn-sm px-3 py-2"
+              >
+                ← Back
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(1)}
+                className="btn-primary btn-sm px-3 py-2"
+              >
+                Next →
+              </button>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="btn-secondary btn-sm px-3 py-2"
-            >
-              ← Back
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate(1)}
-              className="btn-primary btn-sm px-3 py-2"
-            >
-              Next →
-            </button>
-
-            <div className="hidden md:flex items-center gap-2 rounded-full bg-gray-100 px-3 py-2 text-sm text-gray-700 ml-auto">
-              <span className="font-semibold">
-                {(user?.full_name || user?.staff_id) ?? "Guest"}
-              </span>
+              <div className="hidden md:flex items-center gap-2 rounded-full bg-gray-100 px-3 py-2 text-sm text-gray-700 ml-auto">
+                <span className="font-semibold truncate">
+                  {(user?.full_name || user?.staff_id) ?? "Guest"}
+                </span>
+              </div>
             </div>
           </div>
         </header>
 
-        {/* Date Banner (single canonical date display) */}
-        <div className="bg-primary-50 border-b border-gray-200 text-sm text-gray-700 px-3 py-2">
-          <div className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center sm:justify-between gap-1">
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <span>📅</span>
-              <span className="hidden sm:inline">Today</span>
-            </div>
-
-            <div className="flex-1 text-center sm:text-left truncate">
-              <span className="font-medium text-gray-800">
-                {currentDate?.gregorian
-                  ? new Date(currentDate.gregorian).toLocaleDateString(
-                      undefined,
-                      {
-                        weekday: "short",
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      },
-                    )
-                  : "…"}
-              </span>
-            </div>
-
-            <div className="mt-0 sm:mt-0 flex items-center gap-2 text-sm text-primary-700">
-              <span className="font-semibold truncate">
-                {currentDate?.hijri?.display
-                  ? `${currentDate.hijri.display} AH`
-                  : "…"}
-              </span>
-            </div>
-          </div>
-        </div>
+        {/* Date banner moved to PageHeader -> DateBadge for canonical display */}
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <Outlet />

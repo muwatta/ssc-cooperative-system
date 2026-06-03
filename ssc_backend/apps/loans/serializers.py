@@ -63,6 +63,7 @@ class SubmitLoanSerializer(serializers.Serializer):
         default=[],
         max_length=5,
     )
+    note = serializers.CharField(required=False, allow_blank=True, default="")
 
     def validate_amount_applied(self, value):
         config = get_loan_configuration()

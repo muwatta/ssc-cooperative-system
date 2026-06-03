@@ -3,6 +3,7 @@
 from django.db import transaction
 from django.utils import timezone
 from decimal import Decimal
+from typing import Optional
 from apps.accounts.models import MemberProfile
 from apps.notifications.models import NotificationType, send_notification
 from apps.savings.services import get_or_create_balance, post_debit_entry
@@ -47,7 +48,7 @@ def check_surety_eligibility(member: MemberProfile, amount: Decimal) -> dict:
 
 
 @transaction.atomic
-def create_surety_records(loan, surety_data: list) -> list:
+def create_surety_records(loan, surety_data: list, note: Optional[str] = None) -> list:
     """
     Creates surety records for a loan.
     surety_data: [{"member_id": int, "amount": Decimal, "layer": int}]
@@ -72,11 +73,14 @@ def create_surety_records(loan, surety_data: list) -> list:
             record.save(update_fields=["confirmed_at"])
 
         if not is_self and hasattr(member, "user") and member.user is not None:
+            message = f"{loan.applicant.full_name} has requested your consent as a surety for ₦{record.amount_guaranteed}."
+            if note:
+                message = f"{message}\n\nNote: {note}"
             send_notification(
                 member.user,
                 NotificationType.SURETY_REQUEST,
                 f"Surety request for Loan #{loan.id}",
-                f"{loan.applicant.full_name} has requested your consent as a surety for ₦{record.amount_guaranteed}.",
+                message,
                 related_id=loan.id,
             )
 

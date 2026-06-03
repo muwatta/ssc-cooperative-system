@@ -2,6 +2,7 @@ import { useEffect, useState, ChangeEvent, FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { loansApi } from "@/api/services";
+import { AnimatedCard } from "@/components/common";
 import { useAuth } from "@/context/AuthContext";
 import type { LoanApplication, Repayment } from "@/types";
 
@@ -172,29 +173,29 @@ export default function LoanDetailPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <AnimatedCard className="bg-gradient-to-br from-primary-50 to-white p-4 shadow-lg">
           <p className="text-sm text-gray-600">Amount Applied</p>
           <p className="font-bold text-lg">
             {formatNaira(loan.amount_applied)}
           </p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
+        </AnimatedCard>
+        <AnimatedCard className="bg-gradient-to-br from-amber-50 via-amber-100 to-white p-4 shadow-lg">
           <p className="text-sm text-gray-600">Status</p>
           <p className="font-bold text-lg">{loan.status.toUpperCase()}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
+        </AnimatedCard>
+        <AnimatedCard className="bg-gradient-to-br from-sky-50 via-sky-100 to-white p-4 shadow-lg">
           <p className="text-sm text-gray-600">Duration</p>
           <p className="font-bold text-lg">
             {loan.proposed_duration_months} months
           </p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
+        </AnimatedCard>
+        <AnimatedCard className="bg-gradient-to-br from-red-50 via-red-100 to-white p-4 shadow-lg">
           <p className="text-sm text-gray-600">Outstanding</p>
           <p className="font-bold text-lg">
             {formatNaira(loan.outstanding_balance)}
           </p>
-        </div>
+        </AnimatedCard>
       </div>
 
       {/* Sureties Table */}
@@ -202,9 +203,9 @@ export default function LoanDetailPage() {
         <div className="p-4 border-b">
           <h3 className="font-semibold">Sureties</h3>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
+        <div className="table-container">
+          <table className="table">
+            <thead>
               <tr>
                 <th className="p-3 text-left">Layer</th>
                 <th className="p-3 text-left">Member</th>
@@ -266,9 +267,9 @@ export default function LoanDetailPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
+        <div className="table-container">
+          <table className="table">
+            <thead>
               <tr>
                 <th className="p-3 text-left">Hijri Date</th>
                 <th className="p-3 text-left">Amount</th>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { membersApi, savingsApi } from "@/api/services";
+import { AnimatedCard } from "@/components/common";
 import type {
   MemberProfile,
   PaginatedResponse,
@@ -156,7 +157,7 @@ export default function ReportsPage() {
           {/* Key metrics cards – 3 columns on desktop, 1 on mobile */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {/* Active Members Card */}
-            <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-md transition-all hover:shadow-lg">
+            <AnimatedCard className="group relative overflow-hidden bg-white p-6 shadow-md">
               <div className="absolute right-0 top-0 h-20 w-20 -translate-y-2 translate-x-2 rounded-full bg-primary-50 opacity-20 group-hover:scale-110 transition-transform" />
               <p className="text-sm font-medium text-gray-500">
                 Active Members
@@ -165,10 +166,10 @@ export default function ReportsPage() {
                 {activeMemberCount}
               </p>
               <p className="mt-1 text-xs text-gray-400">Total active members</p>
-            </div>
+            </AnimatedCard>
 
             {/* Loan-Eligible Members Card */}
-            <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-md transition-all hover:shadow-lg">
+            <AnimatedCard className="group relative overflow-hidden bg-white p-6 shadow-md">
               <div className="absolute right-0 top-0 h-20 w-20 -translate-y-2 translate-x-2 rounded-full bg-success-50 opacity-20 group-hover:scale-110 transition-transform" />
               <p className="text-sm font-medium text-gray-500">
                 Loan‑Eligible Members
@@ -179,10 +180,10 @@ export default function ReportsPage() {
               <p className="mt-1 text-xs text-gray-400">
                 Have 6+ consecutive savings months
               </p>
-            </div>
+            </AnimatedCard>
 
             {/* Total Savings Pool Card */}
-            <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 p-6 shadow-md transition-all hover:shadow-lg">
+            <AnimatedCard className="group relative overflow-hidden bg-gradient-to-br from-primary-50 to-primary-100 p-6 shadow-md">
               <div className="absolute right-0 top-0 h-24 w-24 -translate-y-2 translate-x-2 rounded-full bg-primary-200 opacity-30 group-hover:scale-110 transition-transform" />
               <p className="text-sm font-medium text-primary-800">
                 Total Savings Pool
@@ -197,12 +198,12 @@ export default function ReportsPage() {
               <p className="mt-1 text-xs text-primary-700">
                 Actual money saved across all members
               </p>
-            </div>
+            </AnimatedCard>
           </div>
 
           {/* Distribution Cards – 2 columns */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl bg-white p-6 shadow-md">
+            <AnimatedCard className="rounded-2xl bg-white p-6 shadow-md">
               <h2 className="text-base font-semibold text-gray-800">
                 Membership Status
               </h2>
@@ -219,8 +220,8 @@ export default function ReportsPage() {
                   </div>
                 ))}
               </div>
-            </div>
-            <div className="rounded-2xl bg-white p-6 shadow-md">
+            </AnimatedCard>
+            <AnimatedCard className="rounded-2xl bg-white p-6 shadow-md">
               <h2 className="text-base font-semibold text-gray-800">
                 Branch Distribution
               </h2>
@@ -237,7 +238,7 @@ export default function ReportsPage() {
                   </div>
                 ))}
               </div>
-            </div>
+            </AnimatedCard>
           </div>
 
           {/* Member Table with Search */}
@@ -274,8 +275,8 @@ export default function ReportsPage() {
             </div>
 
             {/* Desktop Table (hidden on mobile) */}
-            <div className="hidden overflow-x-auto sm:block">
-              <table className="w-full text-left">
+            <div className="hidden table-container sm:block">
+              <table className="table">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-500">
                     <th className="px-5 py-3">File No.</th>

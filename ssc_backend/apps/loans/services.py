@@ -168,9 +168,11 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
     loan.save(update_fields=["repayment_start_hijri_month", "repayment_start_hijri_year"])
 
     # Always create self‑surety record (layer 1)
-    create_surety_records(loan, [
-        {"member_id": member.pk, "amount": amount_applied, "layer": 1}
-    ])
+    create_surety_records(
+        loan,
+        [{"member_id": member.pk, "amount": amount_applied, "layer": 1}],
+        note=data.get("note"),
+    )
 
     # Create external surety records if needed
     if sureties:
@@ -181,7 +183,11 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
                 "amount": Decimal(str(s["amount"])),
                 "layer": idx,
             })
-        create_surety_records(loan, surety_items)
+        create_surety_records(
+            loan,
+            surety_items,
+            note=data.get("note"),
+        )
         loan.status = LoanStatus.PENDING_SURETIES
         loan.save(update_fields=["status"])
 

@@ -91,6 +91,10 @@ DATABASES = {
     )
 }
 
+# Override the test database name so it doesn't conflict with the corrupted one
+DATABASES["default"]["TEST"] = {
+    "NAME": "test_ssc_cooperative",
+}
 
 # CUSTOM AUTH USER MODEL
 AUTH_USER_MODEL = "accounts.User"
