@@ -12,7 +12,9 @@ import {
   ErrorAlert,
 } from "@/components/common";
 import RepaymentModal from "@/components/loans/RepaymentModal";
-import type { LoanApplication } from "@/types";
+import { useAuth } from "@/context/AuthContext";
+import { HIJRI_MONTHS } from "@/types";
+import type { LoanApplication, PaginatedResponse } from "@/types";
 
 function CommitteeDecisionModal({
   loan,
@@ -131,7 +133,7 @@ function CommitteeDecisionModal({
   );
 }
 
-function HOSApprovalModal({
+function AdminFinalApprovalModal({
   loan,
   onClose,
 }: {
@@ -141,7 +143,7 @@ function HOSApprovalModal({
   const qc = useQueryClient();
   const [error, setError] = useState("");
   const mutation = useMutation({
-    mutationFn: () => loansApi.hosApprove(loan.id),
+    mutationFn: () => loansApi.adminApprove(loan.id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["loans-queue"] });
       onClose();
@@ -181,18 +183,71 @@ function HOSApprovalModal({
 }
 
 export default function LoanQueuePage() {
+  const { isAdmin } = useAuth();
   const [selectedLoan, setSelectedLoan] = useState<LoanApplication | null>(
     null,
   );
   const [modalType, setModalType] = useState<
-    "committee" | "hos" | "repayment" | null
+    "committee" | "admin" | "repayment" | null
   >(null);
   const [statusFilter, setStatusFilter] = useState("");
 
-  const { data, isLoading } = useQuery({
+  const formatHijriDate = (month: number | null, year: number | null) => {
+    if (!month || !year) return "TBD";
+    const monthLabel = HIJRI_MONTHS.find((item) => item.value === month)?.label;
+    return monthLabel ? `${monthLabel} ${year}` : `${month}/${year}`;
+  };
+
+  const renderApprovalChain = (loan: LoanApplication) => {
+    const committeeDone = [
+      "approved",
+      "pending_admin",
+      "hos_approved",
+      "active",
+      "completed",
+    ].includes(loan.status);
+    const adminDone = ["hos_approved", "active", "completed"].includes(
+      loan.status,
+    );
+
+    return (
+      <div className="text-xs text-gray-500">
+        <div className="flex flex-wrap items-center gap-1">
+          <span
+            className={
+              committeeDone ? "text-gray-800 font-semibold" : "text-gray-400"
+            }
+          >
+            {committeeDone ? "Committee ✓" : "Committee"}
+          </span>
+          <span>→</span>
+          <span
+            className={
+              adminDone ? "text-gray-800 font-semibold" : "text-gray-400"
+            }
+          >
+            {adminDone ? "Admin ✓" : "Admin"}
+          </span>
+          {loan.status === "hos_approved" && (
+            <>
+              <span>→</span>
+              <span className="text-gray-800 font-semibold">HOS ✓</span>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const fetchLoans = async (): Promise<PaginatedResponse<LoanApplication>> =>
+    loansApi.list({ status: statusFilter || undefined }).then((r) => r.data);
+
+  const { data, isLoading } = useQuery<PaginatedResponse<LoanApplication>>({
     queryKey: ["loans-queue", statusFilter],
-    queryFn: () =>
-      loansApi.list({ status: statusFilter || undefined }).then((r) => r.data),
+    queryFn: fetchLoans,
+    staleTime: 1000 * 30,
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 
   return (
@@ -215,7 +270,9 @@ export default function LoanQueuePage() {
           <option value="">All Statuses</option>
           <option value="submitted">Submitted</option>
           <option value="under_review">Under Review</option>
+          <option value="pending_sureties">Pending Surety Confirmation</option>
           <option value="approved">Committee Approved</option>
+          <option value="pending_admin">Pending Admin Approval</option>
           <option value="active">Active</option>
           <option value="completed">Completed</option>
         </select>
@@ -229,7 +286,7 @@ export default function LoanQueuePage() {
               <th>Member</th>
               <th>Amount</th>
               <th>Duration</th>
-              <th>Applied</th>
+              <th>Timeline</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -264,13 +321,20 @@ export default function LoanQueuePage() {
                     {formatNaira(loan.amount_applied)}
                   </td>
                   <td>{loan.proposed_duration_months} mo.</td>
-                  <td className="text-xs text-gray-500">
-                    {loan.application_hijri_display}
+                  <td className="space-y-1 text-xs text-gray-500">
+                    <div>
+                      {loan.application_hijri_display} →{" "}
+                      {formatHijriDate(
+                        loan.repayment_end_hijri_month,
+                        loan.repayment_end_hijri_year,
+                      )}
+                    </div>
+                    {renderApprovalChain(loan)}
                   </td>
                   <td>
                     <LoanStatusBadge status={loan.status} />
                   </td>
-                  <td>
+                  <td className="flex flex-col gap-2">
                     {["submitted", "under_review", "pending_sureties"].includes(
                       loan.status,
                     ) && (
@@ -284,17 +348,18 @@ export default function LoanQueuePage() {
                         Review
                       </button>
                     )}
-                    {loan.status === "approved" && (
-                      <button
-                        onClick={() => {
-                          setSelectedLoan(loan);
-                          setModalType("hos");
-                        }}
-                        className="btn-primary text-xs px-2 py-1"
-                      >
-                        HOS Approve
-                      </button>
-                    )}
+                    {isAdmin &&
+                      ["pending_admin", "approved"].includes(loan.status) && (
+                        <button
+                          onClick={() => {
+                            setSelectedLoan(loan);
+                            setModalType("admin");
+                          }}
+                          className="btn-primary text-xs px-2 py-1"
+                        >
+                          Admin Final Approval
+                        </button>
+                      )}
                     {loan.status === "active" && (
                       <button
                         onClick={() => {
@@ -334,15 +399,15 @@ export default function LoanQueuePage() {
       </Modal>
 
       <Modal
-        open={!!selectedLoan && modalType === "hos"}
-        title="Head of School — Final Approval"
+        open={!!selectedLoan && modalType === "admin"}
+        title="Admin Final Approval"
         onClose={() => {
           setSelectedLoan(null);
           setModalType(null);
         }}
       >
         {selectedLoan && (
-          <HOSApprovalModal
+          <AdminFinalApprovalModal
             loan={selectedLoan}
             onClose={() => {
               setSelectedLoan(null);

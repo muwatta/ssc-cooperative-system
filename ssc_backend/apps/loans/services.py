@@ -181,7 +181,7 @@ def committee_approve_loan(loan: LoanApplication, approved_by, amount_approved: 
     if loan.status not in (LoanStatus.SUBMITTED, LoanStatus.UNDER_REVIEW, LoanStatus.PENDING_SURETIES):
         raise ValueError("Loan is not in a reviewable state.")
 
-    loan.status = LoanStatus.APPROVED
+    loan.status = LoanStatus.PENDING_ADMIN
     loan.amount_approved = amount_approved
     loan.outstanding_balance = amount_approved
     loan.committee_reviewed_by = approved_by
@@ -205,9 +205,9 @@ def committee_reject_loan(loan: LoanApplication, rejected_by, note: str = "") ->
 @transaction.atomic
 @transaction.atomic
 @transaction.atomic
-def admin_final_approve_loan(loan: LoanApplication, admin_user) -> LoanApplication:
-    if loan.status != LoanStatus.APPROVED:
-        raise ValueError("Loan must be committee-approved before final approval.")
+def admin_final_approve_loan(loan: LoanApplication, admin_user, note: str = "") -> LoanApplication:
+    if loan.status != LoanStatus.PENDING_ADMIN:
+        raise ValueError("Loan must be pending admin approval before final approval.")
 
     # Debit the approved amount from borrower's savings
     from utils.hijri import current_hijri
@@ -229,6 +229,7 @@ def admin_final_approve_loan(loan: LoanApplication, admin_user) -> LoanApplicati
         raise ValueError(f"Failed to deduct loan from savings: {e}")
 
     loan.status = LoanStatus.ACTIVE
+    loan.admin_final_approval_note = note
     loan.save()
 
     lock_sureties_for_loan(loan)

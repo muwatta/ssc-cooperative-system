@@ -265,6 +265,9 @@ export const loansApi = {
   committeeDecision: (id: number, data: Record<string, unknown>) =>
     api.post<LoanApplication>(`/loans/${id}/committee-decision/`, data),
 
+  adminApprove: (id: number, data: Record<string, unknown> = {}) =>
+    api.post<LoanApplication>(`/loans/${id}/admin-approve/`, data),
+
   hosApprove: (id: number) =>
     api.post<LoanApplication>(`/loans/${id}/hos-approve/`),
 
@@ -280,7 +283,6 @@ export const loansApi = {
       params: { format },
       responseType: "blob",
     }),
-
 
   saveDraft: (data: Record<string, unknown>) =>
     api.post("/loans/draft/", { data }),
@@ -304,6 +306,10 @@ export const suretiesApi = {
     api.get(`/sureties/check-eligibility/${memberId}/`, {
       params: { amount },
     }),
+
+  checkEligibilityBatch: (
+    sureties: Array<{ row_id: string; member_id: number; amount: number }>,
+  ) => api.post(`/sureties/check-eligibility/batch/`, { sureties }),
 };
 
 export const notificationsApi = {

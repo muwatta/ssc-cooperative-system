@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import LoanSuretiesView, MySuretiesView, ConfirmSuretyView, DeclineSuretyView, CheckSuretyEligibilityView
+from .views import LoanSuretiesView, MySuretiesView, ConfirmSuretyView, DeclineSuretyView, CheckSuretyEligibilityView, BatchCheckSuretyEligibilityView
 
 urlpatterns = [
     path("mine/",                              MySuretiesView.as_view(),              name="my-sureties"),
@@ -7,4 +7,5 @@ urlpatterns = [
     path("<int:pk>/confirm/",                  ConfirmSuretyView.as_view(),           name="surety-confirm"),
     path("<int:pk>/decline/",                  DeclineSuretyView.as_view(),           name="surety-decline"),
     path("check-eligibility/<int:member_id>/", CheckSuretyEligibilityView.as_view(),  name="surety-check"),
+    path("check-eligibility/batch/",           BatchCheckSuretyEligibilityView.as_view(), name="surety-check-batch"),
 ]

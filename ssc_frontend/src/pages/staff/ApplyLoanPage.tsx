@@ -1,8 +1,8 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm, useFieldArray } from "react-hook-form";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { loansApi, membersApi, savingsApi } from "@/api/services";
+import { loansApi, membersApi, savingsApi, suretiesApi } from "@/api/services";
 import {
   PageHeader,
   ErrorAlert,
@@ -33,6 +33,11 @@ interface ApplyLoanFormValues {
   sureties?: SuretyFormItem[];
 }
 
+interface SuretyEligibilityResponse {
+  eligible: boolean;
+  reasons: string[];
+}
+
 function SuretyRow({
   index,
   register,
@@ -40,6 +45,10 @@ function SuretyRow({
   watch,
   remove,
   errors,
+  needsExternalSureties,
+  eligibility,
+  isCheckingEligibility,
+  eligibilityError,
 }: {
   index: number;
   register: any;
@@ -47,15 +56,25 @@ function SuretyRow({
   watch: any;
   remove: (index: number) => void;
   errors: any;
+  needsExternalSureties: boolean;
+  eligibility?: SuretyEligibilityResponse;
+  isCheckingEligibility?: boolean;
+  eligibilityError?: unknown;
 }) {
   const searchTerm = watch(`sureties.${index}.member_label`) || "";
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
   const selectedId = watch(`sureties.${index}.member_id`) || 0;
+  const amountValue = Number(watch(`sureties.${index}.amount`)) || 0;
   const [showDropdown, setShowDropdown] = useState(false);
-
   const { data: results } = useQuery<MemberSummary[]>({
-    queryKey: ["member-search", index, searchTerm],
-    queryFn: () => membersApi.summary(searchTerm).then((r) => r.data.results),
-    enabled: searchTerm.length > 2,
+    queryKey: ["member-search", index, debouncedSearch],
+    queryFn: () =>
+      membersApi.summary(debouncedSearch).then((r) => r.data.results),
+    enabled: debouncedSearch.length > 2,
   });
 
   return (
@@ -131,6 +150,35 @@ function SuretyRow({
             <p className="mt-1 text-xs text-red-600">
               {String(errors.sureties[index].member_id.message)}
             </p>
+          )}
+          {selectedId > 0 && amountValue > 0 && needsExternalSureties && (
+            <div className="mt-2 text-sm">
+              {eligibility ? (
+                eligibility.eligible ? (
+                  <p className="text-green-600">
+                    This member is eligible to act as a surety for this amount.
+                  </p>
+                ) : (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700">
+                    {eligibility.reasons.map((reason, i) => (
+                      <p key={i} className="text-xs">
+                        {reason}
+                      </p>
+                    ))}
+                  </div>
+                )
+              ) : isCheckingEligibility ? (
+                <p className="text-blue-600">Checking surety eligibility…</p>
+              ) : eligibilityError ? (
+                <p className="text-red-600">
+                  Failed to validate surety eligibility.
+                </p>
+              ) : (
+                <p className="text-gray-500">
+                  Enter an amount to validate eligibility.
+                </p>
+              )}
+            </div>
           )}
         </div>
 
@@ -276,6 +324,117 @@ export default function ApplyLoanPage() {
     amountApplied > selfSuretyMax && amountApplied <= maxBorrowable;
   const exceedsMax = amountApplied > maxBorrowable;
 
+  const suretyRows = fields.map((field, index) => ({
+    id: field.id,
+    member_id: Number(sureties[index]?.member_id) || 0,
+    amount: Number(sureties[index]?.amount) || 0,
+  }));
+
+  const externalSureties = suretyRows.filter((row) => row.member_id > 0);
+  const completeSureties = externalSureties.filter((row) => row.amount > 0);
+  const batchEligibilityPayload = completeSureties.map((row) => ({
+    row_id: row.id,
+    member_id: row.member_id,
+    amount: row.amount,
+  }));
+
+  const {
+    data: batchEligibility,
+    isFetching: isCheckingEligibility,
+    error: batchEligibilityError,
+  } = useQuery({
+    queryKey: ["surety-eligibility-batch", batchEligibilityPayload],
+    queryFn: () =>
+      suretiesApi
+        .checkEligibilityBatch(batchEligibilityPayload)
+        .then((r) => r.data),
+    enabled: needsExternalSureties && batchEligibilityPayload.length > 0,
+    staleTime: 1000 * 60,
+  });
+
+  const eligibilityByRowId = useMemo(() => {
+    const map: Record<string, SuretyEligibilityResponse> = {};
+    if (!batchEligibility?.results) return map;
+
+    for (const item of batchEligibility.results) {
+      if (typeof item.row_id === "string") {
+        map[item.row_id] = {
+          eligible: item.eligible,
+          reasons: item.reasons,
+        };
+      }
+    }
+    return map;
+  }, [batchEligibility]);
+
+  const externalTotal = externalSureties.reduce(
+    (sum, row) => sum + row.amount,
+    0,
+  );
+  const suretyGap = Math.max(0, amountApplied - selfSuretyMax);
+  const sufficientSuretyGap = externalTotal >= suretyGap;
+  const allExternalSuretiesValidated = useMemo(
+    () =>
+      externalSureties.length === 0 ||
+      externalSureties.every(
+        (row) =>
+          row.amount > 0 && eligibilityByRowId[row.id]?.eligible === true,
+      ),
+    [externalSureties, eligibilityByRowId],
+  );
+
+  const hasInvalidSurety = useMemo(
+    () =>
+      externalSureties.some(
+        (row) =>
+          row.amount > 0 && eligibilityByRowId[row.id]?.eligible === false,
+      ),
+    [externalSureties, eligibilityByRowId],
+  );
+
+  const blockReasons = useMemo(() => {
+    const reasons: string[] = [];
+    if (!canApply)
+      reasons.push("You are currently ineligible to apply for a loan.");
+    if (exceedsMax)
+      reasons.push(
+        `Requested amount exceeds maximum borrowable (${formatNaira(maxBorrowable)}).`,
+      );
+    if (needsExternalSureties && externalSureties.length === 0)
+      reasons.push("External sureties are required for this amount.");
+    if (needsExternalSureties && !sufficientSuretyGap)
+      reasons.push(
+        `External sureties total ₦${externalTotal.toLocaleString()} does not cover the gap of ₦${suretyGap.toLocaleString()}.`,
+      );
+    if (hasInvalidSurety)
+      reasons.push(
+        "One or more selected sureties do not meet eligibility requirements.",
+      );
+    if (
+      needsExternalSureties &&
+      externalSureties.length > 0 &&
+      !allExternalSuretiesValidated
+    ) {
+      reasons.push(
+        "Complete and validate all surety selections before submitting.",
+      );
+    }
+    if (batchEligibilityError)
+      reasons.push("Unable to validate surety eligibility. Please try again.");
+    return reasons;
+  }, [
+    canApply,
+    exceedsMax,
+    needsExternalSureties,
+    externalSureties.length,
+    sufficientSuretyGap,
+    externalTotal,
+    suretyGap,
+    hasInvalidSurety,
+    allExternalSuretiesValidated,
+    batchEligibilityError,
+  ]);
+
   // Clear extra surety rows when not needed
   useEffect(() => {
     if (!needsExternalSureties && fields.length > 1) {
@@ -402,9 +561,14 @@ export default function ApplyLoanPage() {
   const sufficientSureties =
     !needsExternalSureties ||
     (needsExternalSureties &&
-      sureties.filter((s: SuretyFormItem) => s.member_id > 0).length > 0);
+      externalSureties.length > 0 &&
+      sufficientSuretyGap);
   const isSubmitDisabled =
-    isApplying || !canApply || exceedsMax || !sufficientSureties;
+    isApplying ||
+    !canApply ||
+    exceedsMax ||
+    !sufficientSureties ||
+    (needsExternalSureties && !allExternalSuretiesValidated);
 
   return (
     <div className="mx-auto max-w-3xl p-4 md:p-6">
@@ -804,6 +968,10 @@ export default function ApplyLoanPage() {
                         watch={watch}
                         remove={remove}
                         errors={errors}
+                        needsExternalSureties={needsExternalSureties}
+                        eligibility={eligibilityByRowId[field.id]}
+                        isCheckingEligibility={isCheckingEligibility}
+                        eligibilityError={batchEligibilityError}
                       />
                     ))}
                   </div>
@@ -816,6 +984,17 @@ export default function ApplyLoanPage() {
                       </p>
                     </div>
                   )}
+                </div>
+              )}
+
+              {blockReasons.length > 0 && (
+                <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  <p className="font-semibold">Submission blocked</p>
+                  <ul className="mt-2 list-inside list-disc">
+                    {blockReasons.map((r, i) => (
+                      <li key={i}>{r}</li>
+                    ))}
+                  </ul>
                 </div>
               )}
 

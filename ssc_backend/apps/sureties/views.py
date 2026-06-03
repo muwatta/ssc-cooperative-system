@@ -74,7 +74,7 @@ class DeclineSuretyView(APIView):
 
 class CheckSuretyEligibilityView(APIView):
     """GET /api/v1/sureties/check-eligibility/<member_id>/?amount=50000"""
-    permission_classes = [IsAdminOrCommittee]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, member_id):
         from apps.accounts.models import MemberProfile
@@ -94,3 +94,52 @@ class CheckSuretyEligibilityView(APIView):
             "max_can_commit":      str((balance.available_balance * Decimal("0.85")).quantize(Decimal("0.01"))),
             "consecutive_months":  member.consecutive_savings_months,
         })
+
+
+class BatchCheckSuretyEligibilityView(APIView):
+    """POST /api/v1/sureties/check-eligibility/batch/"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from apps.accounts.models import MemberProfile
+        from apps.savings.services import get_or_create_balance
+
+        sureties = request.data.get("sureties")
+        if not isinstance(sureties, list):
+            return Response({"error": "Expected a list of sureties."}, status=status.HTTP_400_BAD_REQUEST)
+
+        results = []
+        for item in sureties:
+            if not isinstance(item, dict):
+                return Response({"error": "Each surety must be an object."}, status=status.HTTP_400_BAD_REQUEST)
+
+            row_id = item.get("row_id")
+            member_id = item.get("member_id")
+            amount_value = item.get("amount")
+
+            if member_id is None or amount_value is None:
+                return Response({"error": "Each surety must include member_id and amount."}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                member = MemberProfile.objects.get(pk=member_id)
+            except MemberProfile.DoesNotExist:
+                return Response({"error": f"Member {member_id} not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            try:
+                amount = Decimal(str(amount_value))
+            except Exception:
+                return Response({"error": "Invalid surety amount."}, status=status.HTTP_400_BAD_REQUEST)
+
+            balance = get_or_create_balance(member)
+            eligibility = check_surety_eligibility(member, amount)
+            results.append({
+                "row_id": row_id,
+                "member_id": member_id,
+                "amount": str(amount.quantize(Decimal("0.01"))),
+                **eligibility,
+                "available_balance": str(balance.available_balance),
+                "max_can_commit": str((balance.available_balance * Decimal("0.85")).quantize(Decimal("0.01"))),
+                "consecutive_months": member.consecutive_savings_months,
+            })
+
+        return Response({"results": results})

@@ -193,6 +193,7 @@ export type LoanStatus =
   | "under_review"
   | "pending_sureties"
   | "approved"
+  | "pending_admin"
   | "hos_approved"
   | "active"
   | "completed"
@@ -204,6 +205,7 @@ export const LOAN_STATUS_LABELS: Record<LoanStatus, string> = {
   under_review: "Under Review",
   pending_sureties: "Pending Surety Confirmation",
   approved: "Committee Approved",
+  pending_admin: "Pending Admin Approval",
   hos_approved: "HOS Approved — Active",
   active: "Active",
   completed: "Completed",
@@ -216,6 +218,7 @@ export const LOAN_STATUS_COLORS: Record<LoanStatus, string> = {
   under_review: "badge-warning",
   pending_sureties: "badge-warning",
   approved: "badge-primary",
+  pending_admin: "badge-warning",
   hos_approved: "badge-success",
   active: "badge-success",
   completed: "badge-success",
@@ -250,6 +253,7 @@ export interface LoanApplication {
   amount_approved: string | null;
   outstanding_balance: string;
   committee_decision_note: string;
+  admin_final_approval_note?: string;
   application_hijri_month: number | null;
   application_hijri_year: number | null;
   application_hijri_display: string;

@@ -4,15 +4,16 @@ from decimal import Decimal
 
 
 class LoanStatus(models.TextChoices):
-    SUBMITTED  = "submitted",   "Submitted"
-    UNDER_REVIEW = "under_review", "Under Review"
+    SUBMITTED      = "submitted",     "Submitted"
+    UNDER_REVIEW   = "under_review",  "Under Review"
     PENDING_SURETIES = "pending_sureties", "Pending Surety Confirmation"
-    APPROVED   = "approved",    "Committee Approved"
-    HOS_APPROVED = "hos_approved", "HOS Approved — Active"
-    ACTIVE     = "active",      "Active"
-    COMPLETED  = "completed",   "Completed"
-    REJECTED   = "rejected",    "Rejected"
-    DEFAULTED  = "defaulted",   "Defaulted"
+    APPROVED       = "approved",      "Committee Approved"
+    PENDING_ADMIN  = "pending_admin", "Pending Admin Approval"
+    HOS_APPROVED   = "hos_approved",  "HOS Approved — Active"
+    ACTIVE         = "active",        "Active"
+    COMPLETED      = "completed",     "Completed"
+    REJECTED       = "rejected",      "Rejected"
+    DEFAULTED      = "defaulted",     "Defaulted"
 
 
 class LoanConfiguration(models.Model):
@@ -146,6 +147,7 @@ class LoanApplication(models.Model):
     )
     committee_reviewed_at   = models.DateTimeField(null=True, blank=True)
     committee_decision_note = models.TextField(blank=True, default="")
+    admin_final_approval_note = models.TextField(blank=True, default="")
 
     hos_approved_by = models.ForeignKey(
         "accounts.User", null=True, blank=True,

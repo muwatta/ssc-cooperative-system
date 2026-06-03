@@ -10,15 +10,15 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 
-from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee, IsAdminOrCommitteeOrHOS, CanApproveLoan
+from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee, IsAdminOrCommitteeOrHOS, IsHeadOfSchool, CanApproveLoan
 from apps.accounts.models import MemberProfile
 from apps.savings.services import get_or_create_balance
 from .models import LoanApplication, LoanRepaymentLedger, LoanStatus
 from .serializers import (
     LoanApplicationSerializer, SubmitLoanSerializer,
-    CommitteeDecisionSerializer, PostRepaymentSerializer,
-    LoanRepaymentLedgerSerializer, LoanEligibilitySerializer,
-    LoanSettingsSerializer,
+    CommitteeDecisionSerializer, AdminFinalApprovalSerializer,
+    PostRepaymentSerializer, LoanRepaymentLedgerSerializer,
+    LoanEligibilitySerializer, LoanSettingsSerializer,
 )
 from .services import (
     check_loan_eligibility, calculate_max_borrowable,
@@ -87,7 +87,7 @@ class LoanApplicationListView(generics.ListAPIView):
     serializer_class = LoanApplicationSerializer
     filter_backends  = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["status"]
-    ordering         = ["-created_at"]
+    ordering         = ["created_at"]
 
     def get_permissions(self):
         return [IsAdminOrCommitteeOrHOS()]
@@ -104,7 +104,7 @@ class MyLoanListView(generics.ListAPIView):
     def get_queryset(self):
         try:
             profile = self.request.user.member_profile
-            return LoanApplication.objects.filter(applicant=profile).order_by("-created_at")
+            return LoanApplication.objects.filter(applicant=profile).order_by("created_at")
         except Exception:
             return LoanApplication.objects.none()
 
@@ -159,8 +159,6 @@ class CommitteeDecisionView(APIView):
         try:
             if d["decision"] == "approve":
                 loan = committee_approve_loan(loan, request.user, d["amount_approved"], d.get("note", ""))
-                loan.status = LoanStatus.APPROVED
-                loan.save(update_fields=["status"])
             else:
                 loan = committee_reject_loan(loan, request.user, d.get("note", ""))
         except ValueError as e:
@@ -174,10 +172,10 @@ class AdminFinalApprovalView(APIView):
 
     def post(self, request, pk):
         try:
-            loan = LoanApplication.objects.get(pk=pk, status=LoanStatus.APPROVED)
+            loan = LoanApplication.objects.get(pk=pk, status=LoanStatus.PENDING_ADMIN)
         except LoanApplication.DoesNotExist:
             return Response(
-                {"error": "Loan not found or not in committee-approved state."},
+                {"error": "Loan not found or not pending admin approval."},
                 status=status.HTTP_404_NOT_FOUND
             )
 
@@ -188,10 +186,36 @@ class AdminFinalApprovalView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
+        serializer = AdminFinalApprovalSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        d = serializer.validated_data
+
         try:
-            loan = admin_final_approve_loan(loan, request.user)
+            loan = admin_final_approve_loan(loan, request.user, d.get("note", ""))
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(LoanApplicationSerializer(loan).data)
+
+
+class HOSApprovalView(APIView):
+    permission_classes = [IsHeadOfSchool]
+
+    def post(self, request, pk):
+        try:
+            loan = LoanApplication.objects.get(
+                pk=pk,
+                status__in=[LoanStatus.APPROVED, LoanStatus.PENDING_ADMIN],
+            )
+        except LoanApplication.DoesNotExist:
+            return Response(
+                {"error": "Loan not found or not in a valid endorsement state."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        loan.hos_approved_by = request.user
+        loan.hos_approved_at = timezone.now()
+        loan.save(update_fields=["hos_approved_by", "hos_approved_at"])
 
         return Response(LoanApplicationSerializer(loan).data)
 

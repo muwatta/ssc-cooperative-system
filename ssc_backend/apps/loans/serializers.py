@@ -25,7 +25,7 @@ class LoanApplicationSerializer(serializers.ModelSerializer):
             "repayment_start_hijri_month", "repayment_start_hijri_year",
             "repayment_end_hijri_month", "repayment_end_hijri_year",
             "status", "amount_approved", "outstanding_balance",
-            "committee_decision_note",
+            "committee_decision_note", "admin_final_approval_note",
             "application_hijri_month", "application_hijri_year", "application_hijri_display",
             "created_at", "updated_at",
         ]
@@ -217,6 +217,14 @@ class CommitteeDecisionSerializer(serializers.Serializer):
         if attrs["decision"] == "approve" and not attrs.get("amount_approved"):
             raise serializers.ValidationError({"amount_approved": "Required when approving."})
         return attrs
+
+
+class AdminFinalApprovalSerializer(serializers.Serializer):
+    note = serializers.CharField(allow_blank=True, default="")
+
+
+class AdminFinalApprovalSerializer(serializers.Serializer):
+    note = serializers.CharField(allow_blank=True, default="")
 
 
 class PostRepaymentSerializer(serializers.Serializer):
