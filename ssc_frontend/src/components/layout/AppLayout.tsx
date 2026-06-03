@@ -280,7 +280,7 @@ export default function AppLayout() {
 
       <aside
         className={clsx(
-          "fixed inset-y-0 left-0 z-50 w-72 overflow-hidden border-r border-gray-200 bg-white transition-transform duration-200 lg:hidden",
+          "fixed inset-y-0 left-0 z-50 flex h-full w-72 flex-col overflow-hidden border-r border-gray-200 bg-white transition-transform duration-200 lg:hidden",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -303,11 +303,12 @@ export default function AppLayout() {
           </button>
         </div>
 
-        <nav className="overflow-y-auto p-4 space-y-2">
+        <nav className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
+              onClick={() => setMobileMenuOpen(false)}
               className={({ isActive }) =>
                 clsx(
                   "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
@@ -319,6 +320,11 @@ export default function AppLayout() {
             >
               <span className="text-base">{item.icon}</span>
               <span className="truncate">{item.label}</span>
+              {item.to === "/savings/change-requests" && pendingCount > 0 && (
+                <span className="ml-auto inline-flex items-center justify-center rounded-full bg-primary-600 px-2 py-0.5 text-xs font-medium text-white">
+                  {pendingCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
