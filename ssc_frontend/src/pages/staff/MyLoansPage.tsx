@@ -122,7 +122,7 @@ export default function MyLoansPage() {
                   {(
                     (parseFloat(activeLoan.outstanding_balance) /
                       parseFloat(activeLoan.amount_applied)) *
-                    100c
+                    100
                   ).toFixed(0)}
                   % remaining
                 </p>
