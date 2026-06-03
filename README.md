@@ -55,13 +55,13 @@ Add deployment URLs:
 ## Production
 
 Frontend:
-https://your-vercel-domain.vercel.app
+https://ssc-cooperative-system.vercel.app/dashboard
 
 Backend:
 https://ssc-cooperative-system.onrender.com
 
 Admin Portal:
-https://ssc-cooperative-system.onrender.com/ssc-coop-admin-secret/
+https://ssc-cooperative-system.onrender.com/admin/
 ```
 
 Add a security section:
