@@ -146,9 +146,9 @@ export default function AppLayout() {
 
   const now = useMemo(() => new Date(), []);
   const gregorianDisplay = now.toLocaleDateString("en-US", {
-    weekday: "long",
+    weekday: "short",
     year: "numeric",
-    month: "long",
+    month: "short",
     day: "numeric",
   });
   const hijriDisplay = formatHijriDisplay(now);
@@ -280,13 +280,11 @@ export default function AppLayout() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700 shadow-sm">
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700 shadow-sm">
               <div className="font-semibold text-gray-900">
                 {gregorianDisplay}
               </div>
-              <div className="mt-0.5 text-xs text-gray-600">
-                Hijri: {hijriDisplay}
-              </div>
+              <div className="text-gray-600">{hijriDisplay}</div>
             </div>
           </div>
 
