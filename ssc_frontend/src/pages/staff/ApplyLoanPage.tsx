@@ -159,13 +159,10 @@ function SuretyRow({
                     This member is eligible to act as a surety for this amount.
                   </p>
                 ) : (
-                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700">
-                    {eligibility.reasons.map((reason, i) => (
-                      <p key={i} className="text-xs">
-                        {reason}
-                      </p>
-                    ))}
-                  </div>
+                  <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700">
+                    This member is not eligible to act as a surety for this
+                    amount.
+                  </p>
                 )
               ) : isCheckingEligibility ? (
                 <p className="text-blue-600">Checking surety eligibility…</p>
