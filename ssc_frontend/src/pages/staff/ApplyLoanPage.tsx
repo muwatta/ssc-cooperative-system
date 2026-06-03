@@ -450,7 +450,7 @@ export default function ApplyLoanPage() {
     }
   }, [monthlyRepayment, setValue]);
 
-  // ---------- DRAFT LOGIC ----------
+  // DRAFT LOGIC
 
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [lastDraftSavedAt, setLastDraftSavedAt] = useState<string | null>(null);
@@ -488,7 +488,7 @@ export default function ApplyLoanPage() {
         ? `Draft saved at ${lastDraftSavedAt}`
         : "";
 
-  // 4. Auto-save on form changes (debounced 2 seconds)
+  // 4. Auto-save on form changes
   const formValues = watch();
 
   useEffect(() => {
@@ -509,14 +509,13 @@ export default function ApplyLoanPage() {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [formValues, draftLoaded]); 
-  // ---------- SUBMIT ----------
+  }, [formValues, draftLoaded]);
 
   const { mutateAsync: applyMutateAsync, isPending: isApplying } = useMutation({
     mutationFn: (data: any) => loansApi.apply(data),
     onError: (e: any) => {
       const d = e?.response?.data;
-      console.error("Loan application error response:", d); // Debug – check browser console
+      console.error("Loan application error response:", d);
 
       if (d?.eligibility) setError(d.eligibility.join(" | "));
       else if (d?.amount_applied) setError(d.amount_applied[0]);
@@ -526,10 +525,8 @@ export default function ApplyLoanPage() {
             ? d.sureties.join(" | ")
             : String(d.sureties),
         );
-      else if (d?.error)
-        setError(d.error); 
-      else if (d?.detail)
-        setError(d.detail);
+      else if (d?.error) setError(d.error);
+      else if (d?.detail) setError(d.detail);
       else
         setError(
           d?.message || "Failed to submit application. Please try again.",
