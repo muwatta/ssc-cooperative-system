@@ -6,27 +6,27 @@ The system provides secure management of members, savings contributions, loans, 
 
 Built with scalability, transparency, and accountability in mind, SSC replaces manual record keeping with a modern cooperative management solution that supports multiple user roles, automated business rules, and real time financial tracking.
 
-### Key Objectives
+## Key Objectives
 
-* Digitize cooperative operations
-* Improve financial transparency
-* Automate loan and surety workflows
-* Reduce administrative workload
-* Provide accurate member financial records
-* Support future growth and branch expansion
+- Digitize cooperative operations
+- Improve financial transparency
+- Automate loan and surety workflows
+- Reduce administrative workload
+- Provide accurate member financial records
+- Support future growth and branch expansion
 
-### Highlights
+## Highlights
 
-* Role based access control (Admin, Committee, HOS, Staff)
-* JWT authentication and secure session management
-* Dynamic loan eligibility engine
-* Intelligent surety validation system
-* Automated savings and balance calculations
-* Draft auto save for loan applications
-* Islamic (Hijri) and Gregorian calendar support
-* Real time dashboard and reporting
-* Scalable REST API architecture
-* Responsive mobile friendly user interface
+- Role based access control (Admin, Committee, HOS, Staff)
+- JWT authentication and secure session management
+- Dynamic loan eligibility engine
+- Intelligent surety validation system
+- Automated savings and balance calculations
+- Draft auto save for loan applications
+- Islamic (Hijri) and Gregorian calendar support
+- Real time dashboard and reporting
+- Scalable REST API architecture
+- Responsive mobile friendly user interface
 
 Developed by Algorise Tech Explorers (ATE).
 
@@ -36,14 +36,14 @@ I would also add a dedicated "System Architecture" section:
 # System Architecture
 
 Frontend (React + TypeScript)
-        │
-        ▼
+│
+▼
 REST API (Django REST Framework)
-        │
-        ▼
+│
+▼
 Business Logic Layer
-        │
-        ▼
+│
+▼
 PostgreSQL Database (Supabase)
 ```
 
@@ -55,13 +55,14 @@ Add deployment URLs:
 ## Production
 
 Frontend:
-https://your-vercel-domain.vercel.app
+https://ssc-cooperative-system.vercel.app/dashboard
 
 Backend:
 https://ssc-cooperative-system.onrender.com
 
-Admin Portal:
-https://ssc-cooperative-system.onrender.com/ssc-coop-admin-secret/
+## Administrative Interface
+
+The system includes a protected Django administrative portal accessible only to authorized personnel.
 ```
 
 Add a security section:
@@ -69,15 +70,15 @@ Add a security section:
 ```markdown
 # Security Features
 
-* JWT Authentication
-* Role Based Authorization
-* Password Hashing
-* Protected API Endpoints
-* Surety Privacy Protection
-* Input Validation
-* CSRF Protection
-* Secure Database Transactions
-* Audit Friendly Financial Records
+- JWT Authentication
+- Role Based Authorization
+- Password Hashing
+- Protected API Endpoints
+- Surety Privacy Protection
+- Input Validation
+- CSRF Protection
+- Secure Database Transactions
+- Audit Friendly Financial Records
 ```
 
 Add screenshots:
@@ -108,6 +109,7 @@ Add a roadmap:
 # Roadmap
 
 ### Version 1.0
+
 - Authentication
 - Member Management
 - Savings Module
@@ -115,16 +117,19 @@ Add a roadmap:
 - Surety Management
 
 ### Version 1.1
+
 - Investment Tracking
 - Advanced Reports
 - Notifications
 
 ### Version 1.2
+
 - Mobile PWA
 - Offline Support
 - Push Notifications
 
 ### Version 2.0
+
 - Multi Branch Cooperative Support
 - Mobile Application
 - Accounting Integration

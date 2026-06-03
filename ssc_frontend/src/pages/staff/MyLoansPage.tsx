@@ -31,7 +31,7 @@ export default function MyLoansPage() {
       queryClient.invalidateQueries({ queryKey: ["my-sureties"] });
     },
   });
-  
+
   const declineSurety = useMutation({
     mutationFn: (id: number) => suretiesApi.decline(id),
     onSuccess: () => {
@@ -43,6 +43,11 @@ export default function MyLoansPage() {
   const pendingSureties = sureties.filter(
     (s: Surety) => s.status === "pending",
   );
+  const activePercent = activeLoan
+    ? (parseFloat(activeLoan.outstanding_balance) /
+        parseFloat(activeLoan.amount_applied)) *
+      100
+    : 0;
   const { isAdmin, isCommittee } = useAuth();
 
   const getStatusColor = (status: string) => {
@@ -103,12 +108,16 @@ export default function MyLoansPage() {
                 <p className="mt-1 text-lg font-bold text-amber-600 md:text-2xl">
                   {formatNaira(activeLoan.outstanding_balance)}
                 </p>
-                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
-                  <div
-                    className="h-full rounded-full bg-amber-500 transition-all"
-                    style={{
-                      width: `${(parseFloat(activeLoan.outstanding_balance) / parseFloat(activeLoan.amount_applied)) * 100}%`,
-                    }}
+                <div className="mt-2">
+                  <progress
+                    role="progressbar"
+                    aria-label="Outstanding balance percentage"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round(activePercent)}
+                    className="w-full h-1.5 overflow-hidden rounded-full bg-gray-200 appearance-none"
+                    value={activePercent}
+                    max={100}
                   />
                 </div>
                 <p className="mt-1 text-xs text-gray-400">

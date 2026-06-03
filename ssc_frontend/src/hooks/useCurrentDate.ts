@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/api/client";
 
 interface CurrentDateResponse {
-  hijri: { month: number; year: number; display: string };
+  hijri: { day: number; month: number; year: number; display: string };
   gregorian: string;
 }
 

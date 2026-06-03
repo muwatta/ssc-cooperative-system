@@ -1,9 +1,8 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/client";
-import { HIJRI_MONTHS } from "@/types";
 import { useCurrentDate } from "@/hooks/useCurrentDate";
 import clsx from "clsx";
 
@@ -49,49 +48,7 @@ function useNavItems(): NavItem[] {
   return shared;
 }
 
-function getHijriDate(date: Date) {
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-
-  const a = Math.floor((14 - month) / 12);
-  const y = year + 4800 - a;
-  const m = month + 12 * a - 3;
-  const julianDay =
-    day +
-    Math.floor((153 * m + 2) / 5) +
-    365 * y +
-    Math.floor(y / 4) -
-    Math.floor(y / 100) +
-    Math.floor(y / 400) -
-    32045;
-
-  const islamicEpoch = 1948439;
-  const days = julianDay - islamicEpoch;
-  const cycle = Math.floor(days / 10631);
-  const cycleDays = days - cycle * 10631;
-  const j =
-    Math.floor((10985 - cycleDays) / 5316) *
-      Math.floor((50 * cycleDays) / 17729) +
-    Math.floor(cycleDays / 5670) * Math.floor((43 * cycleDays) / 15238);
-  const l =
-    cycleDays -
-    Math.floor((30 - j) / 15) * Math.floor((17729 * j) / 50) -
-    Math.floor(j / 16) * Math.floor((15238 * j) / 43) +
-    29;
-  const hijriMonth = Math.floor((24 * l) / 709);
-  const hijriDay = l - Math.floor((709 * hijriMonth) / 24);
-  const hijriYear = 30 * cycle + j - 30;
-
-  return { day: hijriDay, month: hijriMonth, year: hijriYear };
-}
-
-function formatHijriDisplay(date: Date) {
-  const { day, month, year } = getHijriDate(date);
-  const monthLabel =
-    HIJRI_MONTHS.find((item) => item.value === month)?.label || "Hijri";
-  return `${day} ${monthLabel} ${year}`;
-}
+// Hijri conversion is now provided by the backend endpoint; remove local conversion.
 
 export default function AppLayout() {
   const { user, logout, isAdmin, isCommittee } = useAuth();
@@ -146,14 +103,7 @@ export default function AppLayout() {
     staff: "badge-gray",
   }[user?.role ?? "staff"];
 
-  const now = useMemo(() => new Date(), []);
-  const gregorianDisplay = now.toLocaleDateString("en-US", {
-    weekday: "short",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-  const hijriDisplay = formatHijriDisplay(now);
+  // Dates are provided by the backend via `useCurrentDate` hook
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -282,12 +232,7 @@ export default function AppLayout() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700 shadow-sm">
-              <div className="font-semibold text-gray-900">
-                {gregorianDisplay}
-              </div>
-              <div className="text-gray-600">{hijriDisplay}</div>
-            </div>
+            {/* date badge removed; banner below shows canonical date */}
           </div>
 
           <div className="flex items-center gap-2">
@@ -314,16 +259,38 @@ export default function AppLayout() {
           </div>
         </header>
 
-        {/* Date Banner */}
-        <div className="flex items-center justify-center gap-2 bg-primary-50 px-4 py-2 text-sm text-gray-700 border-b border-gray-200">
-          <span className="text-gray-500">📅 Today</span>
-          <span className="font-medium text-gray-800">
-            {currentDate?.gregorian ?? "…"}
-          </span>
-          <span className="text-gray-400">|</span>
-          <span className="font-semibold text-primary-700">
-            {currentDate?.hijri.display ?? "…"} AH
-          </span>
+        {/* Date Banner (single canonical date display) */}
+        <div className="bg-primary-50 border-b border-gray-200 text-sm text-gray-700 px-3 py-2">
+          <div className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center sm:justify-between gap-1">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <span>📅</span>
+              <span className="hidden sm:inline">Today</span>
+            </div>
+
+            <div className="flex-1 text-center sm:text-left truncate">
+              <span className="font-medium text-gray-800">
+                {currentDate?.gregorian
+                  ? new Date(currentDate.gregorian).toLocaleDateString(
+                      undefined,
+                      {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      },
+                    )
+                  : "…"}
+              </span>
+            </div>
+
+            <div className="mt-0 sm:mt-0 flex items-center gap-2 text-sm text-primary-700">
+              <span className="font-semibold truncate">
+                {currentDate?.hijri?.display
+                  ? `${currentDate.hijri.display} AH`
+                  : "…"}
+              </span>
+            </div>
+          </div>
         </div>
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
