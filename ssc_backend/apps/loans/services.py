@@ -63,7 +63,6 @@ def calculate_max_borrowable(member: MemberProfile) -> Decimal:
     return (balance.available_balance * config.max_borrowable_ratio).quantize(Decimal("0.01"))
 
 @transaction.atomic
-@transaction.atomic
 def submit_loan_application(member: MemberProfile, data: dict, sureties: list = None) -> LoanApplication:
     # Auto-set repayment start to the next Hijri month
     from utils.hijri import current_hijri

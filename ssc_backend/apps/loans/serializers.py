@@ -200,10 +200,14 @@ class SubmitLoanSerializer(serializers.Serializer):
                     )
                 })
         else:
-            if attrs.get("sureties"):
+            # If amount is within self-surety max, sureties should be empty or omitted
+            sureties = attrs.get("sureties", [])
+            if sureties and len(sureties) > 0:
                 raise serializers.ValidationError({
                     "sureties": "External sureties are not required for this amount."
                 })
+            # Ensure sureties is always an empty list if not needed
+            attrs["sureties"] = []
 
         return attrs
 

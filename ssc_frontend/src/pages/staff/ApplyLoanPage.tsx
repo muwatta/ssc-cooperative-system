@@ -457,23 +457,22 @@ export default function ApplyLoanPage() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 1. Fetch existing draft on mount
-  const { data: draftData } = useQuery({
+  const { data: draftData, isLoading: draftIsLoading } = useQuery({
     queryKey: ["loan-draft"],
     queryFn: () => loansApi.getDraft(),
     staleTime: 0,
+    retry: false,
   });
 
   // 2. Populate form with draft data (only once after load)
   useEffect(() => {
-    if (
-      draftData?.data &&
-      Object.keys(draftData.data).length > 0 &&
-      !draftLoaded
-    ) {
-      reset(draftData.data as unknown as ApplyLoanFormValues);
+    if (!draftLoaded && !draftIsLoading) {
+      if (draftData?.data && Object.keys(draftData.data).length > 0) {
+        reset(draftData.data as unknown as ApplyLoanFormValues);
+      }
+      setDraftLoaded(true);
     }
-    setDraftLoaded(true);
-  }, [draftData, reset, draftLoaded]);
+  }, [draftIsLoading, draftLoaded, draftData, reset]);
 
   // 3. Save draft mutation
   const saveDraftMutation = useMutation({
@@ -537,7 +536,8 @@ export default function ApplyLoanPage() {
     if (needsExternalSureties) {
       payload.sureties = (data.sureties ?? []).filter((s) => s.member_id > 0);
     } else {
-      delete payload.sureties;
+      // Send empty array for self-surety only loans
+      payload.sureties = [];
     }
 
     try {
