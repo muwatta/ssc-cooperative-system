@@ -47,15 +47,30 @@ def check_loan_eligibility(member: MemberProfile) -> dict:
     loans_this_year = LoanApplication.objects.filter(
         applicant=member,
         created_at__year=current_year,
-        status__in=[LoanStatus.ACTIVE, LoanStatus.APPROVED, LoanStatus.COMPLETED]  # removed HOS_APPROVED
+        status__in=[LoanStatus.ACTIVE, LoanStatus.APPROVED, LoanStatus.COMPLETED]
     ).count()
     if loans_this_year >= config.max_loans_per_year:
         reasons.append(
             f"Maximum {config.max_loans_per_year} approved loans per year reached."
         )
 
-    return {"eligible": len(reasons) == 0, "reasons": reasons}
+    # 5. Only one pending application at a time
+    pending_statuses = [
+        LoanStatus.SUBMITTED,
+        LoanStatus.UNDER_REVIEW,
+        LoanStatus.PENDING_SURETIES,
+        LoanStatus.PENDING_ADMIN,
+    ]
+    if LoanApplication.objects.filter(
+        applicant=member,
+        status__in=pending_statuses
+    ).exists():
+        reasons.append(
+            "You already have a loan application that is still under review. "
+            "Please wait for a final decision before applying again."
+        )
 
+    return {"eligible": len(reasons) == 0, "reasons": reasons}
 
 def calculate_max_borrowable(member: MemberProfile) -> Decimal:
     config = get_loan_configuration()
@@ -174,7 +189,6 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
 
 @transaction.atomic
 def committee_approve_loan(loan: LoanApplication, approved_by, amount_approved: Decimal, note: str = "") -> LoanApplication:
-    """SRS L10 stage 1 — committee chairman approval"""
     if loan.status not in (LoanStatus.SUBMITTED, LoanStatus.UNDER_REVIEW, LoanStatus.PENDING_SURETIES):
         raise ValueError("Loan is not in a reviewable state.")
 
@@ -190,7 +204,6 @@ def committee_approve_loan(loan: LoanApplication, approved_by, amount_approved: 
 
 @transaction.atomic
 def committee_reject_loan(loan: LoanApplication, rejected_by, note: str = "") -> LoanApplication:
-    """Committee rejects a loan application"""
     loan.status = LoanStatus.REJECTED
     loan.committee_reviewed_by = rejected_by
     loan.committee_reviewed_at = timezone.now()
@@ -232,19 +245,13 @@ def admin_final_approve_loan(loan: LoanApplication, admin_user, note: str = "") 
     return loan
 
 @transaction.atomic
-@transaction.atomic
-@transaction.atomic
 def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hijri_year: int, posted_by) -> LoanRepaymentLedger:
-    """
-    SRS Rules L7, S6 — manual repayment posting.
-    Reduces outstanding balance, credits savings, releases sureties proportionally.
-    Auto-closes loan when balance reaches zero.
-    """
+
     if loan.status != LoanStatus.ACTIVE:
         raise ValueError("Can only post repayment to an active loan.")
 
     if amount > loan.outstanding_balance:
-        amount = loan.outstanding_balance  # Allow exact final payment
+        amount = loan.outstanding_balance 
 
     balance_before = loan.outstanding_balance
     balance_after  = balance_before - amount
