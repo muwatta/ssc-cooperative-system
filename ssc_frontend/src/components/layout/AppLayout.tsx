@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/client";
+import { HIJRI_MONTHS } from "@/types";
 import clsx from "clsx";
 
 interface NavItem {
@@ -45,6 +46,50 @@ function useNavItems(): NavItem[] {
   if (isCommittee) return [...shared, ...committeeItems];
   if (isHOS) return [...shared, ...hosItems];
   return shared;
+}
+
+function getHijriDate(date: Date) {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+
+  const a = Math.floor((14 - month) / 12);
+  const y = year + 4800 - a;
+  const m = month + 12 * a - 3;
+  const julianDay =
+    day +
+    Math.floor((153 * m + 2) / 5) +
+    365 * y +
+    Math.floor(y / 4) -
+    Math.floor(y / 100) +
+    Math.floor(y / 400) -
+    32045;
+
+  const islamicEpoch = 1948439;
+  const days = julianDay - islamicEpoch;
+  const cycle = Math.floor(days / 10631);
+  const cycleDays = days - cycle * 10631;
+  const j =
+    Math.floor((10985 - cycleDays) / 5316) *
+      Math.floor((50 * cycleDays) / 17729) +
+    Math.floor(cycleDays / 5670) * Math.floor((43 * cycleDays) / 15238);
+  const l =
+    cycleDays -
+    Math.floor((30 - j) / 15) * Math.floor((17729 * j) / 50) -
+    Math.floor(j / 16) * Math.floor((15238 * j) / 43) +
+    29;
+  const hijriMonth = Math.floor((24 * l) / 709);
+  const hijriDay = l - Math.floor((709 * hijriMonth) / 24);
+  const hijriYear = 30 * cycle + j - 30;
+
+  return { day: hijriDay, month: hijriMonth, year: hijriYear };
+}
+
+function formatHijriDisplay(date: Date) {
+  const { day, month, year } = getHijriDate(date);
+  const monthLabel =
+    HIJRI_MONTHS.find((item) => item.value === month)?.label || "Hijri";
+  return `${day} ${monthLabel} ${year}`;
 }
 
 export default function AppLayout() {
@@ -98,6 +143,15 @@ export default function AppLayout() {
     head_of_school: "badge-success",
     staff: "badge-gray",
   }[user?.role ?? "staff"];
+
+  const now = useMemo(() => new Date(), []);
+  const gregorianDisplay = now.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const hijriDisplay = formatHijriDisplay(now);
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -199,31 +253,44 @@ export default function AppLayout() {
       </aside>
 
       <div className="flex flex-col flex-1 overflow-hidden">
-        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 lg:px-6">
-          <button
-            onClick={handleToggleSidebar}
-            className="btn-ghost p-2 rounded-md text-gray-700 hover:bg-gray-100 lg:hidden"
-          >
-            ☰
-          </button>
+        <header className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 py-3 flex flex-col gap-3 lg:px-6">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleToggleSidebar}
+                className="btn-ghost p-2 rounded-md text-gray-700 hover:bg-gray-100 lg:hidden"
+              >
+                ☰
+              </button>
 
-          <button
-            onClick={handleToggleSidebar}
-            className="btn-ghost p-2 rounded-md text-gray-700 hover:bg-gray-100 hidden lg:inline-flex"
-          >
-            {sidebarOpen ? "⟨" : "⟩"}
-          </button>
+              <button
+                onClick={handleToggleSidebar}
+                className="btn-ghost p-2 rounded-md text-gray-700 hover:bg-gray-100 hidden lg:inline-flex"
+              >
+                {sidebarOpen ? "⟨" : "⟩"}
+              </button>
 
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold text-gray-900">
-              SSC Cooperative
-            </p>
-            <p className="text-xs text-gray-500">
-              Quick access to your dashboard and reports
-            </p>
+              <div className="flex flex-col gap-1">
+                <p className="text-sm font-semibold text-gray-900">
+                  SSC Cooperative
+                </p>
+                <p className="text-xs text-gray-500">
+                  Quick access to your dashboard and reports
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700 shadow-sm">
+              <div className="font-semibold text-gray-900">
+                {gregorianDisplay}
+              </div>
+              <div className="mt-0.5 text-xs text-gray-600">
+                Hijri: {hijriDisplay}
+              </div>
+            </div>
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => navigate(-1)}
@@ -238,12 +305,12 @@ export default function AppLayout() {
             >
               Next →
             </button>
-          </div>
 
-          <div className="hidden md:flex items-center gap-2 rounded-full bg-gray-100 px-3 py-2 text-sm text-gray-700">
-            <span className="font-semibold">
-              {(user?.full_name || user?.staff_id) ?? "Guest"}
-            </span>
+            <div className="hidden md:flex items-center gap-2 rounded-full bg-gray-100 px-3 py-2 text-sm text-gray-700 ml-auto">
+              <span className="font-semibold">
+                {(user?.full_name || user?.staff_id) ?? "Guest"}
+              </span>
+            </div>
           </div>
         </header>
 
