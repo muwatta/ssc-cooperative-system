@@ -69,7 +69,7 @@ export default function LoanDetailPage() {
     queryFn: async () => {
       try {
         const res = await loansApi.repaymentHistory(loanId!);
-        return res.data || [];
+        return res.data?.results ?? [];
       } catch {
         return [];
       }
