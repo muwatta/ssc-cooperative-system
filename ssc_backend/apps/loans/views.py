@@ -13,9 +13,9 @@ from django_filters.rest_framework import DjangoFilterBackend
 from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee, IsAdminOrCommitteeOrHOS, IsHeadOfSchool, CanApproveLoan
 from apps.accounts.models import MemberProfile
 from apps.savings.services import get_or_create_balance
-from .models import LoanApplication, LoanRepaymentLedger, LoanStatus
+from .models import LoanApplication, LoanRepaymentLedger, LoanStatus, LoanDraft
 from .serializers import (
-    LoanApplicationSerializer, SubmitLoanSerializer,
+    LoanApplicationSerializer, LoanDraftSerializer, SubmitLoanSerializer,
     CommitteeDecisionSerializer, AdminFinalApprovalSerializer,
     PostRepaymentSerializer, LoanRepaymentLedgerSerializer,
     LoanEligibilitySerializer, LoanSettingsSerializer,
@@ -430,3 +430,28 @@ class TaskStatusView(APIView):
             "result": task.result if task.status == "SUCCESS" else None,
             "error": str(task.info) if task.status == "FAILURE" else None,
         })
+    
+
+
+class LoanDraftView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            profile = request.user.member_profile
+        except Exception:
+            return Response({"error": "No member profile."}, status=status.HTTP_404_NOT_FOUND)
+
+        draft, _ = LoanDraft.objects.get_or_create(applicant=profile)
+        return Response(LoanDraftSerializer(draft).data)
+
+    def post(self, request):
+        try:
+            profile = request.user.member_profile
+        except Exception:
+            return Response({"error": "No member profile."}, status=status.HTTP_404_NOT_FOUND)
+
+        draft, _ = LoanDraft.objects.get_or_create(applicant=profile)
+        draft.data = request.data.get("data", {})
+        draft.save()
+        return Response(LoanDraftSerializer(draft).data)

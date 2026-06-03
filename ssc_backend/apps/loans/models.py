@@ -94,10 +94,8 @@ class LoanConfiguration(models.Model):
         return obj
 
 
+
 class LoanApplication(models.Model):
-    """
-    SRS Section 5.4 — mirrors physical SSC Ordinary Loan form exactly.
-    """
     applicant  = models.ForeignKey(
         "accounts.MemberProfile",
         on_delete=models.PROTECT,
@@ -202,3 +200,20 @@ class LoanRepaymentLedger(models.Model):
 
     def __str__(self):
         return f"Loan {self.loan_id} | {self.hijri_display} | ₦{self.amount}"
+
+
+class LoanDraft(models.Model):
+    applicant = models.OneToOneField(
+        "accounts.MemberProfile",
+        on_delete=models.CASCADE,
+        related_name="loan_draft"
+    )
+    data = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "ssc_loan_drafts"
+
+    def __str__(self):
+        return f"Draft for {self.applicant.file_number}"

@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    AdminFinalApprovalView, HOSApprovalView, LoanEligibilityView, LoanApplicationListView, MyLoanListView,
+    AdminFinalApprovalView, HOSApprovalView, LoanDraftView, LoanEligibilityView, LoanApplicationListView, MyLoanListView,
     SubmitLoanView, CommitteeDecisionView,
     PostRepaymentView, LoanRepaymentHistoryView, LoanRepaymentExportView,
     LoanDetailView, HandleDefaultView, LoanSettingsView,
@@ -10,6 +10,7 @@ from .views import (
 urlpatterns = [
     path("eligibility/",                   LoanEligibilityView.as_view(),         name="loan-eligibility"),
     path("settings/",                      LoanSettingsView.as_view(),            name="loan-settings"),
+    path("draft/",                         LoanDraftView.as_view(),                name="loan-draft"),
     path("",                               LoanApplicationListView.as_view(),      name="loan-list"),
     path("mine/",                          MyLoanListView.as_view(),               name="my-loans"),
     path("apply/",                         SubmitLoanView.as_view(),               name="loan-apply"),

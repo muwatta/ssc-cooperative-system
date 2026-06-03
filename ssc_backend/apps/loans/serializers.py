@@ -2,10 +2,11 @@
 
 from rest_framework import serializers
 from decimal import Decimal
-from .models import LoanApplication, LoanRepaymentLedger, LoanStatus, LoanConfiguration
+from .models import LoanApplication, LoanRepaymentLedger, LoanStatus, LoanConfiguration, LoanDraft
 from .services import calculate_max_borrowable, check_loan_eligibility, get_loan_configuration
 from apps.sureties.serializers import SuretyRecordSerializer
-from apps.accounts.models import MemberProfile   # <-- added this import
+from apps.accounts.models import MemberProfile 
+
 
 
 class LoanApplicationSerializer(serializers.ModelSerializer):
@@ -285,3 +286,11 @@ class LoanSettingsSerializer(serializers.ModelSerializer):
             "require_no_active_loan",
             "require_no_surety_liabilities",
         ]
+
+from .models import LoanApplication, LoanRepaymentLedger, LoanStatus, LoanConfiguration, LoanDraft
+
+class LoanDraftSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LoanDraft
+        fields = ["id", "data", "updated_at"]
+        read_only_fields = ["id", "updated_at"]
