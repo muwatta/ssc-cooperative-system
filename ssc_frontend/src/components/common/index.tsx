@@ -5,7 +5,7 @@ import {
   type ComponentPropsWithoutRef,
   type ReactNode,
 } from "react";
-import { motion } from "framer-motion";
+import { motion, type HTMLMotionProps } from "framer-motion";
 import { useCurrentDate } from "@/hooks/useCurrentDate";
 import { Link } from "react-router-dom";
 import type {
@@ -120,7 +120,7 @@ const sectionFade = {
   visible: { opacity: 1, y: 0 },
 };
 
-export function AnimatedCard(props: ComponentPropsWithoutRef<"div">) {
+export function AnimatedCard(props: HTMLMotionProps<"div">) {
   const { className = "", ...rest } = props;
   return (
     <motion.div
