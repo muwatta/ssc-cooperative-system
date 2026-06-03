@@ -1,11 +1,12 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm, useFieldArray } from "react-hook-form";
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { loansApi, membersApi, savingsApi } from "@/api/services";
 import {
   PageHeader,
   ErrorAlert,
-  SuccessAlert,
+  Spinner,
   formatNaira,
   PageLoader,
 } from "@/components/common";
@@ -189,8 +190,8 @@ function SuretyRow({
 }
 
 export default function ApplyLoanPage() {
-  const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   // Get member profile and balance
   const { data: profile } = useQuery({
@@ -247,7 +248,7 @@ export default function ApplyLoanPage() {
     watch,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<ApplyLoanFormValues>({
     defaultValues: {
       amount_applied: "",
@@ -269,6 +270,7 @@ export default function ApplyLoanPage() {
   const amountApplied = Number(watch("amount_applied")) || 0;
   const duration = watch("proposed_duration_months") || 6;
   const monthlyRepayment = duration > 0 ? amountApplied / duration : 0;
+  const sureties = watch("sureties") ?? [];
 
   const needsExternalSureties =
     amountApplied > selfSuretyMax && amountApplied <= maxBorrowable;
@@ -292,6 +294,7 @@ export default function ApplyLoanPage() {
   // ---------- DRAFT LOGIC ----------
 
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [lastDraftSavedAt, setLastDraftSavedAt] = useState<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 1. Fetch existing draft on mount
@@ -316,7 +319,16 @@ export default function ApplyLoanPage() {
   // 3. Save draft mutation
   const saveDraftMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => loansApi.saveDraft(data),
+    onSuccess: () => setLastDraftSavedAt(new Date().toLocaleTimeString()),
   });
+
+  const draftStatus = saveDraftMutation.isPending
+    ? "Saving draft…"
+    : saveDraftMutation.isError
+      ? "Draft save failed"
+      : lastDraftSavedAt
+        ? `Draft saved at ${lastDraftSavedAt}`
+        : "";
 
   // 4. Auto-save on form changes (debounced 2 seconds)
   const formValues = watch();
@@ -343,16 +355,8 @@ export default function ApplyLoanPage() {
 
   // ---------- SUBMIT ----------
 
-  const applyMutation = useMutation({
+  const { mutateAsync: applyMutateAsync, isPending: isApplying } = useMutation({
     mutationFn: (data: any) => loansApi.apply(data),
-    onSuccess: () => {
-      setSuccess(
-        "✓ Loan application submitted successfully! Awaiting committee review.",
-      );
-      setError("");
-      saveDraftMutation.mutate({ data: {} });
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    },
     onError: (e: any) => {
       const d = e?.response?.data;
       if (d?.eligibility) setError(d.eligibility.join(" | "));
@@ -364,28 +368,43 @@ export default function ApplyLoanPage() {
             : String(d.sureties),
         );
       else setError("Failed to submit application. Please try again.");
-      setSuccess("");
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
   });
 
-  const onSubmit = (data: ApplyLoanFormValues) => {
-    const payload = { ...data };
+  const onSubmit = async (data: ApplyLoanFormValues) => {
+    setError("");
+    const payload: Record<string, unknown> = { ...data };
     if (needsExternalSureties) {
       payload.sureties = (data.sureties ?? []).filter((s) => s.member_id > 0);
     } else {
       delete payload.sureties;
     }
-    applyMutation.mutate(payload);
+
+    try {
+      const response = await applyMutateAsync(payload);
+      saveDraftMutation.mutate({ data: {} });
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      navigate("/loans/success", {
+        replace: true,
+        state: {
+          amount: data.amount_applied,
+          loanId: response.data?.id,
+        },
+      });
+    } catch {
+      // error handled by mutation onError
+    }
   };
 
   if (isLoading) return <PageLoader />;
 
   const sufficientSureties =
     !needsExternalSureties ||
-    (needsExternalSureties && fields.filter((f) => f.member_id > 0).length > 0);
+    (needsExternalSureties &&
+      sureties.filter((s: SuretyFormItem) => s.member_id > 0).length > 0);
   const isSubmitDisabled =
-    isSubmitting || !canApply || exceedsMax || !sufficientSureties;
+    isApplying || !canApply || exceedsMax || !sufficientSureties;
 
   return (
     <div className="mx-auto max-w-3xl p-4 md:p-6">
@@ -394,6 +413,12 @@ export default function ApplyLoanPage() {
         subtitle="Submit a new loan application for committee review"
         back={{ to: "/my-loans", label: "Back to My Loans" }}
       />
+
+      {draftStatus && (
+        <div className="mb-4 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 shadow-sm">
+          {draftStatus}
+        </div>
+      )}
 
       {/* Eligibility Card */}
       <div
@@ -466,9 +491,12 @@ export default function ApplyLoanPage() {
         </div>
       </div>
 
-      {success && (
-        <div className="mb-4">
-          <SuccessAlert message={success} />
+      {isApplying && (
+        <div className="mb-4 rounded-lg border border-primary-200 bg-primary-50 p-4 text-primary-800">
+          <div className="flex items-center gap-2">
+            <Spinner size="sm" />
+            <span>Processing your loan application, please wait…</span>
+          </div>
         </div>
       )}
       {error && (
@@ -796,7 +824,14 @@ export default function ApplyLoanPage() {
                 disabled={isSubmitDisabled}
                 className="w-full transform rounded-lg bg-primary-600 px-6 py-3 text-base font-semibold text-white transition-all hover:bg-primary-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? "Submitting..." : "Submit Loan Application"}
+                {isApplying ? (
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <span className="inline-flex h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Submitting...
+                  </span>
+                ) : (
+                  "Submit Loan Application"
+                )}
               </button>
               <p className="text-center text-xs text-gray-500">
                 By submitting this application, you confirm that all information
