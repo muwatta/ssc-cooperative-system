@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/client";
 import { HIJRI_MONTHS } from "@/types";
+import { useCurrentDate } from "@/hooks/useCurrentDate";
 import clsx from "clsx";
 
 interface NavItem {
@@ -100,6 +101,7 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const navItems = useNavItems();
+  const { data: currentDate } = useCurrentDate();
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -311,6 +313,18 @@ export default function AppLayout() {
             </div>
           </div>
         </header>
+
+        {/* Date Banner */}
+        <div className="flex items-center justify-center gap-2 bg-primary-50 px-4 py-2 text-sm text-gray-700 border-b border-gray-200">
+          <span className="text-gray-500">📅 Today</span>
+          <span className="font-medium text-gray-800">
+            {currentDate?.gregorian ?? "…"}
+          </span>
+          <span className="text-gray-400">|</span>
+          <span className="font-semibold text-primary-700">
+            {currentDate?.hijri.display ?? "…"} AH
+          </span>
+        </div>
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <Outlet />

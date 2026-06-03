@@ -2,10 +2,12 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
 from apps.accounts.views import SSCTokenObtainPairView, LogoutView
+from apps.core.views import CurrentDateView
 
 
 urlpatterns = [
     path("ssc-coop-admin-secret/", admin.site.urls),
+    path("api/v1/date/", CurrentDateView.as_view(), name="current-date"),
     path("api/v1/auth/login/", SSCTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/v1/auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/v1/auth/logout/", LogoutView.as_view(), name="logout"),
