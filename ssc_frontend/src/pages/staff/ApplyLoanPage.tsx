@@ -509,14 +509,15 @@ export default function ApplyLoanPage() {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [formValues, draftLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  }, [formValues, draftLoaded]); 
   // ---------- SUBMIT ----------
 
   const { mutateAsync: applyMutateAsync, isPending: isApplying } = useMutation({
     mutationFn: (data: any) => loansApi.apply(data),
     onError: (e: any) => {
       const d = e?.response?.data;
+      console.error("Loan application error response:", d); // Debug – check browser console
+
       if (d?.eligibility) setError(d.eligibility.join(" | "));
       else if (d?.amount_applied) setError(d.amount_applied[0]);
       else if (d?.sureties)
@@ -525,11 +526,18 @@ export default function ApplyLoanPage() {
             ? d.sureties.join(" | ")
             : String(d.sureties),
         );
-      else setError("Failed to submit application. Please try again.");
+      else if (d?.error)
+        setError(d.error); 
+      else if (d?.detail)
+        setError(d.detail);
+      else
+        setError(
+          d?.message || "Failed to submit application. Please try again.",
+        );
+
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
   });
-
   const onSubmit = async (data: ApplyLoanFormValues) => {
     setError("");
     const payload: Record<string, unknown> = { ...data };

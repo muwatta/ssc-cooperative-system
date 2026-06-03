@@ -266,8 +266,8 @@ export const loansApi = {
     api.post<LoanApplication>(`/loans/${id}/committee-decision/`, data),
 
   adminApprove: (id: number, data: Record<string, unknown> = {}) =>
-    api.post<LoanApplication>(`/loans/${id}/admin-approve/`, data),
-
+    api.post<LoanApplication>(`/loans/${id}/admin-final-approve/`, data),
+  
   hosApprove: (id: number) =>
     api.post<LoanApplication>(`/loans/${id}/hos-approve/`),
 
