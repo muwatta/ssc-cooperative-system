@@ -64,22 +64,6 @@ def calculate_max_borrowable(member: MemberProfile) -> Decimal:
 
 @transaction.atomic
 def submit_loan_application(member: MemberProfile, data: dict, sureties: list = None) -> LoanApplication:
-    # Auto-set repayment start to the next Hijri month
-    from utils.hijri import current_hijri
-    h_now_month, h_now_year = current_hijri()
-
-    # Compute next month
-    if h_now_month == 12:
-        start_month = 1
-        start_year = h_now_year + 1
-    else:
-        start_month = h_now_month + 1
-        start_year = h_now_year
-
-    loan.repayment_start_hijri_month = start_month
-    loan.repayment_start_hijri_year  = start_year
-    loan.save(update_fields=["repayment_start_hijri_month", "repayment_start_hijri_year"])
-
     from utils.hijri import current_hijri
     eligibility = check_loan_eligibility(member)
     if not eligibility["eligible"]:
@@ -123,12 +107,12 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
         if sureties:
             raise ValueError("External sureties are not required because the loan amount does not exceed your self‑surety limit.")
 
-    # 5. Absolute max borrowable
+    # Absolute max borrowable
     max_borrowable = calculate_max_borrowable(member)
     if amount_applied > max_borrowable:
         raise ValueError(f"Loan amount cannot exceed ₦{max_borrowable}.")
 
-    # 6. Hijri date
+    # Hijri date
     h_month, h_year = current_hijri()
 
     # Create loan
@@ -154,12 +138,26 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
         status=LoanStatus.SUBMITTED,
     )
 
-    # 7. Always create self‑surety record (layer 1)
+    # Auto-set repayment start to the next Hijri month (moved here)
+    from utils.hijri import current_hijri as get_hijri_now
+    now_month, now_year = get_hijri_now()
+    if now_month == 12:
+        start_month = 1
+        start_year = now_year + 1
+    else:
+        start_month = now_month + 1
+        start_year = now_year
+
+    loan.repayment_start_hijri_month = start_month
+    loan.repayment_start_hijri_year  = start_year
+    loan.save(update_fields=["repayment_start_hijri_month", "repayment_start_hijri_year"])
+
+    # Always create self‑surety record (layer 1)
     create_surety_records(loan, [
         {"member_id": member.pk, "amount": amount_applied, "layer": 1}
     ])
 
-    # 8. Create external surety records if needed
+    # Create external surety records if needed
     if sureties:
         surety_items = []
         for idx, s in enumerate(sureties, start=2):
@@ -201,8 +199,6 @@ def committee_reject_loan(loan: LoanApplication, rejected_by, note: str = "") ->
     return loan
 
 
-@transaction.atomic
-@transaction.atomic
 @transaction.atomic
 def admin_final_approve_loan(loan: LoanApplication, admin_user, note: str = "") -> LoanApplication:
     if loan.status != LoanStatus.PENDING_ADMIN:
