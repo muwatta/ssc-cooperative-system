@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { loansApi, suretiesApi } from "@/api/services";
 import { PageLoader, EmptyState, formatNaira } from "@/components/common";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { LoanApplication as Loan, SuretyRecord as Surety } from "@/types";
 
 export default function MyLoansPage() {
@@ -12,18 +12,42 @@ export default function MyLoansPage() {
   const [activeTab, setActiveTab] = useState<"loans" | "sureties">("loans");
   const [expandedLoan, setExpandedLoan] = useState<number | null>(null);
 
-  const { data: loansData, isLoading } = useQuery({
+  // Cache loans for 3 minutes – rarely change during a session
+  const { data: loansData, isLoading: loansLoading } = useQuery({
     queryKey: ["my-loans"],
     queryFn: () => loansApi.mine().then((r) => r.data),
+    staleTime: 1000 * 60 * 3,
   });
 
+  // Cache sureties for 3 minutes
   const { data: suretiesData, isLoading: suretiesLoading } = useQuery({
     queryKey: ["my-sureties"],
     queryFn: () => suretiesApi.mine().then((r) => r.data),
+    staleTime: 1000 * 60 * 3,
   });
 
-  const loans = loansData?.results || [];
-  const sureties = suretiesData?.results || [];
+  // Sort newest first (by application date or by id as fallback)
+  const loans = useMemo(() => {
+    const raw = loansData?.results ?? [];
+    return [...raw].sort((a, b) => {
+      // try to compare by hijri date if present
+      if (a.application_hijri_year && b.application_hijri_year) {
+        if (a.application_hijri_year !== b.application_hijri_year)
+          return b.application_hijri_year - a.application_hijri_year;
+        if (a.application_hijri_month && b.application_hijri_month)
+          return (
+            (b.application_hijri_month ?? 0) - (a.application_hijri_month ?? 0)
+          );
+      }
+      // fallback to descending id (newer loans have higher ids)
+      return b.id - a.id;
+    });
+  }, [loansData]);
+
+  const sureties = useMemo(() => {
+    const raw = suretiesData?.results ?? [];
+    return [...raw].sort((a, b) => b.id - a.id); // newest first by id
+  }, [suretiesData]);
 
   const confirmSurety = useMutation({
     mutationFn: (id: number) => suretiesApi.confirm(id),
@@ -66,7 +90,11 @@ export default function MyLoansPage() {
     return colors[status] || "bg-gray-100 text-gray-800";
   };
 
-  if (isLoading || suretiesLoading) return <PageLoader />;
+  // Only show a full page loader on the very first load, not on every refetch
+  if (loansLoading && loans.length === 0 && activeTab === "loans")
+    return <PageLoader />;
+  if (suretiesLoading && sureties.length === 0 && activeTab === "sureties")
+    return <PageLoader />;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-20">
@@ -203,7 +231,11 @@ export default function MyLoansPage() {
         {/* Loans Tab */}
         {activeTab === "loans" && (
           <div>
-            {loans.length === 0 ? (
+            {loansLoading && loans.length === 0 ? (
+              <div className="rounded-2xl bg-white p-12 shadow-sm flex justify-center">
+                <span className="text-gray-500">Loading loans…</span>
+              </div>
+            ) : loans.length === 0 ? (
               <div className="rounded-2xl bg-white p-12 shadow-sm">
                 <EmptyState icon="🏦" title="No loan applications yet" />
               </div>
@@ -322,7 +354,11 @@ export default function MyLoansPage() {
         {/* Sureties Tab */}
         {activeTab === "sureties" && (
           <div>
-            {sureties.length === 0 ? (
+            {suretiesLoading && sureties.length === 0 ? (
+              <div className="rounded-2xl bg-white p-12 shadow-sm flex justify-center">
+                <span className="text-gray-500">Loading sureties…</span>
+              </div>
+            ) : sureties.length === 0 ? (
               <div className="rounded-2xl bg-white p-12 shadow-sm">
                 <EmptyState icon="🤝" title="No surety obligations" />
               </div>
