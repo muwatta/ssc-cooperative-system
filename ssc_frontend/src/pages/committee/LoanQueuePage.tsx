@@ -151,6 +151,7 @@ function AdminFinalApprovalModal({
     onError: (e: any) => {
       const errorMsg =
         e?.response?.data?.error || "Failed to process final approval";
+      console.error("Admin approval error:", e);
       setError(errorMsg);
     },
   });
@@ -168,7 +169,8 @@ function AdminFinalApprovalModal({
         <p className="text-gray-500 mt-1">{loan.committee_decision_note}</p>
       </div>
       <p className="text-sm text-gray-600">
-        By approving, you give final sign-off to activate this loan.
+        By approving, you give final sign-off to activate this loan and disburse
+        the funds.
       </p>
       <div className="flex gap-3">
         <button onClick={onClose} className="btn-secondary flex-1">
@@ -337,7 +339,7 @@ export default function LoanQueuePage() {
                   <td>{loan.proposed_duration_months} mo.</td>
                   <td className="space-y-1 text-xs text-gray-500">
                     <div>
-                      {loan.application_hijri_display} →{" "}
+                      Ends:{" "}
                       {formatHijriDate(
                         loan.repayment_end_hijri_month,
                         loan.repayment_end_hijri_year,
@@ -362,18 +364,17 @@ export default function LoanQueuePage() {
                         Review
                       </button>
                     )}
-                    {isAdmin &&
-                      ["pending_admin", "approved"].includes(loan.status) && (
-                        <button
-                          onClick={() => {
-                            setSelectedLoan(loan);
-                            setModalType("admin");
-                          }}
-                          className="btn-primary text-xs px-2 py-1"
-                        >
-                          Admin Final Approval
-                        </button>
-                      )}
+                    {isAdmin && ["pending_admin"].includes(loan.status) && (
+                      <button
+                        onClick={() => {
+                          setSelectedLoan(loan);
+                          setModalType("admin");
+                        }}
+                        className="btn-primary text-xs px-2 py-1"
+                      >
+                        Admin Final Approval
+                      </button>
+                    )}
                     {loan.status === "active" && (
                       <button
                         onClick={() => {
