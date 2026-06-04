@@ -572,6 +572,7 @@ export default function LoanQueuePage() {
           <RepaymentModal
             loanId={selectedLoan.id}
             outstanding={selectedLoan.outstanding_balance}
+            monthlyRepayment={selectedLoan.proposed_monthly_repayment}
             defaultMonth={selectedLoan.repayment_start_hijri_month || 1}
             defaultYear={
               selectedLoan.repayment_start_hijri_year ||
