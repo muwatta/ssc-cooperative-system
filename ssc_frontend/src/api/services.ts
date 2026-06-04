@@ -281,7 +281,7 @@ export const loansApi = {
 
   get: (id: number) => api.get<LoanApplication>(`/loans/${id}/`),
 
-  getAdminPreview: (id: number) => api.get(`/loans/${id}/admin-preview/`),
+  getAdminPreview: (id: number) => api.get(`/loans/${id}/admin-approval-preview/`),
 
   postRepayment: (id: number, data: Record<string, unknown>) =>
     api.post(`/loans/${id}/repayment/`, data),
