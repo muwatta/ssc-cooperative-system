@@ -516,7 +516,7 @@ class AdminApprovalPreviewView(APIView):
             "file_number": member.file_number,
             "school_branch": member.school_branch,
             "designation": member.designation,
-            "amount_applied": str(loan.amount_applied),
+            "amount_applied": str(loan.amount_approved or loan.amount_applied),
             "total_savings": str(balance.total_savings),
             "available_balance": str(balance.available_balance),
             "self_surety_max": str(self_surety_max),
