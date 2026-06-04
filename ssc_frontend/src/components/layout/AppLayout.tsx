@@ -3,6 +3,7 @@ import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/client";
+import { loansApi } from "@/api/services";
 import clsx from "clsx";
 
 interface NavItem {
@@ -73,6 +74,15 @@ export default function AppLayout() {
     enabled: isAdmin || isCommittee,
   });
   const pendingCount = pendingCountData ?? 0;
+
+  // Fetch pending loan counts (only for admin/committee)
+  const { data: pendingLoanCountsData } = useQuery({
+    queryKey: ["pending-loan-counts"],
+    queryFn: () => loansApi.pendingCount().then((r) => r.data),
+    refetchInterval: 30000,
+    enabled: isAdmin || isCommittee,
+  });
+  const pendingLoanCounts = pendingLoanCountsData ?? {};
 
   const handleLogout = async () => {
     await logout();
@@ -151,6 +161,23 @@ export default function AppLayout() {
                   {pendingCount}
                 </span>
               )}
+              {item.to === "/loans/queue" &&
+                (pendingLoanCounts.submitted ||
+                  pendingLoanCounts.under_review ||
+                  pendingLoanCounts.pending_sureties ||
+                  pendingLoanCounts.pending_admin) && (
+                  <span
+                    className={clsx(
+                      "ml-auto inline-flex items-center justify-center rounded-full bg-orange-600 px-2 py-0.5 text-xs font-medium text-white",
+                      !sidebarOpen && "ml-0",
+                    )}
+                  >
+                    {(pendingLoanCounts.submitted ?? 0) +
+                      (pendingLoanCounts.under_review ?? 0) +
+                      (pendingLoanCounts.pending_sureties ?? 0) +
+                      (pendingLoanCounts.pending_admin ?? 0)}
+                  </span>
+                )}
             </NavLink>
           ))}
         </nav>
@@ -320,6 +347,23 @@ export default function AppLayout() {
             >
               <span className="text-base">{item.icon}</span>
               <span className="truncate">{item.label}</span>
+              {item.to === "/savings/change-requests" && pendingCount > 0 && (
+                <span className="ml-auto inline-flex items-center justify-center rounded-full bg-primary-600 px-2 py-0.5 text-xs font-medium text-white">
+                  {pendingCount}
+                </span>
+              )}
+              {item.to === "/loans/queue" &&
+                (pendingLoanCounts.submitted ||
+                  pendingLoanCounts.under_review ||
+                  pendingLoanCounts.pending_sureties ||
+                  pendingLoanCounts.pending_admin) && (
+                  <span className="ml-auto inline-flex items-center justify-center rounded-full bg-orange-600 px-2 py-0.5 text-xs font-medium text-white">
+                    {(pendingLoanCounts.submitted ?? 0) +
+                      (pendingLoanCounts.under_review ?? 0) +
+                      (pendingLoanCounts.pending_sureties ?? 0) +
+                      (pendingLoanCounts.pending_admin ?? 0)}
+                  </span>
+                )}
               {item.to === "/savings/change-requests" && pendingCount > 0 && (
                 <span className="ml-auto inline-flex items-center justify-center rounded-full bg-primary-600 px-2 py-0.5 text-xs font-medium text-white">
                   {pendingCount}

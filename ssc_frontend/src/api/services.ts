@@ -253,6 +253,14 @@ export const loansApi = {
 
   mine: () => api.get<PaginatedResponse<LoanApplication>>("/loans/mine/"),
 
+  pendingCount: () =>
+    api.get<{
+      pending_admin?: number;
+      submitted?: number;
+      under_review?: number;
+      pending_sureties?: number;
+    }>("/loans/pending-count/"),
+
   eligibility: () => api.get<LoanEligibilityResponse>("/loans/eligibility/"),
 
   settings: () => api.get<LoanSettings>("/loans/settings/"),
@@ -267,7 +275,7 @@ export const loansApi = {
 
   adminApprove: (id: number, data: Record<string, unknown> = {}) =>
     api.post<LoanApplication>(`/loans/${id}/admin-final-approve/`, data),
-  
+
   hosApprove: (id: number) =>
     api.post<LoanApplication>(`/loans/${id}/hos-approve/`),
 

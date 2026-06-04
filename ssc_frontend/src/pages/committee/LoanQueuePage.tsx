@@ -143,12 +143,16 @@ function AdminFinalApprovalModal({
   const qc = useQueryClient();
   const [error, setError] = useState("");
   const mutation = useMutation({
-    mutationFn: () => loansApi.adminApprove(loan.id),
+    mutationFn: () => loansApi.adminApprove(loan.id, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["loans-queue"] });
       onClose();
     },
-    onError: (e: any) => setError(e?.response?.data?.error || "Failed."),
+    onError: (e: any) => {
+      const errorMsg =
+        e?.response?.data?.error || "Failed to process final approval";
+      setError(errorMsg);
+    },
   });
   return (
     <div className="space-y-4">
@@ -175,7 +179,7 @@ function AdminFinalApprovalModal({
           disabled={mutation.isPending}
           className="btn-primary flex-1"
         >
-          {mutation.isPending ? "Approving..." : "Give Final Approval"}
+          {mutation.isPending ? "Submitting..." : "Give Final Approval"}
         </button>
       </div>
     </div>
@@ -239,8 +243,18 @@ export default function LoanQueuePage() {
     );
   };
 
-  const fetchLoans = async (): Promise<PaginatedResponse<LoanApplication>> =>
-    loansApi.list({ status: statusFilter || undefined }).then((r) => r.data);
+  const fetchLoans = async (): Promise<PaginatedResponse<LoanApplication>> => {
+    const response = await loansApi.list({ status: statusFilter || undefined });
+    // Sort by most recent first
+    if (response.data.results) {
+      response.data.results.sort((a, b) => {
+        const dateA = new Date(a.created_at).getTime();
+        const dateB = new Date(b.created_at).getTime();
+        return dateB - dateA; // Newest first
+      });
+    }
+    return response.data;
+  };
 
   const { data, isLoading } = useQuery<PaginatedResponse<LoanApplication>>({
     queryKey: ["loans-queue", statusFilter],

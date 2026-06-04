@@ -4,13 +4,14 @@ from .views import (
     SubmitLoanView, CommitteeDecisionView,
     PostRepaymentView, LoanRepaymentHistoryView, LoanRepaymentExportView,
     LoanDetailView, HandleDefaultView, LoanSettingsView,
-    LoanRepaymentExportAsyncView, TaskStatusView,
+    LoanRepaymentExportAsyncView, TaskStatusView, PendingLoanCountView,
 )
 
 urlpatterns = [
     path("eligibility/",                   LoanEligibilityView.as_view(),         name="loan-eligibility"),
     path("settings/",                      LoanSettingsView.as_view(),            name="loan-settings"),
     path("draft/",                         LoanDraftView.as_view(),                name="loan-draft"),
+    path("pending-count/",                 PendingLoanCountView.as_view(),         name="pending-loan-count"),
     path("",                               LoanApplicationListView.as_view(),      name="loan-list"),
     path("mine/",                          MyLoanListView.as_view(),               name="my-loans"),
     path("apply/",                         SubmitLoanView.as_view(),               name="loan-apply"),

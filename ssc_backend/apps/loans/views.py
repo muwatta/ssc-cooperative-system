@@ -198,6 +198,35 @@ class AdminFinalApprovalView(APIView):
         return Response(LoanApplicationSerializer(loan).data)
 
 
+class PendingLoanCountView(APIView):
+    """GET /api/v1/loans/pending-count/ — get count of pending loans by status"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        counts = {}
+        
+        # Admin sees pending admin approvals
+        if user.role == "admin":
+            counts["pending_admin"] = LoanApplication.objects.filter(
+                status=LoanStatus.PENDING_ADMIN
+            ).count()
+        
+        # Committee sees submitted and under review
+        if user.role in ["committee", "admin"]:
+            counts["submitted"] = LoanApplication.objects.filter(
+                status=LoanStatus.SUBMITTED
+            ).count()
+            counts["under_review"] = LoanApplication.objects.filter(
+                status=LoanStatus.UNDER_REVIEW
+            ).count()
+            counts["pending_sureties"] = LoanApplication.objects.filter(
+                status=LoanStatus.PENDING_SURETIES
+            ).count()
+        
+        return Response(counts)
+
+
 class HOSApprovalView(APIView):
     permission_classes = [IsHeadOfSchool]
 
