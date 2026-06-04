@@ -45,7 +45,7 @@ export default function MyLoansPage() {
   );
   const activePercent = activeLoan
     ? (parseFloat(activeLoan.outstanding_balance) /
-        parseFloat(activeLoan.amount_applied)) *
+        parseFloat(activeLoan.amount_approved || activeLoan.amount_applied)) *
       100
     : 0;
   const { isAdmin, isCommittee } = useAuth();
@@ -54,10 +54,14 @@ export default function MyLoansPage() {
     const colors: Record<string, string> = {
       active: "bg-emerald-100 text-emerald-800",
       completed: "bg-blue-100 text-blue-800",
+      submitted: "bg-purple-100 text-purple-800",
       pending: "bg-amber-100 text-amber-800",
+      pending_sureties: "bg-amber-100 text-amber-800",
+      pending_admin: "bg-indigo-100 text-indigo-800",
       rejected: "bg-rose-100 text-rose-800",
       approved: "bg-indigo-100 text-indigo-800",
       under_review: "bg-purple-100 text-purple-800",
+      defaulted: "bg-red-100 text-red-800",
     };
     return colors[status] || "bg-gray-100 text-gray-800";
   };
@@ -66,14 +70,14 @@ export default function MyLoansPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-20">
-      <div className="mx-auto max-w-7xl px-4 py-4 md:px-6 md:py-6">
+      <div className="mx-auto max-w-5xl px-4 py-4 md:px-6 md:py-6">
         {/* Header Section */}
         <div className="mb-6 rounded-2xl bg-gradient-to-r from-primary-600 to-primary-800 p-5 text-white shadow-lg md:mb-8 md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-2xl font-bold md:text-3xl">My Loans</h1>
               <p className="mt-1 text-sm text-primary-100">
-                Track applications & surety obligations
+                Track your loan applications & surety obligations
               </p>
             </div>
             <button
@@ -86,7 +90,7 @@ export default function MyLoansPage() {
           </div>
         </div>
 
-        {/* Active Loan Summary - Mobile Cards */}
+        {/* Active Loan Summary */}
         {activeLoan && (
           <div className="mb-6">
             <h2 className="mb-3 text-base font-semibold text-gray-700 md:text-lg">
@@ -108,24 +112,17 @@ export default function MyLoansPage() {
                 <p className="mt-1 text-lg font-bold text-amber-600 md:text-2xl">
                   {formatNaira(activeLoan.outstanding_balance)}
                 </p>
-                <div
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    activePercent >= 80
-                      ? "bg-green-500"
-                      : activePercent >= 50
-                        ? "bg-yellow-500"
-                        : "bg-red-500"
-                  }`}
-                  style={{ width: `${Math.round(activePercent)}%` }}
-                />
-                <p className="mt-1 text-xs text-gray-400">
-                  {(
-                    (parseFloat(activeLoan.outstanding_balance) /
-                      parseFloat(activeLoan.amount_applied)) *
-                    100
-                  ).toFixed(0)}
-                  % remaining
-                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
+                    <div
+                      className="h-full rounded-full bg-primary-600 transition-all duration-300"
+                      style={{ width: `${Math.round(activePercent)}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    {Math.round(activePercent)}%
+                  </span>
+                </div>
               </div>
               <div className="rounded-xl border-l-4 border-blue-500 bg-white p-4 shadow-sm">
                 <p className="text-xs font-medium text-gray-500">
@@ -140,7 +137,10 @@ export default function MyLoansPage() {
                 <p className="mt-1 text-lg font-bold text-gray-800 md:text-2xl">
                   {activeLoan.proposed_duration_months} months
                 </p>
-                <p className="mt-1 text-xs text-gray-400">Max 12 months</p>
+                <p className="mt-1 text-xs text-gray-400">
+                  From {activeLoan.repayment_start_hijri_month || 1}/
+                  {activeLoan.repayment_start_hijri_year || ""}
+                </p>
               </div>
             </div>
           </div>
@@ -166,7 +166,7 @@ export default function MyLoansPage() {
           </div>
         )}
 
-        {/* Tabs - Touch Friendly */}
+        {/* Tabs */}
         <div className="mb-5 flex gap-2 border-b border-gray-200">
           <button
             onClick={() => setActiveTab("loans")}
@@ -176,7 +176,7 @@ export default function MyLoansPage() {
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            📋 Loans
+            📋 My Loans
             {loans.length > 0 && (
               <span className="ml-2 rounded-full bg-primary-100 px-2 py-0.5 text-xs">
                 {loans.length}
@@ -191,7 +191,7 @@ export default function MyLoansPage() {
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            🤝 Sureties
+            🤝 My Sureties
             {pendingSureties.length > 0 && (
               <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs">
                 {pendingSureties.length}
@@ -200,7 +200,7 @@ export default function MyLoansPage() {
           </button>
         </div>
 
-        {/* Loans Tab - Mobile Card Layout */}
+        {/* Loans Tab */}
         {activeTab === "loans" && (
           <div>
             {loans.length === 0 ? (
@@ -214,7 +214,6 @@ export default function MyLoansPage() {
                     key={loan.id}
                     className="overflow-hidden rounded-xl bg-white shadow-sm transition-all active:scale-[0.99]"
                   >
-                    {/* Card Header - Clickable */}
                     <button
                       className="w-full cursor-pointer p-4 text-left"
                       onClick={() =>
@@ -263,7 +262,6 @@ export default function MyLoansPage() {
                       </p>
                     </button>
 
-                    {/* Expanded Details */}
                     {expandedLoan === loan.id && (
                       <div className="border-t border-gray-100 bg-gray-50 p-4">
                         <div className="space-y-2">
@@ -279,6 +277,12 @@ export default function MyLoansPage() {
                               {loan.proposed_duration_months} months
                             </span>
                           </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">Sureties</span>
+                            <span className="font-medium text-gray-700">
+                              {loan.sureties?.length || 0}
+                            </span>
+                          </div>
                           {(isAdmin ||
                             isCommittee ||
                             loan.status === "active") && (
@@ -286,7 +290,7 @@ export default function MyLoansPage() {
                               className="mt-3 w-full rounded-lg bg-primary-600 py-2.5 text-sm font-medium text-white transition-all active:scale-95"
                               onClick={() => navigate(`/loans/${loan.id}`)}
                             >
-                              View Details →
+                              View Full Details →
                             </button>
                           )}
                         </div>
@@ -315,7 +319,7 @@ export default function MyLoansPage() {
           </div>
         )}
 
-        {/* Sureties Tab - Mobile Card Layout */}
+        {/* Sureties Tab */}
         {activeTab === "sureties" && (
           <div>
             {sureties.length === 0 ? (
@@ -340,7 +344,9 @@ export default function MyLoansPage() {
                               ? "bg-emerald-100 text-emerald-800"
                               : surety.status === "pending"
                                 ? "bg-amber-100 text-amber-800"
-                                : "bg-gray-100 text-gray-800"
+                                : surety.status === "declined"
+                                  ? "bg-rose-100 text-rose-800"
+                                  : "bg-gray-100 text-gray-800"
                           }`}
                         >
                           {surety.status?.toUpperCase() || "PENDING"}
@@ -409,7 +415,7 @@ export default function MyLoansPage() {
           </div>
         )}
 
-        {/* Decorative Footer */}
+        {/* Footer */}
         <div className="mt-8 text-center text-xs text-gray-400">
           <p>🏦 SSC Cooperative — Islamic (Hijri) Calendar based system</p>
         </div>
