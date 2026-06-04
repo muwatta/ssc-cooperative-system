@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { membersApi, savingsApi, loansApi } from "@/api/services";
 import type { MemberProfile, MemberBalance, LoanApplication } from "@/types";
 import { HIJRI_MONTHS } from "@/types";
