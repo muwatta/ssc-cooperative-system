@@ -56,7 +56,6 @@ export default function MyProfilePage() {
       if (!data || !data.id) {
         setProfile(null);
         setProfileMissing(true);
-        // Pre‑fill with default values for creation
         reset({
           full_name: "",
           phone_primary: "",
@@ -88,7 +87,6 @@ export default function MyProfilePage() {
       setProfile(data);
       setProfileMissing(false);
 
-      // Pre‑fill form with existing data
       reset({
         full_name: data.full_name,
         phone_primary: data.phone_primary,
@@ -163,15 +161,12 @@ export default function MyProfilePage() {
     try {
       let response;
       if (profileMissing) {
-        // CREATE new profile
         response = await membersApi.createMe(data);
         setProfile(response.data);
         setProfileMissing(false);
         setServerMessage("Profile created successfully.");
-        // Reload full profile to ensure consistency
         await loadProfile();
       } else {
-        // UPDATE existing profile
         response = await membersApi.update(profile!.id, data);
         setProfile(response.data);
         setServerMessage("Profile updated successfully.");
@@ -201,158 +196,111 @@ export default function MyProfilePage() {
   }
 
   return (
-    <div className="card p-6 max-w-4xl mx-auto">
-      <div className="mb-6 grid gap-4 xl:grid-cols-[1.6fr_0.9fr]">
-        <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold">My Profile</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Your SSC member record.
-                {profileMissing
-                  ? " Complete the form to create your profile."
-                  : " Update your contact and personal details here."}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <span className="badge badge-primary">Profile Snapshot</span>
-              {profile && profile.is_new_member && (
-                <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
-                  New
-                </span>
-              )}
-            </div>
+    <div className="card p-6 max-w-4xl mx-auto space-y-6">
+      {/* Colorful Header */}
+      <div className="rounded-3xl bg-gradient-to-r from-primary-600 to-primary-800 p-6 text-white shadow-lg">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">My Profile</h1>
+            <p className="mt-1 text-primary-100 text-sm">
+              {profileMissing
+                ? "Complete your member profile to get started."
+                : "Manage your personal and cooperative information."}
+            </p>
           </div>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <div className="rounded-3xl bg-slate-50 p-4">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
-                Phone
-              </p>
-              <p className="mt-3 font-semibold text-gray-900">
-                {profile?.phone_primary || "—"}
-              </p>
-            </div>
-            <div className="rounded-3xl bg-slate-50 p-4">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
-                School Branch
-              </p>
-              <p className="mt-3 font-semibold text-gray-900 capitalize">
-                {profile?.school_branch || "—"}
-              </p>
-            </div>
-            <div className="rounded-3xl bg-slate-50 p-4">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
-                Contribution
-              </p>
-              <p className="mt-3 font-semibold text-gray-900">
-                ₦{profile?.approved_monthly_contribution || "0"}
-              </p>
-            </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-medium">
+              {profileMissing ? "Incomplete" : "Active"}
+            </span>
+            {profile?.is_new_member && (
+              <span className="bg-green-400/20 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-medium">
+                New Member
+              </span>
+            )}
           </div>
         </div>
-
-        <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-gray-900">Reports</p>
-              <p className="text-xs text-gray-500 mt-1">
-                Quick access to profile metrics.
-              </p>
-            </div>
-            <span className="badge badge-gray">Live</span>
+        {/* Quick metrics */}
+        <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-white/10 rounded-xl p-3">
+            <p className="text-xs text-primary-200">Staff ID</p>
+            <p className="font-mono font-semibold mt-1">
+              {profile?.staff_id ?? "—"}
+            </p>
           </div>
-          <div className="mt-5 grid gap-3">
-            <div className="rounded-3xl border border-gray-100 bg-slate-50 p-4">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
-                Profile Status
-              </p>
-              <p className="mt-3 font-semibold text-gray-900">
-                {profileMissing ? "Incomplete" : "Completed"}
-              </p>
-            </div>
-            <div className="rounded-3xl border border-gray-100 bg-slate-50 p-4">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
-                Membership
-              </p>
-              <p className="mt-3 font-semibold text-gray-900 capitalize">
-                {profile?.membership_status || "Pending"}
-              </p>
-            </div>
-            <div className="rounded-3xl border border-gray-100 bg-slate-50 p-4">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
-                File Number
-              </p>
-              <p className="mt-3 font-semibold text-gray-900">
-                {profile?.file_number || "Not assigned"}
-              </p>
-            </div>
+          <div className="bg-white/10 rounded-xl p-3">
+            <p className="text-xs text-primary-200">File No.</p>
+            <p className="font-mono font-semibold mt-1">
+              {profile?.file_number ?? "—"}
+            </p>
+          </div>
+          <div className="bg-white/10 rounded-xl p-3">
+            <p className="text-xs text-primary-200">Branch</p>
+            <p className="capitalize font-semibold mt-1">
+              {profile?.school_branch ?? "—"}
+            </p>
+          </div>
+          <div className="bg-white/10 rounded-xl p-3">
+            <p className="text-xs text-primary-200">Contribution</p>
+            <p className="font-semibold mt-1">
+              ₦{profile?.approved_monthly_contribution || "0"}
+            </p>
           </div>
         </div>
       </div>
 
       {serverMessage && (
         <div
-          className={`mb-6 rounded-lg border px-4 py-3 text-sm ${
+          className={`rounded-lg border px-4 py-3 text-sm ${
             isError
-              ? "border-danger-200 bg-danger-50 text-danger-700"
-              : "border-green-200 bg-success-50 text-success-700"
+              ? "border-red-200 bg-red-50 text-red-700"
+              : "border-green-200 bg-green-50 text-green-700"
           }`}
         >
           {serverMessage}
         </div>
       )}
 
-      {!profileMissing && (
-        <div className="mb-6 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-gray-900">
-                Identity Summary
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Snapshot of your current member information.
-              </p>
-            </div>
-            <span className="badge badge-primary">Verified</span>
+      {/* Identity & Status Cards */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-widest text-emerald-700">
+              Profile Status
+            </span>
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200" />
           </div>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-3xl bg-slate-50 p-4">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
-                Staff ID
-              </p>
-              <p className="mt-2 font-mono font-semibold text-gray-900">
-                {profile?.staff_id ?? "—"}
-              </p>
-            </div>
-            <div className="rounded-3xl bg-slate-50 p-4">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
-                SSC File Number
-              </p>
-              <p className="mt-2 font-mono font-semibold text-primary-700">
-                {profile?.file_number ?? "Not assigned"}
-              </p>
-            </div>
-            <div className="rounded-3xl bg-slate-50 p-4">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">
-                Membership
-              </p>
-              <p className="mt-2 font-semibold capitalize text-gray-900">
-                {profile?.membership_status ?? "—"}
-              </p>
-            </div>
-          </div>
+          <p className="mt-3 text-2xl font-bold text-gray-900">
+            {profileMissing ? "Incomplete" : "Complete"}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            Membership: {profile?.membership_status || "Pending"}
+          </p>
         </div>
-      )}
+
+        <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-widest text-amber-700">
+              Loan Eligibility
+            </span>
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-amber-200" />
+          </div>
+          <p className="mt-3 text-2xl font-bold text-gray-900">
+            {profile?.is_loan_eligible ? "Eligible" : "Not Eligible"}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            Consecutive months: {profile?.consecutive_savings_months ?? 0}
+          </p>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
-        <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400">
+        {/* Personal Information */}
+        <section className="rounded-3xl border border-purple-200 bg-gradient-to-br from-purple-50 to-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">👤</span>
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-purple-700">
               Personal Information
             </h2>
-            <span className="badge badge-gray">Core</span>
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <div>
@@ -449,12 +397,13 @@ export default function MyProfilePage() {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400">
+        {/* School Details */}
+        <section className="rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🏫</span>
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-blue-700">
               School Details
             </h2>
-            <span className="badge badge-gray">Academic</span>
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <div>
@@ -492,12 +441,13 @@ export default function MyProfilePage() {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400">
+        {/* Financial */}
+        <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">💰</span>
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-emerald-700">
               Financial
             </h2>
-            <span className="badge badge-gray">Budget</span>
           </div>
           <div className="mt-5">
             <label className="label">Approved Monthly Contribution (₦) *</label>
@@ -511,9 +461,7 @@ export default function MyProfilePage() {
               min="1000"
               className={`input ${errors.approved_monthly_contribution ? "input-error" : ""}`}
             />
-            <p className="text-xs text-gray-400 mt-1">
-              Minimum ₦1,000. This will be your regular monthly contribution.
-            </p>
+            <p className="text-xs text-gray-400 mt-1">Minimum ₦1,000.</p>
             {errors.approved_monthly_contribution && (
               <p className="field-error">
                 {errors.approved_monthly_contribution.message}
@@ -522,12 +470,13 @@ export default function MyProfilePage() {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400">
+        {/* Addresses */}
+        <section className="rounded-3xl border border-rose-200 bg-gradient-to-br from-rose-50 to-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">📍</span>
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-rose-700">
               Addresses
             </h2>
-            <span className="badge badge-gray">Location</span>
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <div>
@@ -559,12 +508,13 @@ export default function MyProfilePage() {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400">
+        {/* Next of Kin */}
+        <section className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🆘</span>
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-amber-700">
               Next of Kin
             </h2>
-            <span className="badge badge-gray">Emergency</span>
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <div>
@@ -610,7 +560,7 @@ export default function MyProfilePage() {
                 className="input"
               />
             </div>
-            <div className="mb-8">
+            <div className="md:col-span-2">
               <label className="label">Next of Kin Address *</label>
               <textarea
                 {...register("next_of_kin_address", { required: "Required" })}
@@ -625,10 +575,11 @@ export default function MyProfilePage() {
           </div>
         </section>
 
+        {/* Submit */}
         <button
           type="submit"
           disabled={isSubmitting || (!profileMissing && !isDirty)}
-          className="btn-primary w-full py-2.5 disabled:opacity-50"
+          className="w-full rounded-xl bg-gradient-to-r from-primary-600 to-primary-800 py-3 text-white font-semibold shadow-lg hover:from-primary-700 hover:to-primary-900 disabled:opacity-50 transition-all"
         >
           {isSubmitting
             ? profileMissing
