@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { membersApi, savingsApi } from "@/api/services";
-import type { MemberProfile } from "@/types";
+import { useState, useEffect, useCallback } from "react";
+import { membersApi, savingsApi, loansApi } from "@/api/services";
+import type { MemberProfile, MemberBalance, LoanApplication } from "@/types";
 import { HIJRI_MONTHS } from "@/types";
 
 function formatNaira(v: string | number) {
@@ -21,15 +21,19 @@ interface MemberPostState {
   message: string;
 }
 
-// Member savings card
+// ---------- Member Savings Card (now includes loan & surety details) ----------
 function MemberSavingsCard({
   member,
   state,
+  balance,
+  activeLoan,
   onChange,
   onPost,
 }: {
   member: MemberProfile;
   state: MemberPostState;
+  balance?: MemberBalance;
+  activeLoan?: LoanApplication;
   onChange: (updates: Partial<MemberPostState>) => void;
   onPost: () => void;
 }) {
@@ -41,6 +45,8 @@ function MemberSavingsCard({
     state.amount &&
     Number(state.amount) >= 1000 &&
     (!needsReason || state.editReason.trim().length > 0);
+
+  const [showDetails, setShowDetails] = useState(false);
 
   return (
     <div
@@ -158,7 +164,7 @@ function MemberSavingsCard({
                   value={state.editReason}
                   onChange={(e) => onChange({ editReason: e.target.value })}
                   className="input border-warning-300 focus:ring-warning-400"
-                  placeholder="e.g. Loan repayment deduction applied, member confirmed reduced amount..."
+                  placeholder="e.g. Loan repayment deduction applied..."
                   maxLength={200}
                   aria-label="Reason for adjustment"
                   title="Reason for adjustment"
@@ -171,6 +177,73 @@ function MemberSavingsCard({
 
             {state.status === "error" && (
               <p className="text-sm text-danger-700">⚠ {state.message}</p>
+            )}
+
+            {/* Toggle details */}
+            <button
+              type="button"
+              onClick={() => setShowDetails(!showDetails)}
+              className="text-xs text-primary-600 hover:underline flex items-center gap-1"
+            >
+              {showDetails ? "▲ Hide Details" : "▼ Show Details"}
+            </button>
+
+            {showDetails && (
+              <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-2 border border-gray-100">
+                {/* Loan info */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase">
+                    Active Loan
+                  </p>
+                  {activeLoan ? (
+                    <div className="mt-1 space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Approved:</span>
+                        <span className="font-medium">
+                          {formatNaira(
+                            activeLoan.amount_approved ||
+                              activeLoan.amount_applied,
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Outstanding:</span>
+                        <span className="font-medium text-amber-600">
+                          {formatNaira(activeLoan.outstanding_balance)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Monthly Repay:</span>
+                        <span>
+                          {formatNaira(activeLoan.proposed_monthly_repayment)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Status:</span>
+                        <span className="capitalize font-medium text-emerald-600">
+                          {activeLoan.status}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 mt-1">No active loan</p>
+                  )}
+                </div>
+
+                {/* Surety info */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase">
+                    Surety Commitment
+                  </p>
+                  {balance && parseFloat(balance.suretyship_committed) > 0 ? (
+                    <p className="mt-1 font-medium text-purple-600">
+                      {formatNaira(balance.suretyship_committed)}
+                    </p>
+                  ) : (
+                    <p className="text-gray-400 mt-1">None</p>
+                  )}
+                </div>
+              </div>
             )}
 
             <div className="flex items-center gap-3 pt-1 text-xs text-gray-400">
@@ -197,6 +270,7 @@ function MemberSavingsCard({
   );
 }
 
+// ---------- Main Page ----------
 export default function PostSavingsPage() {
   const [members, setMembers] = useState<MemberProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -210,6 +284,13 @@ export default function PostSavingsPage() {
   );
   const [globalMsg, setGlobalMsg] = useState("");
   const [postAllPending, setPostAllPending] = useState(false);
+
+  // Additional data: balances & active loans
+  const [balances, setBalances] = useState<Record<number, MemberBalance>>({});
+  const [activeLoansMap, setActiveLoansMap] = useState<
+    Record<number, LoanApplication>
+  >({});
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
   useEffect(() => {
     membersApi
@@ -228,10 +309,46 @@ export default function PostSavingsPage() {
           };
         });
         setPostStates(initial);
+        // After members load, fetch balances & active loans
+        fetchDetails(data);
       })
       .catch(() => setGlobalMsg("Unable to load members."))
       .finally(() => setLoading(false));
   }, []);
+
+  const fetchDetails = async (members: MemberProfile[]) => {
+    setDetailsLoading(true);
+    try {
+      // Fetch balances
+      const balanceResults = await Promise.allSettled(
+        members.map((m) => savingsApi.getBalance(m.id)),
+      );
+      const balanceMap: Record<number, MemberBalance> = {};
+      balanceResults.forEach((result, idx) => {
+        if (result.status === "fulfilled") {
+          balanceMap[members[idx].id] = result.value.data;
+        }
+      });
+      setBalances(balanceMap);
+
+      // Fetch all active loans (admin sees all)
+      const loansRes = await loansApi.list({ status: "active" });
+      const activeLoans: LoanApplication[] = loansRes.data.results || [];
+      const loanMap: Record<number, LoanApplication> = {};
+      activeLoans.forEach((loan) => {
+        if (loan.applicant) {
+          // applicant is an object or just id? In the response it might be an id number.
+          // The LoanApplication type includes `applicant: number`. So we use loan.applicant as number.
+          loanMap[loan.applicant] = loan;
+        }
+      });
+      setActiveLoansMap(loanMap);
+    } catch {
+      // non‑critical, leave maps empty
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
 
   const updateMemberState = (id: number, updates: Partial<MemberPostState>) => {
     setPostStates((prev) => ({ ...prev, [id]: { ...prev[id], ...updates } }));
@@ -240,24 +357,17 @@ export default function PostSavingsPage() {
   const postForMember = async (member: MemberProfile) => {
     const s = postStates[member.id];
     if (!s) return;
-
-    const amount = Number(s.amount);
-   // const approved = Number(member.approved_monthly_contribution);
-    // const differs = Math.abs(amount - approved) > 0.009;
-
     updateMemberState(member.id, { status: "posting", message: "" });
-
     try {
-      // Remove 'details' – it's not supported by the API
       await savingsApi.postSavings({
         member: member.id,
-        amount: String(amount),
+        amount: String(s.amount),
         hijri_month: period.hijri_month,
         hijri_year: period.hijri_year,
       });
       updateMemberState(member.id, {
         status: "success",
-        message: `₦${amount.toLocaleString()} posted for ${HIJRI_MONTHS.find((m) => m.value === period.hijri_month)?.label} ${period.hijri_year}`,
+        message: `₦${Number(s.amount).toLocaleString()} posted for ${HIJRI_MONTHS.find((m) => m.value === period.hijri_month)?.label} ${period.hijri_year}`,
       });
     } catch (e: any) {
       const msg =
@@ -320,7 +430,7 @@ export default function PostSavingsPage() {
         <h1 className="page-title">Post Monthly Savings</h1>
         <p className="page-subtitle">
           Each card shows the member's approved monthly contribution pre-filled.
-          You can adjust the amount — a reason is required if you do.
+          Click "Show Details" to see active loan and surety information.
         </p>
       </div>
 
@@ -424,25 +534,34 @@ export default function PostSavingsPage() {
           <p className="mt-2">No active members found.</p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {filtered.map((member) => (
-            <MemberSavingsCard
-              key={member.id}
-              member={member}
-              state={
-                postStates[member.id] ?? {
-                  amount: member.approved_monthly_contribution,
-                  editReason: "",
-                  isEdited: false,
-                  status: "idle",
-                  message: "",
+        <>
+          {detailsLoading && (
+            <p className="text-xs text-gray-400 mb-2">
+              Loading loan & surety data…
+            </p>
+          )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {filtered.map((member) => (
+              <MemberSavingsCard
+                key={member.id}
+                member={member}
+                state={
+                  postStates[member.id] ?? {
+                    amount: member.approved_monthly_contribution,
+                    editReason: "",
+                    isEdited: false,
+                    status: "idle",
+                    message: "",
+                  }
                 }
-              }
-              onChange={(updates) => updateMemberState(member.id, updates)}
-              onPost={() => postForMember(member)}
-            />
-          ))}
-        </div>
+                balance={balances[member.id]}
+                activeLoan={activeLoansMap[member.id]}
+                onChange={(updates) => updateMemberState(member.id, updates)}
+                onPost={() => postForMember(member)}
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
