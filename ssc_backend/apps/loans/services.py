@@ -42,7 +42,6 @@ def check_loan_eligibility(member: MemberProfile) -> dict:
             )
 
     # 4. Max 4 loans per calendar year
-    from django.utils import timezone
     current_year = timezone.now().year
     loans_this_year = LoanApplication.objects.filter(
         applicant=member,
@@ -70,8 +69,22 @@ def check_loan_eligibility(member: MemberProfile) -> dict:
             "Please wait for a final decision before applying again."
         )
 
+    # 6. Reapply cooldown after rejection (24 hours)
+    last_rejected = LoanApplication.objects.filter(
+        applicant=member,
+        status=LoanStatus.REJECTED
+    ).order_by('-created_at').first()
+
+    if last_rejected and (timezone.now() - last_rejected.created_at).total_seconds() < 86400:
+        hours_left = 24 - int((timezone.now() - last_rejected.created_at).total_seconds() / 3600)
+        reasons.append(
+        f"You cannot reapply yet. Please wait {hours_left} hours after your last rejection."
+    )
+
     return {"eligible": len(reasons) == 0, "reasons": reasons}
 
+
+   
 def calculate_max_borrowable(member: MemberProfile) -> Decimal:
     config = get_loan_configuration()
     balance = get_or_create_balance(member)

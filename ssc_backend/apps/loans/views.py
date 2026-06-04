@@ -7,9 +7,13 @@ from django.utils import timezone
 from rest_framework import generics, status, filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdmin
 from django_filters.rest_framework import DjangoFilterBackend
 
+from django.db.models import Sum
+
+from apps.sureties.models import SuretyRecord, SuretyStatus
+from apps.sureties.services import check_surety_eligibility
 from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee, IsAdminOrCommitteeOrHOS, IsHeadOfSchool, CanApproveLoan
 from apps.accounts.models import MemberProfile
 from apps.savings.services import get_or_create_balance
@@ -28,6 +32,8 @@ from .services import (
     post_repayment, handle_default_or_exit,
 )
 from utils.hijri import current_hijri
+from utils.hijri import hijri_month_display
+import json
 
 class LoanEligibilityView(APIView):
     permission_classes = [IsAuthenticated]
@@ -484,3 +490,70 @@ class LoanDraftView(APIView):
         draft.data = request.data.get("data", {})
         draft.save()
         return Response(LoanDraftSerializer(draft).data)
+
+
+class AdminApprovalPreviewView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request, pk):
+        try:
+            loan = LoanApplication.objects.select_related('applicant').get(pk=pk)
+        except LoanApplication.DoesNotExist:
+            return Response({"error": "Loan not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if loan.status != LoanStatus.PENDING_ADMIN:
+            return Response({"error": "Loan is not pending admin approval."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Borrower details
+        member = loan.applicant
+        balance = get_or_create_balance(member)
+        config = get_loan_configuration()
+        self_surety_max = (balance.available_balance * config.self_surety_ratio).quantize(Decimal("0.01"))
+        max_borrowable = calculate_max_borrowable(member)
+
+        borrower = {
+            "full_name": member.full_name,
+            "file_number": member.file_number,
+            "school_branch": member.school_branch,
+            "designation": member.designation,
+            "amount_applied": str(loan.amount_applied),
+            "total_savings": str(balance.total_savings),
+            "available_balance": str(balance.available_balance),
+            "self_surety_max": str(self_surety_max),
+            "max_borrowable": str(max_borrowable),
+            "proposed_duration_months": loan.proposed_duration_months,
+        }
+
+        # Repayment breakdown
+        monthly_repayment = (loan.amount_applied / loan.proposed_duration_months).quantize(Decimal("0.01"))
+        monthly_contribution = member.approved_monthly_contribution
+        first_month_debit = monthly_repayment + monthly_contribution
+
+        # External sureties
+        sureties_qs = SuretyRecord.objects.filter(
+            loan=loan,
+            is_self_surety=False
+        ).select_related('surety')
+
+        sureties_list = []
+        for rec in sureties_qs:
+            s_balance = get_or_create_balance(rec.surety)
+            eligibility = check_surety_eligibility(rec.surety, rec.amount_guaranteed)
+            sureties_list.append({
+                "full_name": rec.surety.full_name,
+                "file_number": rec.surety.file_number,
+                "amount_guaranteed": str(rec.amount_guaranteed),
+                "eligible": eligibility["eligible"],
+                "reasons": eligibility["reasons"] if not eligibility["eligible"] else [],
+                "status": rec.status,
+            })
+
+        return Response({
+            "borrower": borrower,
+            "repayment_breakdown": {
+                "monthly_repayment": str(monthly_repayment),
+                "monthly_contribution": str(monthly_contribution),
+                "first_month_debit": str(first_month_debit),
+            },
+            "sureties": sureties_list,
+        })

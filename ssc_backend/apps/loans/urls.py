@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    AdminFinalApprovalView, HOSApprovalView, LoanDraftView, LoanEligibilityView, LoanApplicationListView, MyLoanListView,
+    AdminApprovalPreviewView, AdminFinalApprovalView, HOSApprovalView, LoanDraftView, LoanEligibilityView, LoanApplicationListView, MyLoanListView,
     SubmitLoanView, CommitteeDecisionView,
     PostRepaymentView, LoanRepaymentHistoryView, LoanRepaymentExportView,
     LoanDetailView, HandleDefaultView, LoanSettingsView,
@@ -25,4 +25,5 @@ urlpatterns = [
     path("<int:pk>/repayments/export-async/", LoanRepaymentExportAsyncView.as_view(), name="loan-repayment-export-async"),
     path("<int:pk>/default/",              HandleDefaultView.as_view(),            name="loan-default"),
     path("tasks/<str:task_id>/",           TaskStatusView.as_view(),               name="task-status"),
+    path("<int:pk>/admin-approval-preview/", AdminApprovalPreviewView.as_view(), name="admin-approval-preview"),
 ]

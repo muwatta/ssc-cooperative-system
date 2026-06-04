@@ -172,6 +172,9 @@ export default function MySavingsPage() {
       status: profile?.membership_status ?? "unknown",
       months: profile?.consecutive_savings_months ?? 0,
       loanEligibility: profile?.is_loan_eligible ? "Yes" : "No",
+      suretyCommitted: balance
+        ? formatCurrency(balance.suretyship_committed)
+        : "₦0.00",
     };
   }, [balance, profile]);
 
@@ -306,6 +309,19 @@ export default function MySavingsPage() {
                 </button>
               </div>
             </AnimatedCard>
+          </div>
+
+          {/* Suretyship Commitment Card – NEW */}
+          <div className="mb-6">
+            <div className="bg-gradient-to-br from-purple-50 to-white p-5 rounded-lg shadow">
+              <p className="text-sm text-gray-500">Suretyship Commitment</p>
+              <p className="text-3xl font-semibold mt-2">
+                {summary.suretyCommitted}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Total amount you have guaranteed for others
+              </p>
+            </div>
           </div>
 
           {/* Cooperative Balances (only admin/committee) */}

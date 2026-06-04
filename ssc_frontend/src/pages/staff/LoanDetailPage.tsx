@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { loansApi } from "@/api/services";
 import { AnimatedCard } from "@/components/common";
 import { useAuth } from "@/context/AuthContext";
+import AdminApprovalPreview from "@/components/admin/AdminApprovalPreview";
 import type { LoanApplication, Repayment } from "@/types";
 
 const formatNaira = (amount: string | number | null | undefined): string => {
@@ -51,6 +52,10 @@ export default function LoanDetailPage() {
   );
   const [isPostingRepayment, setIsPostingRepayment] = useState(false);
   const [repaymentError, setRepaymentError] = useState<string | null>(null);
+
+  // Admin approval preview
+  const [showApprovalPreview, setShowApprovalPreview] = useState(false);
+  const [approvalProcessing, setApprovalProcessing] = useState(false);
 
   const { data: loan, isLoading } = useQuery<LoanApplication>({
     queryKey: ["loan", loanId],
@@ -143,6 +148,35 @@ export default function LoanDetailPage() {
     }
   };
 
+  // Admin approval / rejection handlers
+  const handleAdminApprove = async (note: string) => {
+    if (!loanId) return;
+    setApprovalProcessing(true);
+    try {
+      await loansApi.adminApprove(loanId, { note });
+      setShowApprovalPreview(false);
+      qc.invalidateQueries({ queryKey: ["loan", loanId] });
+    } catch (error: any) {
+      alert(error?.response?.data?.error || "Approval failed");
+    } finally {
+      setApprovalProcessing(false);
+    }
+  };
+
+  const handleAdminReject = async (note: string) => {
+    if (!loanId) return;
+    setApprovalProcessing(true);
+    try {
+      await loansApi.committeeDecision(loanId, { decision: "reject", note });
+      setShowApprovalPreview(false);
+      qc.invalidateQueries({ queryKey: ["loan", loanId] });
+    } catch (error: any) {
+      alert(error?.response?.data?.error || "Rejection failed");
+    } finally {
+      setApprovalProcessing(false);
+    }
+  };
+
   if (isLoading) return <PageLoader />;
   if (!loan) return <EmptyState icon="🔍" title="Loan not found" />;
 
@@ -169,6 +203,16 @@ export default function LoanDetailPage() {
           >
             📄 Export Schedule
           </button>
+
+          {/* Admin Approval Button – only when pending_admin */}
+          {isAdmin && loan.status === "pending_admin" && (
+            <button
+              onClick={() => setShowApprovalPreview(true)}
+              className="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700"
+            >
+              🔍 Review & Approve
+            </button>
+          )}
         </div>
       </div>
 
@@ -444,6 +488,24 @@ export default function LoanDetailPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Admin Approval Preview Modal */}
+      {showApprovalPreview && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <button
+            className="absolute top-4 right-4 text-white text-2xl"
+            onClick={() => setShowApprovalPreview(false)}
+          >
+            ✕
+          </button>
+          <AdminApprovalPreview
+            loanId={loanId!}
+            onApprove={handleAdminApprove}
+            onReject={handleAdminReject}
+            isProcessing={approvalProcessing}
+          />
         </div>
       )}
     </div>
