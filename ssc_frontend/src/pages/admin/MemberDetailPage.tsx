@@ -288,6 +288,7 @@ export default function MemberDetailPage() {
   const [isEditingContribution, setIsEditingContribution] = useState(false);
   const [contributionDraft, setContributionDraft] = useState("");
   const [contributionError, setContributionError] = useState("");
+  const [withdrawing, setWithdrawing] = useState(false);
 
   const updateContributionMutation = useMutation({
     mutationFn: (amount: string) =>
@@ -319,7 +320,7 @@ export default function MemberDetailPage() {
   const { data: balance } = useQuery({
     queryKey: ["balance", id],
     queryFn: () => savingsApi.getBalance(Number(id)).then((r) => r.data),
-    enabled: !!id && member?.membership_status === "active",
+    enabled: !!id && member != null,
     refetchOnWindowFocus: true,
     refetchInterval: 15000,
   });
@@ -348,6 +349,19 @@ export default function MemberDetailPage() {
       qc.invalidateQueries({ queryKey: ["member", id] });
       qc.invalidateQueries({ queryKey: ["members"] });
       setShowDeactivate(false);
+    },
+  });
+
+  const fullWithdrawalMutation = useMutation({
+    mutationFn: () => api.post(`/savings/withdraw/${id}/`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["balance", id] });
+      qc.invalidateQueries({ queryKey: ["member", id] });
+      setWithdrawing(false);
+    },
+    onError: () => {
+      alert("Withdrawal failed. Please try again.");
+      setWithdrawing(false);
     },
   });
 
@@ -431,6 +445,7 @@ export default function MemberDetailPage() {
             </div>
             {isAdmin && (
               <div className="flex flex-wrap gap-2">
+                {/* Approve – only for pending members */}
                 {member.membership_status === "pending" && (
                   <button
                     onClick={() => setShowApprove(true)}
@@ -439,12 +454,14 @@ export default function MemberDetailPage() {
                     ✓ Approve
                   </button>
                 )}
+                {/* Change Role – always available */}
                 <button
                   onClick={() => setShowChangeRole(true)}
                   className="btn-secondary text-sm"
                 >
                   🔑 Change Role
                 </button>
+                {/* Export PDF – always available */}
                 <button
                   onClick={() => {
                     const url = `/api/v1/savings/${member.id}/ledger/export/?format=pdf`;
@@ -455,6 +472,7 @@ export default function MemberDetailPage() {
                 >
                   📄 Export PDF
                 </button>
+                {/* Deactivate – only for active members */}
                 {member.membership_status === "active" && (
                   <button
                     onClick={() => setShowDeactivate(true)}
@@ -463,6 +481,30 @@ export default function MemberDetailPage() {
                     Deactivate
                   </button>
                 )}
+                {/* Full Withdrawal – only for exited or inactive members with a balance */}
+                {(member.membership_status === "exited" ||
+                  member.membership_status === "inactive") &&
+                  balance &&
+                  Number(balance.available_balance) > 0 && (
+                    <button
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Withdraw ₦${Number(balance.available_balance).toLocaleString()} from ${member.full_name}? This cannot be undone.`,
+                          )
+                        ) {
+                          setWithdrawing(true);
+                          fullWithdrawalMutation.mutate();
+                        }
+                      }}
+                      disabled={withdrawing}
+                      className="btn-secondary text-sm text-danger-600"
+                    >
+                      {withdrawing
+                        ? "Withdrawing…"
+                        : `💰 Full Withdrawal (${formatNaira(balance.available_balance)})`}
+                    </button>
+                  )}
               </div>
             )}
           </div>

@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    BatchMonthlyDeductionView, PendingChangeRequestsCountView, PostSavingsView, MemberLedgerView, MemberBalanceView,
+    BatchMonthlyDeductionView, FullWithdrawalView, PendingChangeRequestsCountView, PostSavingsView, MemberLedgerView, MemberBalanceView,
     MyBalanceView, MyLedgerView, SavingsSummaryView,
     SavingsChangeRequestListCreateView, ApproveSavingsChangeView, RejectSavingsChangeView,
     DuesCycleListCreateView, PostDuesCycleView, LedgerExportView,
@@ -23,4 +23,5 @@ urlpatterns = [
     path("reports/export/",               BulkSavingsReportView.as_view(),              name="bulk-savings-report"),
     path("batch-monthly/", BatchMonthlyDeductionView.as_view(), name="batch-monthly"),
     path("change-requests/pending-count/", PendingChangeRequestsCountView.as_view(), name="pending-count"),
+    path("withdraw/<int:member_id>/", FullWithdrawalView.as_view(), name="full-withdrawal"),
 ]

@@ -14,7 +14,7 @@ from django.utils import timezone
 
 from apps.accounts.models import MemberProfile, MembershipStatus
 from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee, IsAdminOrCommitteeOrHOS
-from .models import SavingsLedger, MemberBalance, SavingsChangeRequest, TermlyDuesCycle
+from .models import LedgerEntryType, SavingsLedger, MemberBalance, SavingsChangeRequest, TermlyDuesCycle
 from .serializers import (
     SavingsLedgerSerializer, MemberBalanceSerializer,
     PostSavingsSerializer, SavingsChangeRequestSerializer,
@@ -22,7 +22,7 @@ from .serializers import (
     CreateDuesCycleSerializer,
 )
 from .services import (
-    post_savings_entry, post_termly_dues,
+    post_debit_entry, post_savings_entry, post_termly_dues,
     apply_savings_change, get_or_create_balance,
 )
 
@@ -700,4 +700,47 @@ class BatchMonthlyDeductionView(APIView):
             "preview": preview,
             "total_members": len(results),
             "deductions": results,
+        })
+    
+
+class FullWithdrawalView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request, member_id):
+        try:
+            member = MemberProfile.objects.get(pk=member_id)
+        except MemberProfile.DoesNotExist:
+            return Response({"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Only allow if member is deactivated (exited)
+        if member.membership_status not in ["exited", "inactive"]:
+            return Response(
+                {"error": "Full withdrawal is only allowed for deactivated members."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        balance = get_or_create_balance(member)
+        if balance.available_balance <= 0:
+            return Response({"error": "No available balance to withdraw."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from utils.hijri import current_hijri
+        h_month, h_year = current_hijri()
+
+        try:
+            # Debit the full available balance
+            entry = post_debit_entry(
+                member=member,
+                amount=balance.available_balance,
+                hijri_month=h_month,
+                hijri_year=h_year,
+                posted_by=request.user,
+                entry_type=LedgerEntryType.ADJUSTMENT,
+                details=f"Full withdrawal — member deactivated",
+            )
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            "message": f"Withdrew ₦{balance.available_balance} from {member.full_name}.",
+            "new_balance": str(balance.available_balance),
         })

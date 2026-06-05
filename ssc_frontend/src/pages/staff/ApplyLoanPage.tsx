@@ -958,6 +958,7 @@ export default function ApplyLoanPage() {
                             %
                           </p>
                           <div className="h-1.5 w-full rounded-full bg-gray-200">
+                            {/* eslint-disable-next-line no-inline-styles */}
                             <div
                               className="h-full rounded-full bg-primary-500 transition-all"
                               style={{
