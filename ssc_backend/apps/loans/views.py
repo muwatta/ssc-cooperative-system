@@ -1,4 +1,3 @@
-
 from decimal import Decimal
 import csv
 import io
@@ -18,7 +17,6 @@ from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee, IsAdminOrComm
 from apps.accounts.models import MemberProfile
 from apps.savings.services import get_or_create_balance
 from apps.savings.models import SavingsLedger, MemberBalance
-from savings.models import MemberBalance, SavingsLedger
 from .models import LoanApplication, LoanRepaymentLedger, LoanStatus, LoanDraft
 from .serializers import (
     LoanApplicationSerializer, LoanDraftSerializer, SubmitLoanSerializer,
