@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { membersApi, savingsApi } from "@/api/services";
 import { AnimatedCard } from "@/components/common";
+import api from "@/api/client";
+
 import type {
   MemberProfile,
   PaginatedResponse,
@@ -107,23 +109,43 @@ export default function ReportsPage() {
   const isLoading = loading && !members.length;
   const isRefreshing = fetchingMembers && members.length > 0;
 
-  // ---------- Export Handlers ----------
+
+  // Export Handlers
   const exportMemberStatement = (format: "csv" | "pdf") => {
     const id = memberIdForStatement.trim();
-    if (!id) return alert("Please enter a member ID or select from list.");
-    window.open(
-      `/api/v1/reports/member-statement/${id}/?format=${format}`,
-      "_blank",
-    );
+    if (!id) return alert("Please enter a member ID (numeric).");
+    const url = `/reports/member-statement/${id}/?format=${format}`;
+    downloadFile(url, `statement_${id}.${format}`);
   };
 
   const exportLoanBook = (format: "csv" | "pdf") => {
-    window.open(`/api/v1/reports/loan-book/?format=${format}`, "_blank");
+    downloadFile(`/reports/loan-book/?format=${format}`, `loan_book.${format}`);
   };
 
   const exportSuretyExposure = () => {
-    window.open(`/api/v1/reports/surety-exposure/?format=csv`, "_blank");
+    downloadFile(`/reports/surety-exposure/?format=csv`, `surety_exposure.csv`);
   };
+
+  async function downloadFile(url: string, filename: string) {
+    try {
+      const response = await api.get(url, { responseType: "blob" });
+      const blob = new Blob([response.data]);
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.error ||
+        error?.message ||
+        "Download failed. Make sure you are logged in with the right permissions.";
+      alert(message);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -163,7 +185,7 @@ export default function ReportsPage() {
         )}
       </div>
 
-      {/* ---------- Export Buttons Section ---------- */}
+      {/* Export Buttons Section */}
       <div className="bg-white rounded-2xl shadow p-5">
         <h2 className="text-base font-semibold text-gray-800 mb-3">
           Export Reports
