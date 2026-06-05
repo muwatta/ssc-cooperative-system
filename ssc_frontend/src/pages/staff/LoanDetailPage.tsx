@@ -1,10 +1,12 @@
-import { useEffect, useState, ChangeEvent, FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { loansApi } from "@/api/services";
 import { AnimatedCard } from "@/components/common";
 import { useAuth } from "@/context/AuthContext";
 import AdminApprovalPreview from "@/components/admin/AdminApprovalPreview";
+import RepaymentModal from "@/components/loans/RepaymentModal";
+import { computeEndDate } from "@/utils/loanUtils";
 import type { LoanApplication, Repayment } from "@/types";
 
 const formatNaira = (amount: string | number | null | undefined): string => {
@@ -45,13 +47,6 @@ export default function LoanDetailPage() {
   const [showRepayment, setShowRepayment] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [repaymentAmount, setRepaymentAmount] = useState("");
-  const [repaymentHijriMonth, setRepaymentHijriMonth] = useState(1);
-  const [repaymentHijriYear, setRepaymentHijriYear] = useState(
-    new Date().getFullYear(),
-  );
-  const [isPostingRepayment, setIsPostingRepayment] = useState(false);
-  const [repaymentError, setRepaymentError] = useState<string | null>(null);
 
   // Admin approval preview
   const [showApprovalPreview, setShowApprovalPreview] = useState(false);
@@ -121,33 +116,6 @@ export default function LoanDetailPage() {
     qc.invalidateQueries({ queryKey: ["loan", loanId] });
   };
 
-  const handlePostRepayment = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!loanId) return;
-
-    setIsPostingRepayment(true);
-    setRepaymentError(null);
-
-    try {
-      await loansApi.postRepayment(loanId, {
-        amount: repaymentAmount,
-        hijri_month: repaymentHijriMonth,
-        hijri_year: repaymentHijriYear,
-      });
-      invalidateRepayments();
-      setShowRepayment(false);
-      setRepaymentAmount("");
-      setRepaymentHijriMonth(1);
-      setRepaymentHijriYear(new Date().getFullYear());
-    } catch (error) {
-      setRepaymentError(
-        "Unable to post repayment. Please check the values and try again.",
-      );
-    } finally {
-      setIsPostingRepayment(false);
-    }
-  };
-
   // Admin approval / rejection handlers
   const handleAdminApprove = async (note: string) => {
     if (!loanId) return;
@@ -180,6 +148,15 @@ export default function LoanDetailPage() {
   if (isLoading) return <PageLoader />;
   if (!loan) return <EmptyState icon="🔍" title="Loan not found" />;
 
+  const outstandingPercent =
+    loan.status === "active"
+      ? Math.round(
+          (parseFloat(loan.outstanding_balance) /
+            parseFloat(loan.amount_approved || loan.amount_applied)) *
+            100,
+        )
+      : 0;
+
   return (
     <div className="max-w-3xl mx-auto p-4">
       {/* Header */}
@@ -204,7 +181,6 @@ export default function LoanDetailPage() {
             📄 Export Schedule
           </button>
 
-          {/* Admin Approval Button – only when pending_admin */}
           {isAdmin && loan.status === "pending_admin" && (
             <button
               onClick={() => setShowApprovalPreview(true)}
@@ -216,29 +192,57 @@ export default function LoanDetailPage() {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+      {/* Summary Cards – now 5 cards on large screens */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <AnimatedCard className="bg-gradient-to-br from-primary-50 to-white p-4 shadow-lg">
           <p className="text-sm text-gray-600">Amount Applied</p>
           <p className="font-bold text-lg">
             {formatNaira(loan.amount_applied)}
           </p>
         </AnimatedCard>
+
         <AnimatedCard className="bg-gradient-to-br from-amber-50 via-amber-100 to-white p-4 shadow-lg">
           <p className="text-sm text-gray-600">Status</p>
           <p className="font-bold text-lg">{loan.status.toUpperCase()}</p>
         </AnimatedCard>
+
         <AnimatedCard className="bg-gradient-to-br from-sky-50 via-sky-100 to-white p-4 shadow-lg">
           <p className="text-sm text-gray-600">Duration</p>
           <p className="font-bold text-lg">
             {loan.proposed_duration_months} months
           </p>
         </AnimatedCard>
+
         <AnimatedCard className="bg-gradient-to-br from-red-50 via-red-100 to-white p-4 shadow-lg">
           <p className="text-sm text-gray-600">Outstanding</p>
           <p className="font-bold text-lg">
             {formatNaira(loan.outstanding_balance)}
           </p>
+          {loan.status === "active" && (
+            <div className="mt-2">
+              <div className="h-1.5 w-full rounded-full bg-gray-200">
+                <div
+                  className="h-full rounded-full bg-primary-600 transition-all"
+                  style={{ width: `${outstandingPercent}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {outstandingPercent}% remaining
+              </p>
+            </div>
+          )}
+        </AnimatedCard>
+
+        {/* NEW: Repayment End */}
+        <AnimatedCard className="bg-gradient-to-br from-teal-50 to-white p-4 shadow-lg">
+          <p className="text-sm text-gray-600">Repayment End</p>
+          <p className="font-bold text-lg">{computeEndDate(loan)}</p>
+          {loan.repayment_start_hijri_month && (
+            <p className="text-xs text-gray-500 mt-1">
+              From {loan.repayment_start_hijri_month}/
+              {loan.repayment_start_hijri_year}
+            </p>
+          )}
         </AnimatedCard>
       </div>
 
@@ -391,102 +395,30 @@ export default function LoanDetailPage() {
         )}
       </div>
 
-      {/* Repayment Modal */}
+      {/* Repayment Modal – now using the reusable component */}
       {showRepayment && loan && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full relative">
+            <button
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-lg"
+              onClick={() => setShowRepayment(false)}
+            >
+              ✕
+            </button>
             <h2 className="text-xl font-semibold mb-4">Post Loan Repayment</h2>
-            <form onSubmit={handlePostRepayment}>
-              {repaymentError && (
-                <div className="mb-4 rounded-lg bg-danger-50 border border-danger-200 px-4 py-3 text-danger-700">
-                  {repaymentError}
-                </div>
-              )}
-              <div className="grid gap-4 md:grid-cols-2 mb-4">
-                <div>
-                  <label
-                    htmlFor="repayment-amount"
-                    className="block text-sm mb-1"
-                  >
-                    Amount (₦)
-                  </label>
-                  <input
-                    id="repayment-amount"
-                    value={repaymentAmount}
-                    onChange={(event) => setRepaymentAmount(event.target.value)}
-                    type="number"
-                    className="w-full border rounded px-3 py-2"
-                    placeholder="Enter amount"
-                    required
-                    min={0.01}
-                    step="0.01"
-                    max={parseFloat(loan.outstanding_balance) || undefined}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="repayment-hijri-month"
-                    className="block text-sm mb-1"
-                  >
-                    Hijri Month
-                  </label>
-                  <input
-                    id="repayment-hijri-month"
-                    value={repaymentHijriMonth}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                      setRepaymentHijriMonth(Number(event.target.value))
-                    }
-                    type="number"
-                    className="w-full border rounded px-3 py-2"
-                    min={1}
-                    max={12}
-                    placeholder="1-12"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2 mb-4">
-                <div>
-                  <label
-                    htmlFor="repayment-hijri-year"
-                    className="block text-sm mb-1"
-                  >
-                    Hijri Year
-                  </label>
-                  <input
-                    id="repayment-hijri-year"
-                    value={repaymentHijriYear}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                      setRepaymentHijriYear(Number(event.target.value))
-                    }
-                    type="number"
-                    className="w-full border rounded px-3 py-2"
-                    min={1}
-                    placeholder="1445"
-                    required
-                  />
-                </div>
-                <div className="pt-6 text-sm text-gray-500">
-                  Outstanding: {formatNaira(loan.outstanding_balance)}
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowRepayment(false)}
-                  className="flex-1 bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPostingRepayment}
-                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {isPostingRepayment ? "Posting..." : "Post Repayment"}
-                </button>
-              </div>
-            </form>
+            <RepaymentModal
+              loanId={loanId!}
+              outstanding={loan.outstanding_balance}
+              monthlyRepayment={loan.proposed_monthly_repayment}
+              defaultMonth={loan.repayment_start_hijri_month || 1}
+              defaultYear={
+                loan.repayment_start_hijri_year || new Date().getFullYear()
+              }
+              onClose={() => {
+                setShowRepayment(false);
+                invalidateRepayments();
+              }}
+            />
           </div>
         </div>
       )}

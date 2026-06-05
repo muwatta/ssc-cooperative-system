@@ -920,6 +920,55 @@ export default function ApplyLoanPage() {
                   </div>
                 </div>
 
+                {/* Repayment Summary */}
+                {amountApplied > 0 && (
+                  <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-sm">
+                    <p className="font-semibold text-green-800">
+                      Repayment Summary
+                    </p>
+                    <div className="mt-2 space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Monthly Repayment</span>
+                        <span className="font-medium">
+                          {formatNaira(monthlyRepayment)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Total to Repay</span>
+                        <span className="font-medium">
+                          {formatNaira(amountApplied)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Interest</span>
+                        <span className="font-medium text-green-700">
+                          0% (interest‑free)
+                        </span>
+                      </div>
+                      {selfSuretyMax > 0 && (
+                        <div className="mt-3">
+                          <p className="text-gray-600 text-xs mb-1">
+                            Self‑surety usage:{" "}
+                            {Math.min(
+                              100,
+                              Math.round((amountApplied / selfSuretyMax) * 100),
+                            )}
+                            %
+                          </p>
+                          <div className="h-1.5 w-full rounded-full bg-gray-200">
+                            <div
+                              className="h-full rounded-full bg-primary-500 transition-all"
+                              style={{
+                                width: `${Math.min(100, (amountApplied / selfSuretyMax) * 100)}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Repayment start – auto‑calculated */}
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -934,7 +983,7 @@ export default function ApplyLoanPage() {
                 </div>
               </div>
 
-              {/* Sureties Section — only shown when external sureties are required */}
+              {/* Sureties Section */}
               {needsExternalSureties && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between flex-wrap gap-2">
