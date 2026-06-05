@@ -61,6 +61,7 @@ function SliderField({
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
           className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
+          aria-label={label}
         />
         <span className="text-sm font-semibold w-20 text-right">
           {value} {unit}
@@ -93,6 +94,7 @@ function ToggleField({
         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
           checked ? "bg-primary-600" : "bg-gray-300"
         }`}
+        aria-label={label}
       >
         <span
           className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
