@@ -273,12 +273,17 @@ export interface LoanApplication {
 }
 
 export interface LoanSettings {
-  id?: number;
-  max_loan_duration_months?: number;
-  min_savings_months?: number;
-  max_loan_percentage_of_savings?: number;
-  max_surety_percentage?: number;
-  annual_loan_limit?: number;
+  consecutive_savings_months_required: number;
+  max_loans_per_year: number;
+  max_repayment_months: number;
+  self_surety_ratio: number;
+  max_borrowable_ratio: number; 
+  external_surety_max_ratio: number; 
+  max_sureties: number;
+  min_loan_amount: number;
+  max_loan_amount: number;
+  require_no_active_loan: boolean;
+  require_no_surety_liabilities: boolean;
 }
 
 export interface LoanEligibilityResponse {
