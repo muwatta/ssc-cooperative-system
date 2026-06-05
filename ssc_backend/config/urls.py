@@ -3,7 +3,11 @@ from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
 from apps.accounts.views import SSCTokenObtainPairView, LogoutView
 from apps.core.views import CurrentDateView
-
+from apps.loans.views import (
+    MemberStatementExportView,
+    LoanBookExportView,
+    SuretyExposureExportView,
+)
 
 urlpatterns = [
     path("ssc-coop-admin-secret/", admin.site.urls),
@@ -18,4 +22,7 @@ urlpatterns = [
     path("api/v1/investments/", include("apps.investments.urls")),
     path("api/v1/notifications/", include("apps.notifications.urls")),
     path("api/v1/audit/", include("apps.audit.urls")),
+    path("api/v1/reports/member-statement/<int:member_id>/", MemberStatementExportView.as_view(), name="member-statement"),
+    path("api/v1/reports/loan-book/", LoanBookExportView.as_view(), name="loan-book"),
+    path("api/v1/reports/surety-exposure/", SuretyExposureExportView.as_view(), name="surety-exposure"),
 ]
