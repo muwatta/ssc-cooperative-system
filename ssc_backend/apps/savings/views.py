@@ -4,6 +4,7 @@ import io
 from django.db.models import Count, Sum
 from django.db.utils import ProgrammingError
 from django.http import HttpResponse
+from loans.models import LoanApplication, LoanStatus
 from rest_framework import generics, status, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -11,7 +12,7 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 
-from apps.accounts.models import MemberProfile
+from apps.accounts.models import MemberProfile, MembershipStatus
 from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee, IsAdminOrCommitteeOrHOS
 from .models import SavingsLedger, MemberBalance, SavingsChangeRequest, TermlyDuesCycle
 from .serializers import (
@@ -586,3 +587,117 @@ class BulkSavingsReportView(APIView):
             'attachment; filename="bulk-savings-report.csv"'
         )
         return response
+    
+
+
+
+class BatchMonthlyDeductionView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        hijri_month = request.data.get("hijri_month")
+        hijri_year = request.data.get("hijri_year")
+        preview = request.data.get("preview", True)
+
+        # get all active members
+        members = MemberProfile.objects.filter(membership_status=MembershipStatus.ACTIVE)
+        results = []
+        for member in members:
+            # fetch approved monthly contribution
+            contribution = member.approved_monthly_contribution
+            # fetch active loan repayment
+            active_loan = LoanApplication.objects.filter(
+                applicant=member, status=LoanStatus.ACTIVE
+            ).first()
+            loan_repayment = active_loan.proposed_monthly_repayment if active_loan else Decimal(0)
+            total_debit = contribution + loan_repayment
+            results.append({
+                "member_id": member.id,
+                "file_number": member.file_number,
+                "name": member.full_name,
+                "contribution": str(contribution),
+                "loan_repayment": str(loan_repayment),
+                "total_debit": str(total_debit),
+            })
+
+        if not preview:
+            # actually post the entries
+            from apps.savings.services import post_savings_entry, post_debit_entry
+            from apps.loans.services import post_repayment
+            for item in results:
+                if item["contribution"] > 0:
+                    post_savings_entry(...)  # credit savings
+                if item["loan_repayment"] > 0:
+                    post_repayment(...)      # credit repayment to savings
+
+        return Response({"preview": preview, "deductions": results})
+    
+
+class BatchMonthlyDeductionView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        hijri_month = request.data.get("hijri_month")
+        hijri_year = request.data.get("hijri_year")
+        preview = request.data.get("preview", True)
+
+        if not hijri_month or not hijri_year:
+            return Response({"error": "hijri_month and hijri_year required."}, status=400)
+
+        members = MemberProfile.objects.filter(membership_status=MembershipStatus.ACTIVE)
+        results = []
+
+        for member in members:
+            contribution = member.approved_monthly_contribution
+            active_loan = LoanApplication.objects.filter(
+                applicant=member, status=LoanStatus.ACTIVE
+            ).first()
+            loan_repayment = active_loan.proposed_monthly_repayment if active_loan else Decimal(0)
+            total_debit = contribution + loan_repayment
+
+            results.append({
+                "member_id": member.id,
+                "file_number": member.file_number,
+                "name": member.full_name,
+                "contribution": str(contribution),
+                "loan_repayment": str(loan_repayment),
+                "total_debit": str(total_debit),
+            })
+
+        if not preview:
+            # Actually post the deductions
+            from apps.savings.services import post_savings_entry
+            from apps.loans.services import post_repayment
+            from utils.hijri import current_hijri as get_hijri
+
+            h_month, h_year = get_hijri()
+            posted_by = request.user
+
+            for item in results:
+                member = MemberProfile.objects.get(pk=item["member_id"])
+                # 1. Ordinary savings (credit)
+                if Decimal(item["contribution"]) > 0:
+                    post_savings_entry(
+                        member=member,
+                        amount=Decimal(item["contribution"]),
+                        hijri_month=hijri_month,
+                        hijri_year=hijri_year,
+                        posted_by=posted_by,
+                        entry_type="ordinary_savings",
+                        details=f"Monthly contribution {hijri_month}/{hijri_year}",
+                    )
+                # 2. Loan repayment
+                if Decimal(item["loan_repayment"]) > 0 and active_loan:
+                    post_repayment(
+                        loan=active_loan,
+                        amount=Decimal(item["loan_repayment"]),
+                        hijri_month=hijri_month,
+                        hijri_year=hijri_year,
+                        posted_by=posted_by,
+                    )
+
+        return Response({
+            "preview": preview,
+            "total_members": len(results),
+            "deductions": results,
+        })

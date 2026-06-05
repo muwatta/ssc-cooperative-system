@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { membersApi, savingsApi, loansApi } from "@/api/services";
+import api from "@/api/client"; // needed for batch endpoint
 import type { MemberProfile, MemberBalance, LoanApplication } from "@/types";
 import { HIJRI_MONTHS } from "@/types";
 
@@ -21,7 +22,7 @@ interface MemberPostState {
   message: string;
 }
 
-// ---------- Member Savings Card (now includes loan & surety details) ----------
+// ---------- Member Savings Card (unchanged) ----------
 function MemberSavingsCard({
   member,
   state,
@@ -179,7 +180,6 @@ function MemberSavingsCard({
               <p className="text-sm text-danger-700">⚠ {state.message}</p>
             )}
 
-            {/* Toggle details */}
             <button
               type="button"
               onClick={() => setShowDetails(!showDetails)}
@@ -190,7 +190,6 @@ function MemberSavingsCard({
 
             {showDetails && (
               <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-2 border border-gray-100">
-                {/* Loan info */}
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase">
                     Active Loan
@@ -230,7 +229,6 @@ function MemberSavingsCard({
                   )}
                 </div>
 
-                {/* Surety info */}
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase">
                     Surety Commitment
@@ -270,6 +268,134 @@ function MemberSavingsCard({
   );
 }
 
+// ---------- New: Monthly Deductions Modal ----------
+function MonthlyDeductionsModal({ onClose }: { onClose: () => void }) {
+  const [month, setMonth] = useState(1);
+  const [year, setYear] = useState(1446);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [posting, setPosting] = useState(false);
+
+  const fetchPreview = async () => {
+    setLoading(true);
+    try {
+      const res = await api.post("/savings/batch-monthly/", {
+        hijri_month: month,
+        hijri_year: year,
+        preview: true,
+      });
+      setPreviewData(res.data);
+    } catch (e) {
+      alert("Failed to load preview");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const postAll = async () => {
+    setPosting(true);
+    try {
+      await api.post("/savings/batch-monthly/", {
+        hijri_month: month,
+        hijri_year: year,
+        preview: false,
+      });
+      alert("Monthly deductions posted successfully!");
+      onClose();
+    } catch (e) {
+      alert("Error posting deductions");
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+        <h2 className="text-xl font-bold mb-4">Monthly Deductions</h2>
+        <div className="flex gap-4 mb-4 items-end">
+          <div>
+            <label className="label">Hijri Month</label>
+            <select
+              value={month}
+              onChange={(e) => setMonth(Number(e.target.value))}
+              className="input"
+              title="Hijri month"
+            >
+              {HIJRI_MONTHS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">Hijri Year</label>
+            <input
+              type="number"
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              className="input"
+              min={1400}
+              title="Hijri month"
+            />
+          </div>
+          <button
+            onClick={fetchPreview}
+            disabled={loading}
+            className="btn-primary"
+          >
+            Preview
+          </button>
+        </div>
+
+        {previewData && (
+          <>
+            <p className="text-sm text-gray-500 mb-2">
+              Total members: {previewData.total_members}
+            </p>
+            <div className="max-h-64 overflow-y-auto">
+              <table className="table text-sm">
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th>Contribution</th>
+                    <th>Loan Repay</th>
+                    <th>Total Debit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewData.deductions.map((d: any) => (
+                    <tr key={d.member_id}>
+                      <td>
+                        {d.name} ({d.file_number})
+                      </td>
+                      <td>{d.contribution}</td>
+                      <td>{d.loan_repayment}</td>
+                      <td className="font-bold">{d.total_debit}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <button
+              onClick={postAll}
+              disabled={posting}
+              className="btn-primary mt-4 w-full"
+            >
+              {posting ? "Posting…" : "Post All Deductions"}
+            </button>
+          </>
+        )}
+
+        <button onClick={onClose} className="btn-secondary mt-3 w-full">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ---------- Main Page ----------
 export default function PostSavingsPage() {
   const [members, setMembers] = useState<MemberProfile[]>([]);
@@ -284,8 +410,8 @@ export default function PostSavingsPage() {
   );
   const [globalMsg, setGlobalMsg] = useState("");
   const [postAllPending, setPostAllPending] = useState(false);
+  const [showBatchModal, setShowBatchModal] = useState(false); // NEW
 
-  // Additional data: balances & active loans
   const [balances, setBalances] = useState<Record<number, MemberBalance>>({});
   const [activeLoansMap, setActiveLoansMap] = useState<
     Record<number, LoanApplication>
@@ -309,7 +435,6 @@ export default function PostSavingsPage() {
           };
         });
         setPostStates(initial);
-        // After members load, fetch balances & active loans
         fetchDetails(data);
       })
       .catch(() => setGlobalMsg("Unable to load members."))
@@ -319,7 +444,6 @@ export default function PostSavingsPage() {
   const fetchDetails = async (members: MemberProfile[]) => {
     setDetailsLoading(true);
     try {
-      // Fetch balances
       const balanceResults = await Promise.allSettled(
         members.map((m) => savingsApi.getBalance(m.id)),
       );
@@ -331,20 +455,17 @@ export default function PostSavingsPage() {
       });
       setBalances(balanceMap);
 
-      // Fetch all active loans (admin sees all)
       const loansRes = await loansApi.list({ status: "active" });
       const activeLoans: LoanApplication[] = loansRes.data.results || [];
       const loanMap: Record<number, LoanApplication> = {};
       activeLoans.forEach((loan) => {
         if (loan.applicant) {
-          // applicant is an object or just id? In the response it might be an id number.
-          // The LoanApplication type includes `applicant: number`. So we use loan.applicant as number.
           loanMap[loan.applicant] = loan;
         }
       });
       setActiveLoansMap(loanMap);
     } catch {
-      // non‑critical, leave maps empty
+      // ignore
     } finally {
       setDetailsLoading(false);
     }
@@ -434,7 +555,7 @@ export default function PostSavingsPage() {
         </p>
       </div>
 
-      {/* Period selector */}
+      {/* Period selector + Batch button */}
       <div className="card p-4 mb-6 bg-primary-50 border border-primary-100">
         <p className="text-xs font-semibold text-primary-700 uppercase tracking-wider mb-3">
           Posting Period (Islamic Calendar)
@@ -477,6 +598,13 @@ export default function PostSavingsPage() {
             />
           </div>
           <div className="flex gap-2 ml-auto">
+            {/* NEW: Batch Monthly Deductions button */}
+            <button
+              onClick={() => setShowBatchModal(true)}
+              className="btn-secondary text-sm"
+            >
+              ⚡ Run Monthly Deductions
+            </button>
             {successCount > 0 && (
               <button
                 onClick={resetSuccessful}
@@ -562,6 +690,11 @@ export default function PostSavingsPage() {
             ))}
           </div>
         </>
+      )}
+
+      {/* Monthly Deductions Modal */}
+      {showBatchModal && (
+        <MonthlyDeductionsModal onClose={() => setShowBatchModal(false)} />
       )}
     </div>
   );

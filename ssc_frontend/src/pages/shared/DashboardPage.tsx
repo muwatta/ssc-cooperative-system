@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useQuery } from "@tanstack/react-query";
+import api from "@/api/client";
 import { membersApi, savingsApi } from "@/api/services";
 import type { MemberProfile, SavingsSummary } from "@/types";
 
@@ -58,6 +59,16 @@ export default function DashboardPage() {
     localStorage.setItem("showBalances", String(nextValue));
   };
 
+  // ---------- New: Dashboard Summary (loan stats, pending approvals) ----------
+  const { data: dashSummary } = useQuery({
+    queryKey: ["dashboard-summary"],
+    queryFn: () => api.get("/dashboard/summary/").then((r) => r.data),
+    staleTime: 10000,
+    refetchInterval: 15000,
+    enabled: isLeadership, // only fetch for leadership roles
+  });
+
+  // Existing member stats (unchanged)
   const memberStatsQuery = useQuery<DashboardStats>({
     queryKey: ["dashboard", "member-stats"],
     queryFn: async () => {
@@ -139,6 +150,16 @@ export default function DashboardPage() {
     return value;
   };
 
+  // Extract loan summary from new endpoint
+  const pendingAdmin = dashSummary?.pending_admin ?? 0;
+  const activeLoans = dashSummary?.active_loans ?? 0;
+  const totalOutstanding = dashSummary?.total_outstanding
+    ? `₦${Number(dashSummary.total_outstanding).toLocaleString()}`
+    : "₦0.00";
+  const totalSavingsCoop = dashSummary?.total_savings
+    ? `₦${Number(dashSummary.total_savings).toLocaleString()}`
+    : "₦0.00";
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="mb-6">
@@ -149,6 +170,60 @@ export default function DashboardPage() {
         </p>
       </div>
 
+      {/* ---------- NEW: Loan & Approval snapshot (leadership only) ---------- */}
+      {isLeadership && dashSummary && (
+        <div className="card-panel mb-6 bg-white border border-gray-200">
+          <h2 className="text-lg font-semibold mb-3">At a Glance</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <StatCard
+              label="Pending Admin Approval"
+              value={pendingAdmin}
+              color="warning"
+            />
+            <StatCard
+              label="Active Loans"
+              value={activeLoans}
+              color="primary"
+            />
+            <StatCard
+              label="Total Outstanding"
+              value={totalOutstanding}
+              color="danger"
+            />
+            <StatCard
+              label="Total Savings Pool"
+              value={totalSavingsCoop}
+              color="success"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ---------- Upcoming Repayments (leadership) ---------- */}
+      {isLeadership && dashSummary?.upcoming_repayments?.length > 0 && (
+        <div className="card-panel mb-6 bg-white border border-gray-200">
+          <h2 className="text-lg font-semibold mb-2">
+            Upcoming Repayments (next month)
+          </h2>
+          <div className="text-sm space-y-1 max-h-48 overflow-y-auto">
+            {dashSummary.upcoming_repayments.map((r: any) => (
+              <div
+                key={r.loan_id}
+                className="flex justify-between py-1 border-b border-gray-100"
+              >
+                <span>
+                  {r.applicant} (Loan #{r.loan_id})
+                </span>
+                <span className="font-medium">
+                  ₦{Number(r.amount).toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Existing Leadership profile section */}
       {isLeadership && (
         <div className="card-panel mb-6 bg-primary-50 border-primary-100">
           <div className="flex items-center justify-between mb-3">
@@ -217,6 +292,7 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Membership Summary (unchanged) */}
       {isLeadership && (
         <div className="card-panel mb-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -295,6 +371,7 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Balance Overview (unchanged) */}
       <div className="card-panel mb-6 bg-primary-50 border-primary-100">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">

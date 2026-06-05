@@ -22,6 +22,7 @@ function formatNaira(value: string | number) {
 
 export default function ReportsPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [memberIdForStatement, setMemberIdForStatement] = useState("");
 
   const {
     data: membersPage,
@@ -106,6 +107,24 @@ export default function ReportsPage() {
   const isLoading = loading && !members.length;
   const isRefreshing = fetchingMembers && members.length > 0;
 
+  // ---------- Export Handlers ----------
+  const exportMemberStatement = (format: "csv" | "pdf") => {
+    const id = memberIdForStatement.trim();
+    if (!id) return alert("Please enter a member ID or select from list.");
+    window.open(
+      `/api/v1/reports/member-statement/${id}/?format=${format}`,
+      "_blank",
+    );
+  };
+
+  const exportLoanBook = (format: "csv" | "pdf") => {
+    window.open(`/api/v1/reports/loan-book/?format=${format}`, "_blank");
+  };
+
+  const exportSuretyExposure = () => {
+    window.open(`/api/v1/reports/surety-exposure/?format=csv`, "_blank");
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -142,6 +161,72 @@ export default function ReportsPage() {
             <span>Refreshing...</span>
           </div>
         )}
+      </div>
+
+      {/* ---------- Export Buttons Section ---------- */}
+      <div className="bg-white rounded-2xl shadow p-5">
+        <h2 className="text-base font-semibold text-gray-800 mb-3">
+          Export Reports
+        </h2>
+        <div className="flex flex-wrap gap-4 items-end">
+          {/* Member Statement */}
+          <div className="flex-1 min-w-[200px]">
+            <label className="label text-xs">Member Statement</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Member ID (e.g. 1)"
+                value={memberIdForStatement}
+                onChange={(e) => setMemberIdForStatement(e.target.value)}
+                className="input flex-1"
+              />
+              <button
+                onClick={() => exportMemberStatement("csv")}
+                className="btn-secondary text-xs px-3 py-1.5 whitespace-nowrap"
+              >
+                CSV
+              </button>
+              <button
+                onClick={() => exportMemberStatement("pdf")}
+                className="btn-secondary text-xs px-3 py-1.5 whitespace-nowrap"
+              >
+                PDF
+              </button>
+            </div>
+          </div>
+
+          {/* Loan Book Report */}
+          <div className="flex-1 min-w-[150px]">
+            <label className="label text-xs">Loan Book Report</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => exportLoanBook("csv")}
+                className="btn-secondary text-xs px-3 py-1.5 flex-1"
+              >
+                CSV
+              </button>
+              <button
+                onClick={() => exportLoanBook("pdf")}
+                className="btn-secondary text-xs px-3 py-1.5 flex-1"
+              >
+                PDF
+              </button>
+            </div>
+          </div>
+
+          {/* Surety Exposure Report */}
+          <div className="flex-1 min-w-[150px]">
+            <label className="label text-xs">Surety Exposure Report</label>
+            <div className="flex gap-2">
+              <button
+                onClick={exportSuretyExposure}
+                className="btn-secondary text-xs px-3 py-1.5 flex-1"
+              >
+                CSV
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {isLoading ? (

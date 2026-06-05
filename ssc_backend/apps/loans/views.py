@@ -557,3 +557,48 @@ class AdminApprovalPreviewView(APIView):
             },
             "sureties": sureties_list,
         })
+    
+
+
+class MemberStatementExportView(APIView):
+    permission_classes = [IsAdminOrCommitteeOrHOS]
+
+    def get(self, request, member_id):
+        try:
+            member = MemberProfile.objects.get(pk=member_id)
+        except MemberProfile.DoesNotExist:
+            return Response({"error": "Member not found."}, status=404)
+
+        # Fetch all savings entries for this member
+        from apps.savings.models import SavingsLedger
+        entries = SavingsLedger.objects.filter(member=member).order_by("hijri_year", "hijri_month", "created_at")
+
+        export_format = request.query_params.get("format", "csv").lower()
+
+        if export_format == "pdf":
+            from reportlab.lib.pagesizes import A4
+            from reportlab.pdfgen import canvas
+            buffer = io.BytesIO()
+            pdf = canvas.Canvas(buffer, pagesize=A4)
+            y = 800
+            pdf.setFont("Helvetica-Bold", 14)
+            pdf.drawString(50, y, f"Savings Statement – {member.file_number} {member.full_name}")
+            y -= 30
+            pdf.setFont("Helvetica", 9)
+            # table headers …
+            # loop entries …
+            pdf.save()
+            buffer.seek(0)
+            response = HttpResponse(buffer.read(), content_type="application/pdf")
+            response["Content-Disposition"] = f"attachment; filename=statement_{member.file_number}.pdf"
+            return response
+
+        # Default CSV
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(["Hijri Date", "Type", "Details", "Debit", "Credit", "Balance"])
+        for e in entries:
+            writer.writerow([e.hijri_display, e.entry_type, e.details, e.debit or "", e.credit or "", e.balance])
+        response = HttpResponse(buffer.getvalue(), content_type="text/csv")
+        response["Content-Disposition"] = f"attachment; filename=statement_{member.file_number}.csv"
+        return response
