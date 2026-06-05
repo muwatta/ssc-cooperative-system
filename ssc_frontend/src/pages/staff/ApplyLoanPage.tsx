@@ -504,7 +504,7 @@ export default function ApplyLoanPage() {
         );
       }
       saveDraftMutation.mutate(payload);
-    }, 2000);
+    }, 5000);
 
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);

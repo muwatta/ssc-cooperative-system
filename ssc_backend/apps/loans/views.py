@@ -451,7 +451,6 @@ class LoanRepaymentExportAsyncView(APIView):
 
 
 class TaskStatusView(APIView):
-    """GET /api/v1/tasks/<task_id>/ — get async task status"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, task_id):

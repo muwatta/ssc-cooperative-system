@@ -8,7 +8,7 @@ from apps.accounts.models import MemberProfile
 from apps.notifications.models import NotificationType, send_notification
 from apps.savings.services import get_or_create_balance, post_debit_entry
 from apps.savings.models import LedgerEntryType
-from apps.loans.models import LoanStatus, LoanConfiguration
+from apps.loans.models import LoanStatus, LoanApplication, LoanConfiguration
 from .models import SuretyRecord, SuretyStatus
 
 MAX_EXTERNAL_SURETIES     = 5     # SRS SR3
@@ -23,6 +23,15 @@ def check_surety_eligibility(member: MemberProfile, amount: Decimal) -> dict:
 
     if member.consecutive_savings_months < 6:
         reasons.append(f"{member.file_number}: needs 6 consecutive savings months.")
+    
+    # Active loan blocker
+    active_loan = LoanApplication.objects.filter(
+        applicant=member, status=LoanStatus.ACTIVE
+    ).exists()
+    if active_loan:
+        reasons.append(
+            f"{member.file_number}: has an active loan and must settle it before acting as a surety."
+        )
 
     balance = get_or_create_balance(member)
     config = LoanConfiguration.get_solo()
@@ -32,6 +41,7 @@ def check_surety_eligibility(member: MemberProfile, amount: Decimal) -> dict:
             f"{member.file_number}: can commit max ₦{max_commit} "
             f"({int(config.external_surety_max_ratio * 100)}% of available balance ₦{balance.available_balance})."
         )
+    
 
     # Annual surety count (SRS SR4)
     current_year = timezone.now().year

@@ -429,7 +429,7 @@ export default function MyLoansPage() {
                 ))}
 
                 {/* Summary Footer */}
-                <div className="mt-4 rounded-xl bg-gray-50 p-4">
+                <div className="mt-4 rounded-xl bg-green-400-50 p-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Total Commitments</span>
                     <span className="font-semibold text-gray-900">
