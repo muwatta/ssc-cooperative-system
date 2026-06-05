@@ -59,13 +59,13 @@ export default function DashboardPage() {
     localStorage.setItem("showBalances", String(nextValue));
   };
 
-  // ---------- New: Dashboard Summary (loan stats, pending approvals) ----------
+  // Dashboard Summary (loan stats, pending approvals)
   const { data: dashSummary } = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: () => api.get("/dashboard/summary/").then((r) => r.data),
     staleTime: 10000,
     refetchInterval: 15000,
-    enabled: isLeadership, // only fetch for leadership roles
+    enabled: isLeadership,
   });
 
   // Existing member stats (unchanged)
@@ -170,7 +170,7 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* ---------- NEW: Loan & Approval snapshot (leadership only) ---------- */}
+      {/* NEW: Loan & Approval snapshot (leadership only) */}
       {isLeadership && dashSummary && (
         <div className="card-panel mb-6 bg-white border border-gray-200">
           <h2 className="text-lg font-semibold mb-3">At a Glance</h2>
@@ -199,7 +199,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ---------- Upcoming Repayments (leadership) ---------- */}
+      {/* Upcoming Repayments (leadership) */}
       {isLeadership && dashSummary?.upcoming_repayments?.length > 0 && (
         <div className="card-panel mb-6 bg-white border border-gray-200">
           <h2 className="text-lg font-semibold mb-2">
@@ -371,7 +371,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Balance Overview (unchanged) */}
+      {/* Balance Overview */}
       <div className="card-panel mb-6 bg-primary-50 border-primary-100">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
@@ -459,6 +459,22 @@ export default function DashboardPage() {
                     : "N/A"}
                 </p>
               </div>
+
+              {/* Special Fixed Savings Card – NEW */}
+              {hasMemberBalance &&
+                Number(memberBalance!.special_savings || 0) > 0 && (
+                  <div className="card-panel-light">
+                    <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                      🔒 Special Fixed Savings
+                    </p>
+                    <p className="mt-3 text-2xl font-semibold text-purple-700">
+                      {maskIfNeeded(
+                        formatNaira(memberBalance!.special_savings || 0),
+                      )}
+                    </p>
+                  </div>
+                )}
+
               {(isAdmin || isCommittee) && (
                 <>
                   <div className="card-panel-light">

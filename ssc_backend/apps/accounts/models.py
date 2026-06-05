@@ -1,4 +1,3 @@
-
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.core.validators import RegexValidator
@@ -6,10 +5,6 @@ from django.utils import timezone
 from datetime import timedelta
 import secrets
 
-
-#────────────────
-# CONSTANTS
-#────────────────
 
 class Role(models.TextChoices):
     ADMIN = "admin", "Admin"
@@ -83,9 +78,7 @@ class StaffIDRegistry(models.Model):
         return f"{self.staff_id} ({'Active' if self.is_active else 'Inactive'})"
 
 
-#────────────────
 # CUSTOM USER MANAGER
-#────────────────
 
 class UserManager(BaseUserManager):
 
@@ -105,11 +98,9 @@ class UserManager(BaseUserManager):
         return self.create_user(staff_id, password, **extra_fields)
 
 
-#────────────────
 # CUSTOM USER MODEL
 # Login identity = Staff ID.
 # Cooperative identity = SSC File Number (on MemberProfile).
-#────────────────
 
 class User(AbstractBaseUser, PermissionsMixin):
    
@@ -148,7 +139,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.staff_id} ({self.role})"
 
-    # ── Role helpers — use these everywhere instead of raw string checks ──
+    # Role helpers — use these everywhere instead of raw string checks
 
     @property
     def is_admin(self):
@@ -212,7 +203,7 @@ class MemberProfile(models.Model):
     SRS Section 2.4 fields all accounted for.
     """
 
-    # ── Identity──
+    # Identit
     user = models.OneToOneField(
         User,
         on_delete=models.PROTECT,       # never accidentally delete a member
@@ -228,7 +219,9 @@ class MemberProfile(models.Model):
         help_text="Internal integer for sequential generation. Do not edit."
     )
 
-    # ── Personal
+    is_special_saver = models.BooleanField(default=False)
+
+    # Personal
     full_name = models.CharField(max_length=255)
     phone_primary = models.CharField(max_length=20)
     phone_secondary = models.CharField(max_length=20, blank=True, default="")
@@ -237,12 +230,12 @@ class MemberProfile(models.Model):
     date_of_birth = models.DateField()
     place_of_birth = models.CharField(max_length=255)
 
-    # ── School Details (SRS 2.4 — School Details section) ──────────
+    # School Details (SRS 2.4 — School Details section)
     school_branch = models.CharField(max_length=20, choices=SchoolBranch.choices)
     designation = models.CharField(max_length=255)
     date_joined_school = models.DateField()
 
-    # ── Financial (SRS 2.4 — Financial section) ────────────────────
+    # Financial (SRS 2.4 — Financial section)
     monthly_income = models.DecimalField(max_digits=12, decimal_places=2)
     approved_monthly_contribution = models.DecimalField(
         max_digits=12,
@@ -251,24 +244,24 @@ class MemberProfile(models.Model):
         help_text="Set by Admin after Chairman approves Savings Change Form"
     )
 
-    # ── Contact (SRS 2.4 — Contact section) ────────────────────────
+    # Contact (SRS 2.4 — Contact section)
     residential_address = models.TextField()
     permanent_home_address = models.TextField()
     email_address = models.EmailField(blank=True, default="")
     social_media_handle = models.CharField(max_length=100, blank=True, default="")
 
-    # ── Origin (SRS 2.4 — Origin section) ──────────────────────────
+    # Origin (SRS 2.4 — Origin section)
     state_of_origin = models.CharField(max_length=100)
     local_government_area = models.CharField(max_length=100)
 
-    # ── Next of Kin (SRS 2.4 — Next of Kin section) ────────────────
+    # Next of Kin (SRS 2.4 — Next of Kin section)
     next_of_kin_name = models.CharField(max_length=255)
     next_of_kin_address = models.TextField()
     next_of_kin_phone = models.CharField(max_length=20)
     next_of_kin_relationship = models.CharField(max_length=100)
     next_of_kin_place_of_work = models.CharField(max_length=255, blank=True, default="")
 
-    # ── Membership Status ───────────────────────────────────────────
+    # Membership Status─
     membership_status = models.CharField(
         max_length=20,
         choices=MembershipStatus.choices,
@@ -283,18 +276,18 @@ class MemberProfile(models.Model):
         help_text="True if imported via legacy CSV — file number preserved as-is"
     )
 
-    # ── Official Approval fields (SRS 2.4 — Official section) ──────
+    # Official Approval fields (SRS 2.4 — Official section)
     approved_by_name = models.CharField(max_length=255, blank=True, default="")
     officer_in_charge = models.CharField(max_length=255, blank=True, default="")
     approval_date = models.DateField(null=True, blank=True)
 
-    # ── Consecutive savings tracker (SRS M1, M2, S5) ───────────────
+    # Consecutive savings tracker (SRS M1, M2, S5)─
     consecutive_savings_months = models.PositiveIntegerField(
         default=0,
         help_text="Resets to 0 when a month is missed. Requirement is governed by admin-configured loan rules.",
     )
 
-    # ── Timestamps
+    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -21,6 +21,9 @@ def check_surety_eligibility(member: MemberProfile, amount: Decimal) -> dict:
     from django.utils import timezone
     reasons = []
 
+    if member.is_special_saver:
+        reasons.append(f"{member.file_number}: is a special savings account holder and cannot act as a surety.")
+    
     if member.consecutive_savings_months < 6:
         reasons.append(f"{member.file_number}: needs 6 consecutive savings months.")
     

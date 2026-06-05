@@ -14,6 +14,7 @@ from django.utils import timezone
 
 from apps.accounts.models import MemberProfile, MembershipStatus
 from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee, IsAdminOrCommitteeOrHOS
+from utils.hijri import hijri_month_display
 from .models import LedgerEntryType, SavingsLedger, MemberBalance, SavingsChangeRequest, TermlyDuesCycle
 from .serializers import (
     SavingsLedgerSerializer, MemberBalanceSerializer,
@@ -744,3 +745,85 @@ class FullWithdrawalView(APIView):
             "message": f"Withdrew ₦{balance.available_balance} from {member.full_name}.",
             "new_balance": str(balance.available_balance),
         })
+    
+
+class MoveToSpecialView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request, member_id):
+        try:
+            member = MemberProfile.objects.get(pk=member_id, is_special_saver=True)
+        except MemberProfile.DoesNotExist:
+            return Response({"error": "Member not found or not a special saver."}, status=404)
+
+        amount = Decimal(request.data.get("amount", "0"))
+        if amount <= 0:
+            return Response({"error": "Amount must be positive."}, status=400)
+
+        balance = get_or_create_balance(member)
+        if amount > balance.available_balance:
+            return Response({"error": "Insufficient available balance."}, status=400)
+
+        # Move from available to special (no ledger entry needed, just reclassify)
+        balance.total_savings -= amount  # total stays the same, but we adjust special
+        balance.special_savings += amount
+        balance.save()
+
+        # Post a note in ledger? We'll create a simple ledger entry for audit
+        from utils.hijri import current_hijri
+        h_month, h_year = current_hijri()
+        SavingsLedger.objects.create(
+            member=member,
+            hijri_month=h_month,
+            hijri_year=h_year,
+            hijri_display=hijri_month_display(h_month, h_year),
+            entry_type="adjustment",
+            details=f"Locked ₦{amount} into special fixed savings",
+            debit=None,
+            credit=None,
+            balance=balance.total_savings,
+            posted_by=request.user,
+            verified_by_name=request.user.staff_id,
+            verified_by_role=request.user.role,
+        )
+
+        return Response({"message": f"₦{amount} moved to special savings.", "special_savings": str(balance.special_savings)})
+
+
+class WithdrawSpecialView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request, member_id):
+        try:
+            member = MemberProfile.objects.get(pk=member_id, is_special_saver=True)
+        except MemberProfile.DoesNotExist:
+            return Response({"error": "Member not found or not a special saver."}, status=404)
+
+        balance = get_or_create_balance(member)
+        amount = balance.special_savings
+        if amount <= 0:
+            return Response({"error": "No special savings to withdraw."}, status=400)
+
+        # Transfer from special back to available (total remains same)
+        balance.special_savings = Decimal("0")
+        balance.save()
+
+        # Ledger entry
+        from utils.hijri import current_hijri
+        h_month, h_year = current_hijri()
+        SavingsLedger.objects.create(
+            member=member,
+            hijri_month=h_month,
+            hijri_year=h_year,
+            hijri_display=hijri_month_display(h_month, h_year),
+            entry_type="adjustment",
+            details=f"Withdrew ₦{amount} from special fixed savings",
+            debit=None,
+            credit=None,
+            balance=balance.total_savings,
+            posted_by=request.user,
+            verified_by_name=request.user.staff_id,
+            verified_by_role=request.user.role,
+        )
+
+        return Response({"message": f"₦{amount} withdrawn from special savings.", "special_savings": str(balance.special_savings)})

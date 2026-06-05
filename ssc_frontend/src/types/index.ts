@@ -61,6 +61,7 @@ export interface MemberProfile {
   membership_status: MembershipStatus;
   is_legacy: boolean;
   is_new_member: boolean;
+  is_special_saver?: boolean;
   approved_by_name: string;
   officer_in_charge: string;
   approval_date: string | null;
@@ -113,6 +114,7 @@ export interface MemberBalance {
   file_number: string;
   full_name: string;
   total_savings: string;
+  special_savings?: string | number;
   suretyship_committed: string;
   available_balance: string;
 }

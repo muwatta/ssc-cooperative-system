@@ -72,6 +72,7 @@ class MemberBalance(models.Model):
     )
     total_savings        = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
     suretyship_committed = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    special_savings = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
 
     updated_at = models.DateTimeField(auto_now=True)
 
