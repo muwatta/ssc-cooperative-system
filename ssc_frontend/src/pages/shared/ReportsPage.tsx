@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { membersApi, savingsApi } from "@/api/services";
 import { AnimatedCard } from "@/components/common";
-import api from "@/api/client";
 
 import type {
   MemberProfile,
@@ -24,7 +23,7 @@ function formatNaira(value: string | number) {
 
 export default function ReportsPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [memberIdForStatement, setMemberIdForStatement] = useState("");
+  const [selectedMemberId, setSelectedMemberId] = useState("");
 
   const {
     data: membersPage,
@@ -62,7 +61,7 @@ export default function ReportsPage() {
   const error = membersError || poolError ? "Unable to load report data." : "";
   const totalSavingsPool = savingsSummary?.cooperative?.total_savings ?? null;
 
-  // Filter members by search term
+  // Filter members by search term for the table only
   const filteredMembers = useMemo(() => {
     if (!searchTerm) return members;
     const lower = searchTerm.toLowerCase();
@@ -109,43 +108,23 @@ export default function ReportsPage() {
   const isLoading = loading && !members.length;
   const isRefreshing = fetchingMembers && members.length > 0;
 
-
-  // Export Handlers
+  // ---------- Export Handlers ----------
   const exportMemberStatement = (format: "csv" | "pdf") => {
-    const id = memberIdForStatement.trim();
-    if (!id) return alert("Please enter a member ID (numeric).");
-    const url = `/reports/member-statement/${id}/?format=${format}`;
-    downloadFile(url, `statement_${id}.${format}`);
+    const id = selectedMemberId;
+    if (!id) return alert("Please select a member from the list.");
+    window.open(
+      `/api/v1/reports/member-statement/${id}/?format=${format}`,
+      "_blank",
+    );
   };
 
   const exportLoanBook = (format: "csv" | "pdf") => {
-    downloadFile(`/reports/loan-book/?format=${format}`, `loan_book.${format}`);
+    window.open(`/api/v1/reports/loan-book/?format=${format}`, "_blank");
   };
 
   const exportSuretyExposure = () => {
-    downloadFile(`/reports/surety-exposure/?format=csv`, `surety_exposure.csv`);
+    window.open(`/api/v1/reports/surety-exposure/?format=csv`, "_blank");
   };
-
-  async function downloadFile(url: string, filename: string) {
-    try {
-      const response = await api.get(url, { responseType: "blob" });
-      const blob = new Blob([response.data]);
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(downloadUrl);
-    } catch (error: any) {
-      const message =
-        error?.response?.data?.error ||
-        error?.message ||
-        "Download failed. Make sure you are logged in with the right permissions.";
-      alert(message);
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -191,17 +170,23 @@ export default function ReportsPage() {
           Export Reports
         </h2>
         <div className="flex flex-wrap gap-4 items-end">
-          {/* Member Statement */}
-          <div className="flex-1 min-w-[200px]">
+          {/* Member Statement – now with dropdown */}
+          <div className="flex-1 min-w-[220px]">
             <label className="label text-xs">Member Statement</label>
             <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Member ID (e.g. 1)"
-                value={memberIdForStatement}
-                onChange={(e) => setMemberIdForStatement(e.target.value)}
+              <select
+                value={selectedMemberId}
+                onChange={(e) => setSelectedMemberId(e.target.value)}
                 className="input flex-1"
-              />
+                title="Select member"
+              >
+                <option value="">-- Select a member --</option>
+                {members.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.file_number} – {member.full_name}
+                  </option>
+                ))}
+              </select>
               <button
                 onClick={() => exportMemberStatement("csv")}
                 className="btn-secondary text-xs px-3 py-1.5 whitespace-nowrap"
