@@ -201,8 +201,9 @@ urlpatterns = [
     path("api/v1/investments/", include("apps.investments.urls")),
     path("api/v1/notifications/", include("apps.notifications.urls")),
     path("api/v1/audit/", include("apps.audit.urls")),
+    path("api/v1/reports/", include("apps.reports.urls")),
 
-    # Report endpoints
+
     path("api/v1/reports/member-statement/<int:member_id>/", member_statement_export, name="member-statement"),
     path("api/v1/reports/loan-book/", loan_book_export, name="loan-book"),
     path("api/v1/reports/surety-exposure/", surety_exposure_export, name="surety-exposure"),
