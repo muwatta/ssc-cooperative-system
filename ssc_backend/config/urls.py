@@ -9,7 +9,13 @@ from apps.loans.views import (
     SuretyExposureExportView,
 )
 
+from django.http import HttpResponse
+
+def ping(request):
+    return HttpResponse("pong")
+
 urlpatterns = [
+    path("api/v1/ping/", ping),    
     path("ssc-coop-admin-secret/", admin.site.urls),
     path("api/v1/date/", CurrentDateView.as_view(), name="current-date"),
     path("api/v1/auth/login/", SSCTokenObtainPairView.as_view(), name="token_obtain_pair"),
