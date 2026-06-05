@@ -8,12 +8,11 @@ from apps.accounts.models import MemberProfile
 from apps.notifications.models import NotificationType, send_notification
 from apps.savings.services import get_or_create_balance, post_debit_entry
 from apps.savings.models import LedgerEntryType
-from apps.loans.models import LoanStatus
+from apps.loans.models import LoanStatus, LoanConfiguration
 from .models import SuretyRecord, SuretyStatus
 
 MAX_EXTERNAL_SURETIES     = 5     # SRS SR3
 MAX_SURETY_ACTS_PER_YEAR  = 3     # SRS SR4
-EXTERNAL_SURETY_MAX_RATIO = Decimal("0.85")  # SRS SR2
 SELF_SURETY_RATIO         = Decimal("0.75")  # SRS SR1
 
 
@@ -26,11 +25,12 @@ def check_surety_eligibility(member: MemberProfile, amount: Decimal) -> dict:
         reasons.append(f"{member.file_number}: needs 6 consecutive savings months.")
 
     balance = get_or_create_balance(member)
-    max_commit = (balance.available_balance * EXTERNAL_SURETY_MAX_RATIO).quantize(Decimal("0.01"))
+    config = LoanConfiguration.get_solo()
+    max_commit = (balance.available_balance * config.external_surety_max_ratio).quantize(Decimal("0.01"))
     if max_commit < amount:
         reasons.append(
             f"{member.file_number}: can commit max ₦{max_commit} "
-            f"(85% of available balance ₦{balance.available_balance})."
+            f"({int(config.external_surety_max_ratio * 100)}% of available balance ₦{balance.available_balance})."
         )
 
     # Annual surety count (SRS SR4)
@@ -96,8 +96,9 @@ def confirm_surety(surety_record: SuretyRecord) -> SuretyRecord:
 
     balance = get_or_create_balance(surety_record.surety)
 
-    # Validate 85% rule still holds
-    max_commit = (balance.available_balance * EXTERNAL_SURETY_MAX_RATIO).quantize(Decimal("0.01"))
+    # Validate using configurable ratio
+    config = LoanConfiguration.get_solo()
+    max_commit = (balance.available_balance * config.external_surety_max_ratio).quantize(Decimal("0.01"))
     if surety_record.amount_guaranteed > max_commit:
         raise ValueError(
             f"Cannot commit ₦{surety_record.amount_guaranteed}. "
