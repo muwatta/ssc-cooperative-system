@@ -559,7 +559,6 @@ class AdminApprovalPreviewView(APIView):
         })
     
 
-
 class MemberStatementExportView(APIView):
     permission_classes = [IsAdminOrCommitteeOrHOS]
 
@@ -622,7 +621,6 @@ class MemberStatementExportView(APIView):
         response = HttpResponse(buffer.getvalue(), content_type="text/csv")
         response["Content-Disposition"] = f"attachment; filename=statement_{member.file_number}.csv"
         return response
-    
 
 
 class LoanBookExportView(APIView):
