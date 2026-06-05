@@ -4,7 +4,7 @@ import io
 from django.db.models import Count, Sum
 from django.db.utils import ProgrammingError
 from django.http import HttpResponse
-from loans.models import LoanApplication, LoanStatus
+from apps.loans.models import LoanApplication, LoanStatus
 from rest_framework import generics, status, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
