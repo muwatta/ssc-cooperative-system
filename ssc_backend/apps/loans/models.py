@@ -26,7 +26,7 @@ class LoanConfiguration(models.Model):
         help_text="Maximum approved loans per calendar year.",
     )
     max_repayment_months = models.PositiveSmallIntegerField(
-        default=6,
+        default=12,
         help_text="Maximum allowed repayment duration in months.",
     )
     self_surety_ratio = models.DecimalField(
@@ -89,7 +89,7 @@ class LoanConfiguration(models.Model):
             defaults={
                 "consecutive_savings_months_required": 12,
                 "max_loans_per_year": 4,
-                "max_repayment_months": 6,
+                "max_repayment_months": 12,
                 "self_surety_ratio": Decimal("0.75"),
                 "max_sureties": 5,
                 "min_loan_amount": Decimal("1000.00"),

@@ -97,10 +97,11 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
     if not eligibility["eligible"]:
         raise ValueError(" | ".join(eligibility["reasons"]))
 
-    duration = data.get("proposed_duration_months", 6)
-    if duration < 1 or duration > 6:
-        raise ValueError("Repayment duration must be between 1 and 6 months.")
-
+    config = get_loan_configuration()
+    duration = data.get("proposed_duration_months", config.max_repayment_months)
+    if duration < 1 or duration > config.max_repayment_months:
+        raise ValueError(f"Repayment duration must be between 1 and {config.max_repayment_months} months.")
+    
     amount_applied = Decimal(str(data["amount_applied"]))
     if amount_applied <= 0:
         raise ValueError("Loan amount must be positive.")

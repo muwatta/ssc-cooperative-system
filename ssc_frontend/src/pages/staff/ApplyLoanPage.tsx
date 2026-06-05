@@ -879,7 +879,7 @@ export default function ApplyLoanPage() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Duration (months, 1–6)
+                      Duration (months, 1–12)
                     </label>
                     <select
                       {...register("proposed_duration_months", {
@@ -891,12 +891,14 @@ export default function ApplyLoanPage() {
                         !canApply ? "bg-gray-50 text-gray-500" : ""
                       }`}
                     >
-                      <option value="6">6 months</option>
-                      <option value="5">5 months</option>
-                      <option value="4">4 months</option>
-                      <option value="3">3 months</option>
-                      <option value="2">2 months</option>
-                      <option value="1">1 month</option>
+                      {Array.from(
+                        { length: eligibility?.max_repayment_months || 6 },
+                        (_, i) => i + 1,
+                      ).map((m) => (
+                        <option key={m} value={m}>
+                          {m} month{m > 1 ? "s" : ""}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
