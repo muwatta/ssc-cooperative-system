@@ -49,7 +49,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isFirstLogin, setIsFirstLogin] = useState(false);
 
-  // Rehydrate from localStorage on mount
   useEffect(() => {
     const token = tokenStorage.getAccess();
     if (token) {
@@ -85,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = "/login";
   }, []);
 
-  // Register the production-grade forced logout callback
+  // Register the forced logout callback for the API client
   useEffect(() => {
     setLogoutCallback(() => {
       setUser(null);
