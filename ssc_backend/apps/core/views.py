@@ -96,24 +96,80 @@ class ResetDataView(APIView):
         from apps.accounts.models import MemberProfile, StaffIDRegistry, User
         from apps.notifications.models import Notification
 
-        # Delete all related data
-        LoanRepaymentLedger.objects.all().delete()
-        SuretyRecord.objects.all().delete()
-        LoanDraft.objects.all().delete()
-        LoanApplication.objects.all().delete()
-        SavingsLedger.objects.all().delete()
-        MemberBalance.objects.all().delete()
-        SavingsChangeRequest.objects.all().delete()
-        TermlyDuesCycle.objects.all().delete()
+        steps = []
+        try:
+            count = LoanRepaymentLedger.objects.all().delete()[0]
+            steps.append(f"Deleted {count} loan repayments")
+        except Exception as e:
+            steps.append(f"Loan repayment delete failed: {str(e)}")
 
-        # Delete all members except the admin’s own profile
-        MemberProfile.objects.exclude(user__staff_id="S45-0001").delete()
-        StaffIDRegistry.objects.exclude(staff_id="S45-0001").delete()
-        User.objects.exclude(staff_id="S45-0001").delete()
+        try:
+            count = SuretyRecord.objects.all().delete()[0]
+            steps.append(f"Deleted {count} surety records")
+        except Exception as e:
+            steps.append(f"Surety delete failed: {str(e)}")
 
-        Notification.objects.all().delete()
+        try:
+            count = LoanDraft.objects.all().delete()[0]
+            steps.append(f"Deleted {count} loan drafts")
+        except Exception as e:
+            steps.append(f"Loan draft delete failed: {str(e)}")
 
-        # Reset admin's own balances
+        try:
+            count = LoanApplication.objects.all().delete()[0]
+            steps.append(f"Deleted {count} loan applications")
+        except Exception as e:
+            steps.append(f"Loan application delete failed: {str(e)}")
+
+        try:
+            count = SavingsLedger.objects.all().delete()[0]
+            steps.append(f"Deleted {count} savings entries")
+        except Exception as e:
+            steps.append(f"Savings ledger delete failed: {str(e)}")
+
+        try:
+            count = MemberBalance.objects.all().delete()[0]
+            steps.append(f"Deleted {count} member balances")
+        except Exception as e:
+            steps.append(f"Member balance delete failed: {str(e)}")
+
+        try:
+            count = SavingsChangeRequest.objects.all().delete()[0]
+            steps.append(f"Deleted {count} savings change requests")
+        except Exception as e:
+            steps.append(f"Savings change request delete failed: {str(e)}")
+
+        try:
+            count = TermlyDuesCycle.objects.all().delete()[0]
+            steps.append(f"Deleted {count} termly dues cycles")
+        except Exception as e:
+            steps.append(f"Termly dues delete failed: {str(e)}")
+
+        try:
+            count = MemberProfile.objects.exclude(user__staff_id="S45-0001").delete()[0]
+            steps.append(f"Deleted {count} member profiles")
+        except Exception as e:
+            steps.append(f"Member profile delete failed: {str(e)}")
+
+        try:
+            count = StaffIDRegistry.objects.exclude(staff_id="S45-0001").delete()[0]
+            steps.append(f"Deleted {count} staff IDs")
+        except Exception as e:
+            steps.append(f"Staff ID delete failed: {str(e)}")
+
+        try:
+            count = User.objects.exclude(staff_id="S45-0001").delete()[0]
+            steps.append(f"Deleted {count} users")
+        except Exception as e:
+            steps.append(f"User delete failed: {str(e)}")
+
+        try:
+            count = Notification.objects.all().delete()[0]
+            steps.append(f"Deleted {count} notifications")
+        except Exception as e:
+            steps.append(f"Notification delete failed: {str(e)}")
+
+        # Reset admin balances
         try:
             admin = MemberProfile.objects.get(file_number="A001")
             balance, _ = MemberBalance.objects.get_or_create(member=admin)
@@ -123,7 +179,8 @@ class ResetDataView(APIView):
             balance.save()
             admin.consecutive_savings_months = 0
             admin.save()
-        except Exception:
-            pass
+            steps.append("Admin balances reset")
+        except Exception as e:
+            steps.append(f"Admin balance reset failed: {str(e)}")
 
-        return Response({"message": "All data cleared. Only admin user remains."})
+        return Response({"message": "Data reset completed.", "details": steps})
