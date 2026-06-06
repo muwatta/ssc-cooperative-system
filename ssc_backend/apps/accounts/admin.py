@@ -45,6 +45,7 @@ class MemberProfileAdmin(admin.ModelAdmin):
         "is_special_saver",                
         "consecutive_savings_months",
     ]
+    list_editable = ["is_special_saver"]
     list_filter = [
         "membership_status",
         "is_new_member",
