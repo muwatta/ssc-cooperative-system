@@ -533,6 +533,44 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Pilot Reset Button – Admin Only */}
+      {isAdmin && (
+        <div className="card-panel mb-6 bg-red-50 border border-red-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-red-800">
+                Pilot Reset
+              </h2>
+              <p className="text-sm text-red-600 mt-1">
+                Remove all test data and start fresh with only the admin
+                account.
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                if (
+                  !window.confirm(
+                    "⚠️ This will delete ALL members, loans, savings, and sureties. Only the admin (S45-0001) will remain. Are you sure?",
+                  )
+                )
+                  return;
+                if (!window.confirm("This cannot be undone. Continue?")) return;
+                try {
+                  await api.post("/reset-data/");
+                  alert("✅ All data cleared. Reloading...");
+                  window.location.reload();
+                } catch (e: any) {
+                  alert("Failed to reset data. Check permissions.");
+                }
+              }}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm font-medium"
+            >
+              🔄 Reset All Data (Pilot)
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="card p-5 bg-primary-50 border border-primary-100">
         <p className="text-sm font-medium text-primary-800">
           🕌 SSC uses the Islamic (Hijri) calendar as its primary calendar.
