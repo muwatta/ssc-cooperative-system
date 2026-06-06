@@ -3,11 +3,11 @@ from django.urls import path, include
 from django.http import HttpResponse
 from rest_framework_simplejwt.views import TokenRefreshView
 from apps.accounts.views import SSCTokenObtainPairView, LogoutView
-from apps.savings.views import ToggleSpecialSaverView
+from apps.accounts.views import ToggleSpecialSaverView
 from apps.core.views import CurrentDateView
 import csv, io
 
-# Report generation helpers (inline in this file)
+# Report generation helpers
 def _member_csv(member_id):
     from apps.accounts.models import MemberProfile
     from apps.savings.models import SavingsLedger
