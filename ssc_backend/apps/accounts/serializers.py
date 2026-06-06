@@ -189,6 +189,7 @@ class MemberProfileSerializer(serializers.ModelSerializer):
             # Computed
             "is_loan_eligible",
             "is_surety_eligible",
+            "is_special_saver",
             # Timestamps
             "created_at",
             "updated_at",
@@ -200,6 +201,7 @@ class MemberProfileSerializer(serializers.ModelSerializer):
             "role",
             "consecutive_savings_months",
             "is_loan_eligible",
+            "is_special_saver",
             "is_surety_eligible",
             "created_at",
             "updated_at",
