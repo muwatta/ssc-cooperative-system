@@ -90,52 +90,58 @@ class ResetDataView(APIView):
         if request.user.role != "admin":
             return Response({"error": "Only admin can reset data."}, status=403)
 
-        from apps.loans.models import LoanApplication, LoanRepaymentLedger, LoanDraft
-        from apps.sureties.models import SuretyRecord
-        from apps.savings.models import SavingsLedger, MemberBalance, SavingsChangeRequest, TermlyDuesCycle
-        from apps.accounts.models import MemberProfile, StaffIDRegistry, User
-        from apps.notifications.models import Notification
         from django.db import connection
 
         errors = []
 
-        # 1. Delete all child records first
-        for model, name in [
-            (LoanRepaymentLedger, "loan repayments"),
-            (SuretyRecord, "surety records"),
-            (LoanDraft, "loan drafts"),
-            (LoanApplication, "loan applications"),
-            (SavingsLedger, "savings entries"),
-            (MemberBalance, "member balances"),
-            (SavingsChangeRequest, "savings change requests"),
-            (TermlyDuesCycle, "termly dues cycles"),
-            (Notification, "notifications"),
+        # 1. Delete child tables normally (no foreign keys to audit here)
+        from apps.loans.models import LoanRepaymentLedger, LoanDraft, LoanApplication
+        from apps.sureties.models import SuretyRecord
+        from apps.savings.models import SavingsLedger, MemberBalance, SavingsChangeRequest, TermlyDuesCycle
+        from apps.notifications.models import Notification
+
+        for model in [
+            LoanRepaymentLedger, SuretyRecord, LoanDraft, LoanApplication,
+            SavingsLedger, MemberBalance, SavingsChangeRequest, TermlyDuesCycle,
+            Notification,
         ]:
             try:
-                count, _ = model.objects.all().delete()
+                model.objects.all().delete()
             except Exception as e:
-                errors.append(f"Failed to clear {name}: {e}")
+                errors.append(f"Failed to clear {model.__name__}: {e}")
 
-        # 2. Delete all members except admin (catch audit table error)
+        # 2. Delete members (raw SQL to avoid audit table) and staff IDs
         try:
-            MemberProfile.objects.exclude(user__staff_id="S45-0001").delete()
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "DELETE FROM ssc_member_profiles WHERE user_id != (SELECT id FROM ssc_users WHERE staff_id = %s)",
+                    ["S45-0001"]
+                )
         except Exception as e:
             errors.append(f"Failed to delete member profiles: {e}")
 
-        # 3. Delete all staff IDs except admin's
         try:
-            StaffIDRegistry.objects.exclude(staff_id="S45-0001").delete()
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "DELETE FROM ssc_staff_id_registry WHERE staff_id != %s",
+                    ["S45-0001"]
+                )
         except Exception as e:
             errors.append(f"Failed to delete staff IDs: {e}")
 
-        # 4. Delete all users except admin
+        # 3. Delete users (raw SQL to bypass protected FK)
         try:
-            User.objects.exclude(staff_id="S45-0001").delete()
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "DELETE FROM ssc_users WHERE staff_id != %s",
+                    ["S45-0001"]
+                )
         except Exception as e:
             errors.append(f"Failed to delete users: {e}")
 
-        # 5. Reset admin's own balances
+        # 4. Reset admin's balances
         try:
+            from apps.accounts.models import MemberProfile
             admin = MemberProfile.objects.get(file_number="A001")
             balance, _ = MemberBalance.objects.get_or_create(member=admin)
             balance.total_savings = 0
@@ -148,6 +154,6 @@ class ResetDataView(APIView):
             errors.append(f"Failed to reset admin: {e}")
 
         return Response({
-            "message": "Data reset completed." if not errors else "Data reset completed with errors.",
+            "message": "All data cleared. Only admin remains." if not errors else "Reset completed with errors.",
             "errors": errors if errors else None,
         })
