@@ -314,7 +314,6 @@ export default function MembersListPage() {
                           <button
                             onClick={(e) => {
                               e.preventDefault();
-                              console.log("Toggling special saver for member ID:", member.id);
                               toggleSpecialMutation.mutate(member.id);
                             }}
                             disabled={toggleSpecialMutation.isPending}
@@ -329,7 +328,7 @@ export default function MembersListPage() {
                                 : "Mark as special saver"
                             }
                           >
-                            🔒
+                            {member.is_special_saver ? "🔐" : "🔒"}
                           </button>
                         </td>
                       )}
@@ -404,7 +403,6 @@ export default function MembersListPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      console.log("Toggling special saver for member ID:", member.id);
                       toggleSpecialMutation.mutate(member.id);
                     }}
                     disabled={toggleSpecialMutation.isPending}
@@ -419,7 +417,7 @@ export default function MembersListPage() {
                         : "Mark as special saver"
                     }
                   >
-                    🔒
+                    {member.is_special_saver ? "🔐" : "🔒"}
                   </button>
                 )}
               </div>

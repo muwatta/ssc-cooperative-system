@@ -481,53 +481,6 @@ export default function MemberDetailPage() {
                     Deactivate
                   </button>
                 )}
-                {/* Special Savings – only for special savers (any status) */}
-                {member.is_special_saver && (
-                  <>
-                    <button
-                      onClick={async () => {
-                        const amount = prompt(
-                          "Enter amount to lock into special savings (₦):",
-                        );
-                        if (!amount) return;
-                        try {
-                          await api.post(
-                            `/savings/move-to-special/${member.id}/`,
-                            { amount },
-                          );
-                          alert("Moved to special savings.");
-                          qc.invalidateQueries({
-                            queryKey: ["balance", id],
-                          });
-                        } catch (e: any) {
-                          alert(e?.response?.data?.error || "Failed.");
-                        }
-                      }}
-                      className="btn-secondary text-sm"
-                    >
-                      🔒 Move to Special
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (!confirm("Withdraw ALL special savings?")) return;
-                        try {
-                          await api.post(
-                            `/savings/withdraw-special/${member.id}/`,
-                          );
-                          alert("Special savings withdrawn.");
-                          qc.invalidateQueries({
-                            queryKey: ["balance", id],
-                          });
-                        } catch (e: any) {
-                          alert(e?.response?.data?.error || "Failed.");
-                        }
-                      }}
-                      className="btn-secondary text-sm"
-                    >
-                      💰 Withdraw Special
-                    </button>
-                  </>
-                )}
                 {/* Full Withdrawal – only for exited or inactive members with a balance */}
                 {(member.membership_status === "exited" ||
                   member.membership_status === "inactive") &&
