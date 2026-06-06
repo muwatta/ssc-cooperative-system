@@ -4,7 +4,7 @@ from .views import (
     MyBalanceView, MyLedgerView, SavingsSummaryView,
     SavingsChangeRequestListCreateView, ApproveSavingsChangeView, RejectSavingsChangeView,
     DuesCycleListCreateView, PostDuesCycleView, LedgerExportView,
-    BulkSavingsReportView, WithdrawSpecialView, WithdrawSpecialView,
+    BulkSavingsReportView, ToggleSpecialSaverView, WithdrawSpecialView, WithdrawSpecialView,
 )
 
 urlpatterns = [
@@ -26,5 +26,5 @@ urlpatterns = [
     path("withdraw/<int:member_id>/", FullWithdrawalView.as_view(), name="full-withdrawal"),
     path("move-to-special/<int:member_id>/", MoveToSpecialView.as_view(), name="move-to-special"),
     path("withdraw-special/<int:member_id>/", WithdrawSpecialView.as_view(), name="withdraw-special"),
-
+    path("api/v1/accounts/toggle-special/<int:member_id>/", ToggleSpecialSaverView.as_view(), name="toggle-special"),
 ]

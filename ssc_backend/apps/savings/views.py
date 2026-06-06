@@ -827,3 +827,20 @@ class WithdrawSpecialView(APIView):
         )
 
         return Response({"message": f"₦{amount} withdrawn from special savings.", "special_savings": str(balance.special_savings)})
+    
+
+class ToggleSpecialSaverView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request, member_id):
+        try:
+            member = MemberProfile.objects.get(pk=member_id)
+        except MemberProfile.DoesNotExist:
+            return Response({"error": "Member not found."}, status=404)
+
+        member.is_special_saver = not member.is_special_saver
+        member.save(update_fields=["is_special_saver", "updated_at"])
+        return Response({
+            "member_id": member.id,
+            "is_special_saver": member.is_special_saver,
+        })

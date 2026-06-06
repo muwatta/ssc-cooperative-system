@@ -1,7 +1,9 @@
 import { useRef, useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "react-router-dom";
 import { membersApi } from "@/api/services";
+import { useAuth } from "@/context/AuthContext";
+import api from "@/api/client";
 import Skeleton from "@/components/common/Skeleton";
 
 const STATUS_BADGE: Record<string, string> = {
@@ -22,6 +24,9 @@ export default function MembersListPage() {
   const [skeletonVisible, setSkeletonVisible] = useState(true);
   const loadStartRef = useRef<number>(Date.now());
 
+  const { isAdmin } = useAuth();
+  const queryClient = useQueryClient();
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["members", page, search, statusFilter, branchFilter],
     queryFn: () =>
@@ -40,6 +45,15 @@ export default function MembersListPage() {
     queryFn: () =>
       membersApi.list({ membership_status: "pending" }).then((r) => r.data),
   });
+
+  const toggleSpecialMutation = useMutation({
+    mutationFn: (memberId: number) =>
+      api.post(`/accounts/toggle-special/${memberId}/`).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["members"] });
+    },
+  });
+
   const pendingCount = pendingData?.count ?? 0;
 
   useEffect(() => {
@@ -81,7 +95,6 @@ export default function MembersListPage() {
             {data?.count ?? 0} total members
           </p>
         </div>
-        {/* Add Member button removed – use Create User instead */}
       </div>
 
       {successMsg && (
@@ -210,13 +223,18 @@ export default function MembersListPage() {
                       {h}
                     </th>
                   ))}
+                  {isAdmin && (
+                    <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">
+                      Special
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {data?.results?.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={10}
+                      colSpan={isAdmin ? 11 : 10}
                       className="py-16 text-center text-gray-400"
                     >
                       <p className="text-4xl">👥</p>
@@ -291,6 +309,29 @@ export default function MembersListPage() {
                           View →
                         </Link>
                       </td>
+                      {isAdmin && (
+                        <td className="px-4 py-3 text-sm">
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              toggleSpecialMutation.mutate(member.id);
+                            }}
+                            disabled={toggleSpecialMutation.isPending}
+                            className={`text-lg leading-none transition-colors ${
+                              member.is_special_saver
+                                ? "text-purple-600 hover:text-purple-800"
+                                : "text-gray-300 hover:text-gray-500"
+                            }`}
+                            title={
+                              member.is_special_saver
+                                ? "Remove special saver"
+                                : "Mark as special saver"
+                            }
+                          >
+                            🔒
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}
@@ -301,58 +342,86 @@ export default function MembersListPage() {
           {/* Mobile card view */}
           <div className="space-y-3 md:hidden">
             {data?.results?.map((member) => (
-              <Link
+              <div
                 key={member.id}
-                to={`/members/${member.id}`}
-                className="block rounded-lg border border-gray-200 bg-white p-4 active:bg-gray-50"
+                className="relative rounded-lg border border-gray-200 bg-white p-4"
               >
-                <div className="mb-2 flex items-start justify-between gap-2">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-gray-900">
-                        {member.full_name}
-                      </h3>
-                      {member.is_new_member && (
-                        <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
-                          New
-                        </span>
-                      )}
+                <Link
+                  to={`/members/${member.id}`}
+                  className="block active:bg-gray-50"
+                >
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-gray-900">
+                          {member.full_name}
+                        </h3>
+                        {member.is_new_member && (
+                          <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
+                            New
+                          </span>
+                        )}
+                      </div>
+                      <p className="font-mono text-sm text-gray-500">
+                        {member.file_number}
+                      </p>
                     </div>
-                    <p className="font-mono text-sm text-gray-500">
-                      {member.file_number}
-                    </p>
-                  </div>
-                  <span
-                    className={`inline-block rounded-full px-2 py-1 text-xs font-semibold ${STATUS_BADGE[member.membership_status] ?? ""}`}
-                  >
-                    {member.membership_status}
-                  </span>
-                </div>
-                <div className="space-y-1 text-xs text-gray-600">
-                  <div>
-                    <span className="font-semibold text-gray-700">
-                      Staff ID:
-                    </span>{" "}
-                    {member.staff_id}
-                  </div>
-                  <div>
-                    <span className="font-semibold text-gray-700">Branch:</span>{" "}
-                    <span className="capitalize">{member.school_branch}</span>
-                  </div>
-                  <div>
-                    <span className="font-semibold text-gray-700">
-                      Designation:
-                    </span>{" "}
-                    {member.designation}
-                  </div>
-                  <div>
-                    <span className="font-semibold text-gray-700">Role:</span>{" "}
-                    <span className="capitalize">
-                      {member.role?.replace(/_/g, " ") || "staff"}
+                    <span
+                      className={`inline-block rounded-full px-2 py-1 text-xs font-semibold ${STATUS_BADGE[member.membership_status] ?? ""}`}
+                    >
+                      {member.membership_status}
                     </span>
                   </div>
-                </div>
-              </Link>
+                  <div className="space-y-1 text-xs text-gray-600">
+                    <div>
+                      <span className="font-semibold text-gray-700">
+                        Staff ID:
+                      </span>{" "}
+                      {member.staff_id}
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">
+                        Branch:
+                      </span>{" "}
+                      <span className="capitalize">{member.school_branch}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">
+                        Designation:
+                      </span>{" "}
+                      {member.designation}
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">Role:</span>{" "}
+                      <span className="capitalize">
+                        {member.role?.replace(/_/g, " ") || "staff"}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+                {/* Toggle button outside the Link to avoid navigation */}
+                {isAdmin && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSpecialMutation.mutate(member.id);
+                    }}
+                    disabled={toggleSpecialMutation.isPending}
+                    className={`absolute top-3 right-3 text-lg leading-none transition-colors ${
+                      member.is_special_saver
+                        ? "text-purple-600 hover:text-purple-800"
+                        : "text-gray-300 hover:text-gray-500"
+                    }`}
+                    title={
+                      member.is_special_saver
+                        ? "Remove special saver"
+                        : "Mark as special saver"
+                    }
+                  >
+                    🔒
+                  </button>
+                )}
+              </div>
             ))}
           </div>
 
