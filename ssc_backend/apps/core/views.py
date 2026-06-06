@@ -81,3 +81,49 @@ class DashboardSummaryView(APIView):
             data["my_active_loans"] = 0
 
         return Response(data)
+    
+
+class ResetDataView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.role != "admin":
+            return Response({"error": "Only admin can reset data."}, status=403)
+
+        from apps.loans.models import LoanApplication, LoanRepaymentLedger, LoanDraft
+        from apps.sureties.models import SuretyRecord
+        from apps.savings.models import SavingsLedger, MemberBalance, SavingsChangeRequest, TermlyDuesCycle
+        from apps.accounts.models import MemberProfile, StaffIDRegistry, User
+        from apps.notifications.models import Notification
+
+        # Delete all related data
+        LoanRepaymentLedger.objects.all().delete()
+        SuretyRecord.objects.all().delete()
+        LoanDraft.objects.all().delete()
+        LoanApplication.objects.all().delete()
+        SavingsLedger.objects.all().delete()
+        MemberBalance.objects.all().delete()
+        SavingsChangeRequest.objects.all().delete()
+        TermlyDuesCycle.objects.all().delete()
+
+        # Delete all members except the admin’s own profile
+        MemberProfile.objects.exclude(user__staff_id="S45-0001").delete()
+        StaffIDRegistry.objects.exclude(staff_id="S45-0001").delete()
+        User.objects.exclude(staff_id="S45-0001").delete()
+
+        Notification.objects.all().delete()
+
+        # Reset admin's own balances
+        try:
+            admin = MemberProfile.objects.get(file_number="A001")
+            balance, _ = MemberBalance.objects.get_or_create(member=admin)
+            balance.total_savings = 0
+            balance.suretyship_committed = 0
+            balance.special_savings = 0
+            balance.save()
+            admin.consecutive_savings_months = 0
+            admin.save()
+        except Exception:
+            pass
+
+        return Response({"message": "All data cleared. Only admin user remains."})

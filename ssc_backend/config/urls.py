@@ -4,8 +4,9 @@ from django.http import HttpResponse
 from rest_framework_simplejwt.views import TokenRefreshView
 from apps.accounts.views import SSCTokenObtainPairView, LogoutView
 from apps.accounts.views import ToggleSpecialSaverView
-from apps.core.views import CurrentDateView
+from apps.core.views import CurrentDateView, DashboardSummaryView, ResetDataView
 import csv, io
+from apps.core.views import CurrentDateView, DashboardSummaryView
 
 # Report generation helpers
 def _member_csv(member_id):
@@ -78,4 +79,6 @@ urlpatterns = [
     path("api/v1/reports/loan-book/", loan_book, name="loan-book"),
     path("api/v1/reports/surety-exposure/", surety_exposure, name="surety-exposure"),
     path("api/v1/accounts/toggle-special/<int:member_id>/", ToggleSpecialSaverView.as_view(), name="toggle-special"),
+    path("api/v1/dashboard/summary/", DashboardSummaryView.as_view(), name="dashboard-summary"),
+    path("api/v1/reset-data/", ResetDataView.as_view(), name="reset-data"),
 ]
