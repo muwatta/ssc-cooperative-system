@@ -15,6 +15,7 @@ from .views import (
     LegacyImportView,
     SendInvitationsView,
     ChangeMemberRoleView,
+    ToggleSpecialSaverView,
 
 )
 
@@ -33,5 +34,6 @@ urlpatterns = [
     path("members/invitations/send/", SendInvitationsView.as_view(), name="member-invitations-send"),
     path("members/<int:pk>/change-role/", ChangeMemberRoleView.as_view(), name="member-change-role"),
     path("change-password/", ChangePasswordView.as_view(), name="change-password"),
+    path("toggle-special/<int:member_id>/", ToggleSpecialSaverView.as_view(), name="toggle-special"),
     
 ]
