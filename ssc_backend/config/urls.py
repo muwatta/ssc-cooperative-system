@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse
 from rest_framework_simplejwt.views import TokenRefreshView
-from apps.accounts.views import SSCTokenObtainPairView, LogoutView
+from apps.accounts.views import SSCTokenObtainPairView, LogoutView, ToggleSpecialSaverView
 from apps.core.views import CurrentDateView
 import csv, io
 
@@ -76,4 +76,5 @@ urlpatterns = [
     path("api/v1/reports/member-statement/<int:member_id>/", member_statement, name="member-statement"),
     path("api/v1/reports/loan-book/", loan_book, name="loan-book"),
     path("api/v1/reports/surety-exposure/", surety_exposure, name="surety-exposure"),
+    path("api/v1/accounts/toggle-special/<int:member_id>/", ToggleSpecialSaverView.as_view(), name="toggle-special"),
 ]
