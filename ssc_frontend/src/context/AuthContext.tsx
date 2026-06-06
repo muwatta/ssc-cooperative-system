@@ -6,8 +6,9 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { useNavigate } from "react-router-dom";
 import { authApi } from "@/api/services";
-import { tokenStorage } from "@/api/client";
+import { tokenStorage, setLogoutCallback } from "@/api/client";
 import type { AuthUser, Role, LoginRequest } from "@/types";
 
 function decodeJWT(token: string): AuthUser | null {
@@ -35,7 +36,6 @@ interface AuthContextValue {
   login: (data: LoginRequest) => Promise<{ is_first_login: boolean }>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<AuthUser>) => void;
-  // Role helpers
   isAdmin: boolean;
   isCommittee: boolean;
   isHOS: boolean;
@@ -46,11 +46,12 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
+
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFirstLogin, setIsFirstLogin] = useState(false);
 
-  // Rehydrate from localStorage on mount
   useEffect(() => {
     const token = tokenStorage.getAccess();
     if (token) {
@@ -78,12 +79,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         await authApi.logout(refresh);
       } catch {
-        // Blacklist may fail if token already expired
       }
     }
     tokenStorage.clearTokens();
     setUser(null);
-  }, []);
+    navigate("/login");
+  }, [navigate]);
+
+  useEffect(() => {
+    setLogoutCallback(() => {
+      // Clear user state and redirect to login
+      setUser(null);
+      navigate("/login");
+    });
+  }, [navigate]);
 
   const updateUser = useCallback((updates: Partial<AuthUser>) => {
     setUser((prev) => (prev ? { ...prev, ...updates } : prev));

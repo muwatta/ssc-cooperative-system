@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { loansApi } from "@/api/services";
 import {
   PageHeader,
@@ -100,7 +101,7 @@ function SummaryCards({
   );
 }
 
-// ---------- Committee Decision Modal (unchanged, just imported) ----------
+// ---------- Committee Decision Modal ----------
 function CommitteeDecisionModal({
   loan,
   onClose,
@@ -213,7 +214,7 @@ function CommitteeDecisionModal({
   );
 }
 
-// ---------- Admin Final Approval Modal (unchanged) ----------
+// ---------- Admin Final Approval Modal ----------
 function AdminFinalApprovalModal({
   loan,
   onClose,
@@ -264,7 +265,7 @@ function AdminFinalApprovalModal({
   );
 }
 
-// ---------- Status Badge (replaces LoanStatusBadge for clarity) ----------
+// ---------- Status Badge ----------
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { color: string; label: string }> = {
     submitted: { color: "bg-purple-100 text-purple-800", label: "Submitted" },
@@ -304,6 +305,7 @@ function StatusBadge({ status }: { status: string }) {
 
 // ---------- Main Page ----------
 export default function LoanQueuePage() {
+  const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const [selectedLoan, setSelectedLoan] = useState<LoanApplication | null>(
     null,
@@ -332,7 +334,6 @@ export default function LoanQueuePage() {
 
   const loans = data?.results ?? [];
 
-  // Define filter tabs
   const filterTabs = [
     { key: "all", label: "All" },
     { key: "active", label: "Active" },
@@ -350,10 +351,8 @@ export default function LoanQueuePage() {
         subtitle="Review and process loan applications"
       />
 
-      {/* Summary Cards */}
       <SummaryCards loans={loans} isLoading={isLoading} />
 
-      {/* Filter Tabs */}
       <div className="flex flex-wrap gap-2 mb-6">
         {filterTabs.map((tab) => (
           <button
@@ -370,7 +369,6 @@ export default function LoanQueuePage() {
         ))}
       </div>
 
-      {/* Loan Cards */}
       {isLoading ? (
         <PageLoader />
       ) : loans.length === 0 ? (
@@ -422,7 +420,6 @@ export default function LoanQueuePage() {
                       {loan.purpose}
                     </div>
                   </div>
-                  {/* Approval chain */}
                   <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
                     <span
                       className={
@@ -470,7 +467,6 @@ export default function LoanQueuePage() {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex flex-wrap gap-2 md:flex-col md:items-end">
                   {["submitted", "under_review", "pending_sureties"].includes(
                     loan.status,
@@ -507,9 +503,9 @@ export default function LoanQueuePage() {
                       Post Repayment
                     </button>
                   )}
-                  {/* View Details link always available */}
+                  {/* View Details – now uses React Router */}
                   <button
-                    onClick={() => window.open(`/loans/${loan.id}`, "_blank")}
+                    onClick={() => navigate(`/loans/${loan.id}`)}
                     className="text-xs text-primary-600 hover:underline"
                   >
                     View Details
@@ -521,7 +517,6 @@ export default function LoanQueuePage() {
         </div>
       )}
 
-      {/* Modals (unchanged, just kept as is) */}
       <Modal
         open={!!selectedLoan && modalType === "committee"}
         title="Committee Decision"
