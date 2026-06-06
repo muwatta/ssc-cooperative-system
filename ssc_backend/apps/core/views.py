@@ -95,81 +95,46 @@ class ResetDataView(APIView):
         from apps.savings.models import SavingsLedger, MemberBalance, SavingsChangeRequest, TermlyDuesCycle
         from apps.accounts.models import MemberProfile, StaffIDRegistry, User
         from apps.notifications.models import Notification
+        from django.db import connection
 
-        steps = []
+        errors = []
+
+        # 1. Delete all child records first
+        for model, name in [
+            (LoanRepaymentLedger, "loan repayments"),
+            (SuretyRecord, "surety records"),
+            (LoanDraft, "loan drafts"),
+            (LoanApplication, "loan applications"),
+            (SavingsLedger, "savings entries"),
+            (MemberBalance, "member balances"),
+            (SavingsChangeRequest, "savings change requests"),
+            (TermlyDuesCycle, "termly dues cycles"),
+            (Notification, "notifications"),
+        ]:
+            try:
+                count, _ = model.objects.all().delete()
+            except Exception as e:
+                errors.append(f"Failed to clear {name}: {e}")
+
+        # 2. Delete all members except admin (catch audit table error)
         try:
-            count = LoanRepaymentLedger.objects.all().delete()[0]
-            steps.append(f"Deleted {count} loan repayments")
+            MemberProfile.objects.exclude(user__staff_id="S45-0001").delete()
         except Exception as e:
-            steps.append(f"Loan repayment delete failed: {str(e)}")
+            errors.append(f"Failed to delete member profiles: {e}")
 
+        # 3. Delete all staff IDs except admin's
         try:
-            count = SuretyRecord.objects.all().delete()[0]
-            steps.append(f"Deleted {count} surety records")
+            StaffIDRegistry.objects.exclude(staff_id="S45-0001").delete()
         except Exception as e:
-            steps.append(f"Surety delete failed: {str(e)}")
+            errors.append(f"Failed to delete staff IDs: {e}")
 
+        # 4. Delete all users except admin
         try:
-            count = LoanDraft.objects.all().delete()[0]
-            steps.append(f"Deleted {count} loan drafts")
+            User.objects.exclude(staff_id="S45-0001").delete()
         except Exception as e:
-            steps.append(f"Loan draft delete failed: {str(e)}")
+            errors.append(f"Failed to delete users: {e}")
 
-        try:
-            count = LoanApplication.objects.all().delete()[0]
-            steps.append(f"Deleted {count} loan applications")
-        except Exception as e:
-            steps.append(f"Loan application delete failed: {str(e)}")
-
-        try:
-            count = SavingsLedger.objects.all().delete()[0]
-            steps.append(f"Deleted {count} savings entries")
-        except Exception as e:
-            steps.append(f"Savings ledger delete failed: {str(e)}")
-
-        try:
-            count = MemberBalance.objects.all().delete()[0]
-            steps.append(f"Deleted {count} member balances")
-        except Exception as e:
-            steps.append(f"Member balance delete failed: {str(e)}")
-
-        try:
-            count = SavingsChangeRequest.objects.all().delete()[0]
-            steps.append(f"Deleted {count} savings change requests")
-        except Exception as e:
-            steps.append(f"Savings change request delete failed: {str(e)}")
-
-        try:
-            count = TermlyDuesCycle.objects.all().delete()[0]
-            steps.append(f"Deleted {count} termly dues cycles")
-        except Exception as e:
-            steps.append(f"Termly dues delete failed: {str(e)}")
-
-        try:
-            count = MemberProfile.objects.exclude(user__staff_id="S45-0001").delete()[0]
-            steps.append(f"Deleted {count} member profiles")
-        except Exception as e:
-            steps.append(f"Member profile delete failed: {str(e)}")
-
-        try:
-            count = StaffIDRegistry.objects.exclude(staff_id="S45-0001").delete()[0]
-            steps.append(f"Deleted {count} staff IDs")
-        except Exception as e:
-            steps.append(f"Staff ID delete failed: {str(e)}")
-
-        try:
-            count = User.objects.exclude(staff_id="S45-0001").delete()[0]
-            steps.append(f"Deleted {count} users")
-        except Exception as e:
-            steps.append(f"User delete failed: {str(e)}")
-
-        try:
-            count = Notification.objects.all().delete()[0]
-            steps.append(f"Deleted {count} notifications")
-        except Exception as e:
-            steps.append(f"Notification delete failed: {str(e)}")
-
-        # Reset admin balances
+        # 5. Reset admin's own balances
         try:
             admin = MemberProfile.objects.get(file_number="A001")
             balance, _ = MemberBalance.objects.get_or_create(member=admin)
@@ -179,8 +144,10 @@ class ResetDataView(APIView):
             balance.save()
             admin.consecutive_savings_months = 0
             admin.save()
-            steps.append("Admin balances reset")
         except Exception as e:
-            steps.append(f"Admin balance reset failed: {str(e)}")
+            errors.append(f"Failed to reset admin: {e}")
 
-        return Response({"message": "Data reset completed.", "details": steps})
+        return Response({
+            "message": "Data reset completed." if not errors else "Data reset completed with errors.",
+            "errors": errors if errors else None,
+        })
