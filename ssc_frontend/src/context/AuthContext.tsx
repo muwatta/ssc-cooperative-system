@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { authApi } from "@/api/services";
-import { tokenStorage, setLogoutCallback } from "@/api/client";
+import { tokenStorage } from "@/api/client";
 import type { AuthUser, Role, LoginRequest } from "@/types";
 
 function decodeJWT(token: string): AuthUser | null {
@@ -82,14 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tokenStorage.clearTokens();
     setUser(null);
     window.location.href = "/login";
-  }, []);
-
-  // Register the forced logout callback for the API client
-  useEffect(() => {
-    setLogoutCallback(() => {
-      setUser(null);
-      window.location.href = "/login";
-    });
   }, []);
 
   const updateUser = useCallback((updates: Partial<AuthUser>) => {
