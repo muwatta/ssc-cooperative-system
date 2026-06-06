@@ -314,6 +314,7 @@ export default function MembersListPage() {
                           <button
                             onClick={(e) => {
                               e.preventDefault();
+                              console.log("Toggling special saver for member ID:", member.id);
                               toggleSpecialMutation.mutate(member.id);
                             }}
                             disabled={toggleSpecialMutation.isPending}
@@ -399,11 +400,11 @@ export default function MembersListPage() {
                     </div>
                   </div>
                 </Link>
-                {/* Toggle button outside the Link to avoid navigation */}
                 {isAdmin && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      console.log("Toggling special saver for member ID:", member.id);
                       toggleSpecialMutation.mutate(member.id);
                     }}
                     disabled={toggleSpecialMutation.isPending}

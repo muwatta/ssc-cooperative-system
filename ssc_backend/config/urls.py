@@ -2,7 +2,8 @@ from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse
 from rest_framework_simplejwt.views import TokenRefreshView
-from apps.accounts.views import SSCTokenObtainPairView, LogoutView, ToggleSpecialSaverView
+from apps.accounts.views import SSCTokenObtainPairView, LogoutView
+from apps.savings.views import ToggleSpecialSaverView
 from apps.core.views import CurrentDateView
 import csv, io
 
