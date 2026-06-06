@@ -6,7 +6,6 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { useNavigate } from "react-router-dom";
 import { authApi } from "@/api/services";
 import { tokenStorage, setLogoutCallback } from "@/api/client";
 import type { AuthUser, Role, LoginRequest } from "@/types";
@@ -46,12 +45,11 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const navigate = useNavigate();
-
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFirstLogin, setIsFirstLogin] = useState(false);
 
+  // Rehydrate from localStorage on mount
   useEffect(() => {
     const token = tokenStorage.getAccess();
     if (token) {
@@ -79,20 +77,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         await authApi.logout(refresh);
       } catch {
+        // Blacklist may fail if token already expired
       }
     }
     tokenStorage.clearTokens();
     setUser(null);
-    navigate("/login");
-  }, [navigate]);
+    window.location.href = "/login";
+  }, []);
 
+  // Register the production-grade forced logout callback
   useEffect(() => {
     setLogoutCallback(() => {
-      // Clear user state and redirect to login
       setUser(null);
-      navigate("/login");
+      window.location.href = "/login";
     });
-  }, [navigate]);
+  }, []);
 
   const updateUser = useCallback((updates: Partial<AuthUser>) => {
     setUser((prev) => (prev ? { ...prev, ...updates } : prev));
