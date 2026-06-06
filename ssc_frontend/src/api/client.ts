@@ -4,12 +4,10 @@ import axios, {
   type AxiosError,
 } from "axios";
 
-// ---------- Environment‑based base URL ----------
 const BASE_URL =
   import.meta.env.VITE_API_BASE_URL ??
   "https://ssc-cooperative-system.onrender.com/api/v1";
 
-// ---------- Token storage ----------
 const ACCESS_KEY = "ssc_access";
 const REFRESH_KEY = "ssc_refresh";
 
@@ -26,7 +24,6 @@ export const tokenStorage = {
   },
 };
 
-// ---------- Logout handler ----------
 type LogoutCallback = () => void;
 let onForceLogout: LogoutCallback | null = null;
 
@@ -34,14 +31,12 @@ export function setLogoutCallback(cb: LogoutCallback) {
   onForceLogout = cb;
 }
 
-// ---------- Axios instance ----------
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
   timeout: 15_000,
 });
 
-// ---------- Request interceptor ----------
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = tokenStorage.getAccess();
@@ -53,7 +48,6 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// ---------- Refresh queue ----------
 interface QueueItem {
   resolve: (token: string) => void;
   reject: (err: unknown) => void;
@@ -70,7 +64,6 @@ function processQueue(error: unknown, token: string | null = null) {
   failedQueue = [];
 }
 
-// ---------- Response interceptor ----------
 api.interceptors.response.use(
   (response) => response,
   async (
