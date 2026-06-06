@@ -12,15 +12,15 @@ const ACCESS_KEY = "ssc_access";
 const REFRESH_KEY = "ssc_refresh";
 
 export const tokenStorage = {
-  getAccess: () => sessionStorage.getItem(ACCESS_KEY), // changed
-  getRefresh: () => sessionStorage.getItem(REFRESH_KEY), // changed
+  getAccess: () => sessionStorage.getItem(ACCESS_KEY),
+  getRefresh: () => sessionStorage.getItem(REFRESH_KEY),
   setTokens: (access: string, refresh: string) => {
-    sessionStorage.setItem(ACCESS_KEY, access); // changed
-    sessionStorage.setItem(REFRESH_KEY, refresh); // changed
+    sessionStorage.setItem(ACCESS_KEY, access);
+    sessionStorage.setItem(REFRESH_KEY, refresh);
   },
   clearTokens: () => {
-    sessionStorage.removeItem(ACCESS_KEY); // changed
-    sessionStorage.removeItem(REFRESH_KEY); // changed
+    sessionStorage.removeItem(ACCESS_KEY);
+    sessionStorage.removeItem(REFRESH_KEY);
   },
 };
 
