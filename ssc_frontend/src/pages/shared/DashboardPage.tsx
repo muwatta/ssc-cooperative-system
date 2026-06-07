@@ -47,6 +47,7 @@ type DashboardStats = {
 export default function DashboardPage() {
   const { user, isAdmin, isCommittee, isHOS } = useAuth();
   const isLeadership = isAdmin || isCommittee || isHOS;
+  const isAuthenticated = !!user;
   const queryClient = useQueryClient();
 
   const [showBalances, setShowBalances] = useState(() => {
@@ -66,9 +67,9 @@ export default function DashboardPage() {
   const { data: dashSummary } = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: () => api.get("/dashboard/summary/").then((r) => r.data),
-    staleTime: 10000,
-    refetchInterval: 15000,
     enabled: isLeadership,
+    staleTime: 30000,
+    refetchInterval: 60000,
   });
 
   // Optimised member stats – single API call instead of five
@@ -85,9 +86,9 @@ export default function DashboardPage() {
       };
     },
     enabled: isLeadership,
-    staleTime: 10000,
+    staleTime: 30000,
     refetchOnWindowFocus: true,
-    refetchInterval: 15000,
+    refetchInterval: 60000,
   });
 
   const balanceQuery = useQuery<SavingsSummary>({
@@ -96,9 +97,10 @@ export default function DashboardPage() {
       const response = await savingsApi.summary();
       return response.data;
     },
-    staleTime: 10000,
+    enabled: isAuthenticated,
+    staleTime: 30000,
     refetchOnWindowFocus: true,
-    refetchInterval: 15000,
+    refetchInterval: 60000,
   });
 
   const meQuery = useQuery<MemberProfile | null>({
@@ -107,9 +109,10 @@ export default function DashboardPage() {
       const response = await membersApi.me();
       return response.data;
     },
-    staleTime: 10000,
+    enabled: isAuthenticated,
+    staleTime: 30000,
     refetchOnWindowFocus: true,
-    refetchInterval: 15000,
+    refetchInterval: 60000,
   });
 
   const stats = memberStatsQuery.data as DashboardStats | undefined;
