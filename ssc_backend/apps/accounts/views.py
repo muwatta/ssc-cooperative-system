@@ -9,7 +9,6 @@ from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from django.db.models import Count, Q
 
 from django.http import JsonResponse
 from rest_framework.views import APIView
@@ -35,6 +34,7 @@ from .permissions import (
 from apps.audit.utils import log_action, get_client_ip
 from .services import import_legacy_members
 from .email_service import send_bulk_invitations
+from accounts import models
 # Authentication views (login/logout, password setup)
 
 class SSCTokenObtainPairView(TokenObtainPairView):
@@ -468,18 +468,19 @@ class ToggleSpecialSaverView(APIView):
             "is_special_saver": member.is_special_saver,
         })
     
+    
+from django.db.models import Count, Q 
 
 class MemberCountsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        from django.db.models import Count
         stats = MemberProfile.objects.aggregate(
             total=Count("id"),
-            active=Count("id", filter=models.Q(membership_status=MembershipStatus.ACTIVE)),
-            pending=Count("id", filter=models.Q(membership_status=MembershipStatus.PENDING)),
-            inactive=Count("id", filter=models.Q(membership_status=MembershipStatus.INACTIVE)),
-            exited=Count("id", filter=models.Q(membership_status=MembershipStatus.EXITED)),
+            active=Count("id", filter=Q(membership_status=MembershipStatus.ACTIVE)),
+            pending=Count("id", filter=Q(membership_status=MembershipStatus.PENDING)),
+            inactive=Count("id", filter=Q(membership_status=MembershipStatus.INACTIVE)),
+            exited=Count("id", filter=Q(membership_status=MembershipStatus.EXITED)),
         )
         return Response({
             "total": stats["total"],
