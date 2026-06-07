@@ -159,7 +159,7 @@ class SubmitLoanSerializer(serializers.Serializer):
         if not eligibility["eligible"]:
             raise serializers.ValidationError({"eligibility": eligibility["reasons"]})
 
-        # 2. Absolute borrowable cap – REMOVED (unlimited with sureties)
+        # 2. Absolute borrowable
         amount_applied = attrs["amount_applied"]
 
         # 3. Repayment cross‑check (amount ÷ duration)
