@@ -162,8 +162,7 @@ function SuretyRow({
                   </p>
                 ) : (
                   <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700">
-                    This member is not eligible to act as a surety for this
-                    amount.
+                    This member can't surety up to that amount.
                   </p>
                 )
               ) : isCheckingEligibility ? (
