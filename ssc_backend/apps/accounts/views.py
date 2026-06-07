@@ -34,8 +34,6 @@ from .permissions import (
 from apps.audit.utils import log_action, get_client_ip
 from .services import import_legacy_members
 from .email_service import send_bulk_invitations
-from accounts import models
-# Authentication views (login/logout, password setup)
 
 class SSCTokenObtainPairView(TokenObtainPairView):
     serializer_class = SSCTokenObtainPairSerializer
@@ -80,8 +78,6 @@ class SetInitialPasswordView(APIView):
 
 
 # STAFF ID REGISTRY — Admin only
-
-
 class StaffIDRegistryListCreateView(generics.ListCreateAPIView):
     queryset = StaffIDRegistry.objects.all().order_by("staff_id")
     serializer_class = StaffIDRegistrySerializer
