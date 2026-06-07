@@ -281,7 +281,7 @@ Environment specific configuration is managed securely through environment varia
 
 ## Project Status
 
-**Production Ready**
+## Production Ready
 
 SSC is actively designed for real world cooperative operations and includes comprehensive support for member management, savings administration, loan processing, surety management, reporting, auditing, and financial tracking.
 
