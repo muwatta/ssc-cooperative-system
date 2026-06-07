@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import LoanApplication, LoanRepaymentLedger
+from .models import LoanApplication, LoanConfiguration, LoanRepaymentLedger
 
 @admin.register(LoanApplication)
 class LoanApplicationAdmin(admin.ModelAdmin):
@@ -12,3 +12,7 @@ class LoanApplicationAdmin(admin.ModelAdmin):
 class LoanRepaymentLedgerAdmin(admin.ModelAdmin):
     list_display  = ["loan", "hijri_display", "amount", "balance_after"]
     readonly_fields = ["created_at"]
+
+@admin.register(LoanConfiguration)
+class LoanConfigurationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'self_surety_ratio', 'max_borrowable_ratio', 'external_surety_max_ratio')
