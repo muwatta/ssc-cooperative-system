@@ -1,3 +1,4 @@
+from investments import models
 from rest_framework import generics, status, filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -9,14 +10,14 @@ from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-
+from django.db.models import Count, Q
 
 from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from django.contrib.auth.hashers import make_password
 
-from .models import User, StaffIDRegistry, MemberProfile
+from .models import MembershipStatus, User, StaffIDRegistry, MemberProfile
 from .serializers import (
     SSCTokenObtainPairSerializer,
     StaffIDRegistrySerializer,
@@ -466,4 +467,25 @@ class ToggleSpecialSaverView(APIView):
             "member_id": member.id,
             "file_number": member.file_number,
             "is_special_saver": member.is_special_saver,
+        })
+    
+
+class MemberCountsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from django.db.models import Count
+        stats = MemberProfile.objects.aggregate(
+            total=Count("id"),
+            active=Count("id", filter=models.Q(membership_status=MembershipStatus.ACTIVE)),
+            pending=Count("id", filter=models.Q(membership_status=MembershipStatus.PENDING)),
+            inactive=Count("id", filter=models.Q(membership_status=MembershipStatus.INACTIVE)),
+            exited=Count("id", filter=models.Q(membership_status=MembershipStatus.EXITED)),
+        )
+        return Response({
+            "total": stats["total"],
+            "active": stats["active"],
+            "pending": stats["pending"],
+            "inactive": stats["inactive"],
+            "exited": stats["exited"],
         })

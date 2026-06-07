@@ -43,6 +43,17 @@ export const authApi = {
 // MEMBERS
 
 export const membersApi = {
+  counts: () =>
+    api
+      .get<{
+        total: number;
+        active: number;
+        pending: number;
+        inactive: number;
+        exited: number;
+      }>("/accounts/members/counts/")
+      .then((r) => r.data),
+      
   me: () => api.get<MemberProfile | null>("/accounts/me/"),
 
   list: (params?: {

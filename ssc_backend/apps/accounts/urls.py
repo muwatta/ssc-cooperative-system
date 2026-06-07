@@ -2,6 +2,7 @@ from django.urls import path
 from .views import (
     ChangeMemberRoleView,
     ChangePasswordView,
+    MemberCountsView,
     SetInitialPasswordView,
     CreateUserView,
     StaffIDRegistryListCreateView,
@@ -35,5 +36,6 @@ urlpatterns = [
     path("members/<int:pk>/change-role/", ChangeMemberRoleView.as_view(), name="member-change-role"),
     path("change-password/", ChangePasswordView.as_view(), name="change-password"),
     path("toggle-special/<int:member_id>/", ToggleSpecialSaverView.as_view(), name="toggle-special"),
+    path("counts/", MemberCountsView.as_view(), name="member-counts"),
     
 ]

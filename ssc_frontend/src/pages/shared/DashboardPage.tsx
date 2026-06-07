@@ -68,24 +68,17 @@ export default function DashboardPage() {
     enabled: isLeadership,
   });
 
-  // Existing member stats (unchanged)
+  // Optimised member stats – single API call instead of five
   const memberStatsQuery = useQuery<DashboardStats>({
     queryKey: ["dashboard", "member-stats"],
     queryFn: async () => {
-      const [all, active, pending, inactive, exited] = await Promise.all([
-        membersApi.list(),
-        membersApi.list({ membership_status: "active" }),
-        membersApi.list({ membership_status: "pending" }),
-        membersApi.list({ membership_status: "inactive" }),
-        membersApi.list({ membership_status: "exited" }),
-      ]);
-
+      const counts = await membersApi.counts();
       return {
-        totalMembers: all.data.count,
-        activeMembers: active.data.count,
-        pendingMembers: pending.data.count,
-        inactiveMembers: inactive.data.count,
-        exitedMembers: exited.data.count,
+        totalMembers: counts.total,
+        activeMembers: counts.active,
+        pendingMembers: counts.pending,
+        inactiveMembers: counts.inactive,
+        exitedMembers: counts.exited,
       };
     },
     enabled: isLeadership,
@@ -170,7 +163,7 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* NEW: Loan & Approval snapshot (leadership only) */}
+      {/* Loan & Approval snapshot (leadership only) */}
       {isLeadership && dashSummary && (
         <div className="card-panel mb-6 bg-white border border-gray-200">
           <h2 className="text-lg font-semibold mb-3">At a Glance</h2>
@@ -223,7 +216,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Existing Leadership profile section */}
+      {/* Leadership profile section */}
       {isLeadership && (
         <div className="card-panel mb-6 bg-primary-50 border-primary-100">
           <div className="flex items-center justify-between mb-3">
@@ -292,7 +285,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Membership Summary (unchanged) */}
+      {/* Membership Summary */}
       {isLeadership && (
         <div className="card-panel mb-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -460,7 +453,7 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              {/* Special Fixed Savings Card – NEW */}
+              {/* Special Fixed Savings Card */}
               {hasMemberBalance &&
                 Number(memberBalance!.special_savings || 0) > 0 && (
                   <div className="card-panel-light">
