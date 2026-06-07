@@ -1,136 +1,300 @@
 # Solace Staff Cooperative Management System (SSC)
 
-A comprehensive digital platform designed to automate and streamline the operations of Solace Staff Cooperative.
+A modern, enterprise ready cooperative management platform designed to digitize and streamline the operations of the Solace Staff Cooperative Society.
 
-The system provides secure management of members, savings contributions, loans, suretyship, dues, investments, reporting, and administrative workflows through a centralized web based application.
+SSC provides a centralized system for managing members, savings, loans, sureties, investments, notifications, reporting, and administrative workflows. The platform replaces manual record keeping with a secure, transparent, and scalable solution that improves operational efficiency, accountability, and financial visibility.
 
-Built with scalability, transparency, and accountability in mind, SSC replaces manual record keeping with a modern cooperative management solution that supports multiple user roles, automated business rules, and real time financial tracking.
+Built with React, TypeScript, Django REST Framework, and PostgreSQL, SSC supports role based workflows, automated business rules, comprehensive audit trails, and real time financial reporting.
 
-## Key Objectives
+---
 
-- Digitize cooperative operations
-- Improve financial transparency
-- Automate loan and surety workflows
-- Reduce administrative workload
-- Provide accurate member financial records
-- Support future growth and branch expansion
+## Overview
 
-## Highlights
+Traditional cooperative management often relies on spreadsheets, paper records, and manual approval processes. These approaches introduce operational inefficiencies, increase the risk of errors, and make auditing difficult.
 
-- Role based access control (Admin, Committee, HOS, Staff)
-- JWT authentication and secure session management
-- Dynamic loan eligibility engine
-- Intelligent surety validation system
-- Automated savings and balance calculations
-- Draft auto save for loan applications
-- Islamic (Hijri) and Gregorian calendar support
-- Real time dashboard and reporting
-- Scalable REST API architecture
-- Responsive mobile friendly user interface
+SSC addresses these challenges by providing:
 
-Developed by Algorise Tech Explorers (ATE).
+* Centralized member management
+* Automated savings and loan processing
+* Multi level approval workflows
+* Surety validation and tracking
+* Real time financial reporting
+* Audit and compliance monitoring
+* Secure role based access control
 
-I would also add a dedicated "System Architecture" section:
+---
 
-```markdown
-# System Architecture
+## Core Features
 
-Frontend (React + TypeScript)
-│
-▼
-REST API (Django REST Framework)
-│
-▼
-Business Logic Layer
-│
-▼
-PostgreSQL Database (Supabase)
+### Authentication & Access Control
+
+* JWT based authentication
+* Secure password management
+* Role based authorization
+* Protected administrative operations
+* Session management and token refresh support
+
+### Member Management
+
+* Member registration and onboarding
+* Staff ID verification
+* Member approval workflow
+* Member profile management
+* Account activation and deactivation
+* Legacy member data import
+* Member statistics and summaries
+
+### Savings Management
+
+* Savings contribution posting
+* Individual member ledgers
+* Real time balance tracking
+* Special savings accounts
+* Withdrawal processing
+* Dues management
+* Savings adjustment requests with approval workflow
+* Monthly savings reporting
+
+### Loan Management
+
+* Loan eligibility assessment
+* Loan application drafts with auto save
+* Multi stage approval workflow
+* Committee review process
+* Head of Service approval
+* Final administrative approval
+* Repayment processing
+* Outstanding balance tracking
+* Loan default management
+* Loan repayment history and exports
+
+### Surety Management
+
+* Automated surety eligibility validation
+* Batch surety verification
+* Surety confirmation and rejection workflows
+* Surety liability tracking
+* Surety exposure reporting
+
+### Investment Management
+
+* Investment portfolio tracking
+* Profit distribution management
+* Distribution processing workflows
+
+### Notifications
+
+* In app notification center
+* Read and unread tracking
+* Administrative announcements
+* Workflow event notifications
+
+### Audit & Compliance
+
+* Comprehensive audit logging
+* User activity tracking
+* Object level audit history
+* Audit reporting and analysis
+
+### Reporting & Analytics
+
+* Member financial statements
+* Loan book reports
+* Surety exposure reports
+* Savings reports
+* Dashboard analytics
+* Export functionality
+
+---
+
+## System Architecture
+
+```text
+┌─────────────────────────┐
+│ React + TypeScript UI   │
+└────────────┬────────────┘
+             │
+             ▼
+┌─────────────────────────┐
+│ Django REST Framework   │
+│ RESTful API Layer       │
+└────────────┬────────────┘
+             │
+             ▼
+┌─────────────────────────┐
+│ Business Logic Services │
+└────────────┬────────────┘
+             │
+             ▼
+┌─────────────────────────┐
+│ PostgreSQL Database     │
+└─────────────────────────┘
 ```
 
-Add deployment URLs:
+---
 
-```markdown
-# Deployment
+## Technology Stack
 
-## Production
+| Layer            | Technology                            |
+| ---------------- | ------------------------------------- |
+| Frontend         | React, TypeScript, Tailwind CSS       |
+| Backend          | Python, Django, Django REST Framework |
+| Database         | PostgreSQL                            |
+| Authentication   | JWT Authentication                    |
+| State Management | React Query                           |
+| Deployment       | Vercel, Render                        |
+| Version Control  | Git & GitHub                          |
 
-Frontend:
-https://ssc-cooperative-system.vercel.app/dashboard
+---
 
-Backend:
-https://ssc-cooperative-system.onrender.com
+## Key Business Rules
 
-## Administrative Interface
+### Loan Eligibility
 
-The system includes a protected Django administrative portal accessible only to authorized personnel.
+The system automatically evaluates member eligibility based on cooperative policies and available balances.
+
+### Surety Validation
+
+Sureties are validated against:
+
+* Available savings balance
+* Existing surety commitments
+* Active liabilities
+* Cooperative policy thresholds
+
+### Multi Stage Approval Workflow
+
+```text
+Loan Application
+        │
+        ▼
+Committee Review
+        │
+        ▼
+Head of Service Approval
+        │
+        ▼
+Administrative Approval
+        │
+        ▼
+Loan Activation
 ```
 
-Add a security section:
+### Financial Integrity
 
-```markdown
-# Security Features
+All financial operations are recorded through auditable transactions to maintain accountability and transparency.
 
-- JWT Authentication
-- Role Based Authorization
-- Password Hashing
-- Protected API Endpoints
-- Surety Privacy Protection
-- Input Validation
-- CSRF Protection
-- Secure Database Transactions
-- Audit Friendly Financial Records
+---
+
+## Security Features
+
+* JWT Authentication
+* Password Hashing
+* Role Based Access Control
+* Protected API Endpoints
+* Input Validation
+* Transaction Atomicity
+* Audit Logging
+* Financial Activity Tracking
+* Permission Based Operations
+* Secure Data Access Controls
+
+---
+
+## Dashboard & Reporting
+
+The platform provides role specific dashboards and reporting capabilities.
+
+### Administrative Dashboard
+
+* Total Members
+* Total Savings
+* Active Loans
+* Outstanding Portfolio
+* Pending Approvals
+* Financial Summaries
+* Recent Activities
+
+### Member Dashboard
+
+* Savings Balance
+* Active Loans
+* Outstanding Obligations
+* Surety Commitments
+* Notifications
+* Transaction History
+
+---
+
+## API Modules
+
+The backend is organized into the following modules:
+
+```text
+Accounts
+Audit
+Loans
+Savings
+Sureties
+Investments
+Notifications
+Reports
+Dashboard
+Core Services
 ```
 
-Add screenshots:
+---
 
-```markdown
-# Screenshots
+## Deployment
 
-## Login Page
+### Frontend
 
-![Login](docs/screenshots/login.png)
+Production frontend deployed on Vercel.
 
-## Dashboard
+### Backend
 
-![Dashboard](docs/screenshots/dashboard.png)
+Production API deployed on Render.
 
-## Loan Application
+### Database
 
-![Loan Application](docs/screenshots/loan_application.png)
+Managed PostgreSQL infrastructure.
 
-## Member Management
+Environment specific configuration is managed securely through environment variables and deployment secrets.
 
-![Members](docs/screenshots/members.png)
-```
+---
 
-Add a roadmap:
+## Future Enhancements
 
-```markdown
-# Roadmap
+### Planned Improvements
 
-### Version 1.0
+* Progressive Web App (PWA)
+* Push Notifications
+* Automated Monthly Processing
+* Advanced Financial Analytics
+* Two Factor Authentication (2FA)
+* Bulk Communication Tools
+* Financial Reconciliation Dashboard
+* Multi Branch Cooperative Support
+* Mobile Application
 
-- Authentication
-- Member Management
-- Savings Module
-- Loan Workflow
-- Surety Management
+---
 
-### Version 1.1
+## Project Status
 
-- Investment Tracking
-- Advanced Reports
-- Notifications
+**Production Ready**
 
-### Version 1.2
+SSC is actively designed for real world cooperative operations and includes comprehensive support for member management, savings administration, loan processing, surety management, reporting, auditing, and financial tracking.
 
-- Mobile PWA
-- Offline Support
-- Push Notifications
+---
 
-### Version 2.0
+## Developed By
 
-- Multi Branch Cooperative Support
-- Mobile Application
-- Accounting Integration
-```
+### Algorise Tech Explorers (ATE)
+
+Building practical digital solutions that empower organizations through technology, automation, and innovation.
+
+**Lead Developer:** Abdullahi Oladipupo Musliudeen
+
+---
+
+© Solace Staff Cooperative Management System (SSC)
