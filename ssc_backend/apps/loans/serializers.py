@@ -160,8 +160,6 @@ class SubmitLoanSerializer(serializers.Serializer):
             raise serializers.ValidationError({"eligibility": eligibility["reasons"]})
 
         # 2. Absolute borrowable cap – REMOVED (unlimited with sureties)
-        # The static cap is removed. The real limit is dynamic: self-surety + external sureties.
-        # We keep the amount_applied variable because it's used later.
         amount_applied = attrs["amount_applied"]
 
         # 3. Repayment cross‑check (amount ÷ duration)
