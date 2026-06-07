@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
     BatchMonthlyDeductionView, FullWithdrawalView, MoveToSpecialView, PendingChangeRequestsCountView, PostSavingsView, MemberLedgerView, MemberBalanceView,
-    MyBalanceView, MyLedgerView, SavingsSummaryView,
+    MyBalanceView, MyLedgerView, ReconciliationView, SavingsSummaryView,
     SavingsChangeRequestListCreateView, ApproveSavingsChangeView, RejectSavingsChangeView,
     DuesCycleListCreateView, PostDuesCycleView, LedgerExportView,
     BulkSavingsReportView, WithdrawSpecialView, WithdrawSpecialView,
@@ -26,4 +26,6 @@ urlpatterns = [
     path("withdraw/<int:member_id>/", FullWithdrawalView.as_view(), name="full-withdrawal"),
     path("move-to-special/<int:member_id>/", MoveToSpecialView.as_view(), name="move-to-special"),
     path("withdraw-special/<int:member_id>/", WithdrawSpecialView.as_view(), name="withdraw-special"),
+    path("reconciliation/", ReconciliationView.as_view(), name="reconciliation"),
 ]
+

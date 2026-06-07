@@ -828,3 +828,34 @@ class WithdrawSpecialView(APIView):
 
         return Response({"message": f"₦{amount} withdrawn from special savings.", "special_savings": str(balance.special_savings)})
     
+
+class ReconciliationView(APIView):
+    permission_classes = [IsAdminOrCommitteeOrHOS]
+
+    def get(self, request):
+        hijri_month = request.query_params.get("hijri_month")
+        hijri_year = request.query_params.get("hijri_year")
+
+        qs = SavingsLedger.objects.all()
+
+        if hijri_month:
+            try:
+                qs = qs.filter(hijri_month=int(hijri_month))
+            except ValueError:
+                pass
+        if hijri_year:
+            try:
+                qs = qs.filter(hijri_year=int(hijri_year))
+            except ValueError:
+                pass
+
+        total_credit = qs.aggregate(total=Sum("credit"))["total"] or Decimal("0.00")
+        total_debit = qs.aggregate(total=Sum("debit"))["total"] or Decimal("0.00")
+        difference = total_credit - total_debit
+
+        return Response({
+            "total_credit": str(total_credit),
+            "total_debit": str(total_debit),
+            "difference": str(difference),
+            "is_balanced": total_credit == total_debit,
+        })
