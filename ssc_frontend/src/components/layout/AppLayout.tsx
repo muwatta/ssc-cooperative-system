@@ -17,9 +17,9 @@ function useNavItems(): NavItem[] {
 
   const shared: NavItem[] = [
     { label: "Dashboard", to: "/dashboard", icon: "⊞" },
-    { label: "My Savings", to: "/my-savings", icon: "₦" },
-    { label: "My Loans", to: "/my-loans", icon: "🏦" },
-    { label: "My Profile", to: "/profile", icon: "👤" },
+    { label: "Savings", to: "/my-savings", icon: "₦" },
+    { label: "Loans", to: "/my-loans", icon: "🏦" },
+    { label: "Profile", to: "/profile", icon: "👤" },
   ];
 
   const adminItems: NavItem[] = [
