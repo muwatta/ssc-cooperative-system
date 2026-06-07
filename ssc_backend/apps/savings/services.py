@@ -5,6 +5,7 @@ from decimal import Decimal
 from apps.accounts.models import MemberProfile, MembershipStatus
 from apps.savings.models import SavingsLedger, MemberBalance, SavingsChangeRequest, TermlyDuesCycle, LedgerEntryType
 from utils.hijri import hijri_month_display
+from apps.audit.utils import log_action
 
 
 def get_or_create_balance(member: MemberProfile) -> MemberBalance:
@@ -52,13 +53,20 @@ def post_savings_entry(
         verified_by_role=posted_by.role,
     )
 
-    # Update balance
     balance.total_savings = new_balance
     balance.save(update_fields=["total_savings", "updated_at"])
 
-    # Update consecutive savings counter (SRS M1, M2)
     member.consecutive_savings_months += 1
     member.save(update_fields=["consecutive_savings_months", "updated_at"])
+
+    log_action(
+        user=posted_by,
+        action="POST_SAVINGS",
+        description=f"Posted ordinary savings of ₦{amount} for {member.file_number} ({member.full_name})",
+        object_type="SavingsEntry",
+        object_id=entry.id,
+        object_name=member.full_name,
+    )
 
     return entry
 
@@ -73,10 +81,6 @@ def post_debit_entry(
     entry_type: str,
     details: str,
 ) -> SavingsLedger:
-    """
-    Posts a debit entry (dues, adjustment).
-    SRS Rule S4: balance can never go below zero.
-    """
     balance = get_or_create_balance(member)
 
     if balance.total_savings - amount < Decimal("0.00"):
@@ -106,15 +110,20 @@ def post_debit_entry(
     balance.total_savings = new_balance
     balance.save(update_fields=["total_savings", "updated_at"])
 
+    log_action(
+        user=posted_by,
+        action="POST_DEBIT",
+        description=f"Posted debit of ₦{amount} for {member.file_number} ({member.full_name}) — {details}",
+        object_type="SavingsEntry",
+        object_id=entry.id,
+        object_name=member.full_name,
+    )
+
     return entry
 
 
 @transaction.atomic
 def post_termly_dues(cycle: TermlyDuesCycle, posted_by) -> dict:
-    """
-    SRS Section 4.3 — post dues against all target members.
-    Returns summary of successes and failures.
-    """
     if cycle.is_posted:
         raise ValueError("This dues cycle has already been posted.")
 

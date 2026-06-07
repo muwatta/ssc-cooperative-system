@@ -485,3 +485,103 @@ class MemberCountsView(APIView):
             "inactive": stats["inactive"],
             "exited": stats["exited"],
         })
+    
+
+
+class ApproveMemberView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request, pk):
+        try:
+            profile = MemberProfile.objects.get(pk=pk, membership_status="pending")
+        except MemberProfile.DoesNotExist:
+            return Response(
+                {"error": "Member not found or not in pending status."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        approved_by = request.data.get("approved_by_name", "")
+        officer = request.data.get("officer_in_charge", "")
+        approval_date = request.data.get("approval_date")
+        approved_contribution = request.data.get("approved_monthly_contribution")
+
+        if not all([approved_by, officer, approval_date, approved_contribution]):
+            return Response(
+                {"error": "approved_by_name, officer_in_charge, approval_date, and approved_monthly_contribution are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        profile.membership_status = "active"
+        profile.approved_by_name = approved_by
+        profile.officer_in_charge = officer
+        profile.approval_date = approval_date
+        profile.approved_monthly_contribution = approved_contribution
+        profile.save(update_fields=[
+            "membership_status", "approved_by_name", "officer_in_charge",
+            "approval_date", "approved_monthly_contribution", "updated_at"
+        ])
+
+        log_action(
+            user=request.user,
+            action="APPROVE_MEMBER",
+            description=f"Approved member {profile.file_number} ({profile.full_name})",
+            object_type="MemberProfile",
+            object_id=profile.id,
+            object_name=profile.full_name,
+        )
+
+        return Response(
+            MemberProfileSerializer(profile).data,
+            status=status.HTTP_200_OK
+        )
+    
+
+class ChangeMemberRoleView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request, pk):
+        try:
+            profile = MemberProfile.objects.select_related("user").get(pk=pk)
+        except MemberProfile.DoesNotExist:
+            return Response(
+                {"error": "Member not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if profile.user == request.user:
+            return Response(
+                {"error": "You cannot change your own role."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        new_role = request.data.get("role", "").strip()
+        valid_roles = ("staff", "committee", "head_of_school", "admin")
+
+        if new_role not in valid_roles:
+            return Response(
+                {"error": f"Invalid role. Must be one of: {', '.join(valid_roles)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        old_role = profile.user.role
+        profile.user.role = new_role
+        profile.user.save(update_fields=["role", "updated_at"])
+
+        log_action(
+            user=request.user,
+            action="CHANGE_ROLE",
+            description=f"Changed role of {profile.full_name} from {old_role} to {new_role}",
+            object_type="User",
+            object_id=profile.user.id,
+            object_name=profile.full_name,
+        )
+
+        return Response({
+            "message": f"{profile.full_name} role changed from {old_role} to {new_role}.",
+            "file_number": profile.file_number,
+            "full_name": profile.full_name,
+            "old_role": old_role,
+            "new_role": new_role,
+        })
+    
+

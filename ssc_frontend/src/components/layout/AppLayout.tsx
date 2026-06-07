@@ -30,6 +30,7 @@ function useNavItems(): NavItem[] {
     { label: "Post Savings", to: "/savings/post", icon: "📥" },
     { label: "Post Dues", to: "/savings/dues", icon: "📋" },
     { label: "Reconciliation", to: "/reconciliation", icon: "📊" },
+    { label: "Audit Trail", to: "/audit-report", icon: "🕵️" },
   ];
 
   const committeeItems: NavItem[] = [

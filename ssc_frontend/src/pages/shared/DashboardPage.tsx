@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/api/client";
 import { membersApi, savingsApi } from "@/api/services";
 import type { MemberProfile, SavingsSummary } from "@/types";
@@ -47,11 +47,14 @@ type DashboardStats = {
 export default function DashboardPage() {
   const { user, isAdmin, isCommittee, isHOS } = useAuth();
   const isLeadership = isAdmin || isCommittee || isHOS;
+  const queryClient = useQueryClient();
 
   const [showBalances, setShowBalances] = useState(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("showBalances") !== "false";
   });
+
+  const [showResetModal, setShowResetModal] = useState(false);
 
   const toggleBalances = () => {
     const nextValue = !showBalances;
@@ -468,7 +471,8 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-              {(isAdmin || isCommittee) && (
+              {/* Cooperative totals – ADMIN ONLY */}
+              {isAdmin && (
                 <>
                   <div className="card-panel-light">
                     <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
@@ -526,7 +530,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Pilot Reset Button – Admin Only */}
+      {/* Pilot Reset Section – Admin Only with Modal */}
       {isAdmin && (
         <div className="card-panel mb-6 bg-red-50 border border-red-200">
           <div className="flex items-center justify-between">
@@ -540,26 +544,52 @@ export default function DashboardPage() {
               </p>
             </div>
             <button
-              onClick={async () => {
-                if (
-                  !window.confirm(
-                    "⚠️ This will delete ALL members, loans, savings, and sureties. Only the admin (S45-0001) will remain. Are you sure?",
-                  )
-                )
-                  return;
-                if (!window.confirm("This cannot be undone. Continue?")) return;
-                try {
-                  await api.post("/reset-data/");
-                  alert("✅ All data cleared. Reloading...");
-                  window.location.reload();
-                } catch (e: any) {
-                  alert("Failed to reset data. Check permissions.");
-                }
-              }}
+              onClick={() => setShowResetModal(true)}
               className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm font-medium"
             >
               🔄 Reset All Data (Pilot)
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              ⚠️ Reset All Data?
+            </h3>
+            <p className="text-sm text-gray-600 mb-6">
+              This will <strong>permanently delete</strong> all members, loans,
+              savings, sureties, and notifications. Only your admin account
+              (S45‑0001) will remain with zero balances. This action cannot be
+              undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowResetModal(false)}
+                className="flex-1 btn-secondary py-2"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setShowResetModal(false);
+                  try {
+                    await api.post("/reset-data/");
+                    queryClient.invalidateQueries();
+                  } catch (e: any) {
+                    alert(
+                      "Failed to reset data. Please check permissions or try again later.",
+                    );
+                  }
+                }}
+                className="flex-1 bg-red-600 text-white py-2 rounded hover:bg-red-700 font-medium"
+              >
+                Yes, Reset Everything
+              </button>
+            </div>
           </div>
         </div>
       )}

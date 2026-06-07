@@ -27,6 +27,7 @@ const LegacyImportPage = lazy(() => import("@/pages/admin/LegacyImportPage"));
 const ReconciliationPage = lazy(
   () => import("@/pages/admin/ReconciliationPage"),
 );
+const AuditReportPage = lazy(() => import("@/pages/admin/AuditReportPage"));
 const LoanQueuePage = lazy(() => import("@/pages/committee/LoanQueuePage"));
 const ApplyLoanPage = lazy(() => import("@/pages/staff/ApplyLoanPage"));
 const MyLoansPage = lazy(() => import("@/pages/staff/MyLoansPage"));
@@ -225,6 +226,14 @@ const router = createBrowserRouter([
                 element: (
                   <Suspense fallback={<PageLoader />}>
                     <ReconciliationPage />
+                  </Suspense>
+                ),
+              },
+              {
+                path: "/audit-report",
+                element: (
+                  <Suspense fallback={<PageLoader />}>
+                    <AuditReportPage />
                   </Suspense>
                 ),
               },

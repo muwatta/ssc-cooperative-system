@@ -8,6 +8,7 @@ from apps.savings.models import LedgerEntryType
 from apps.sureties.services import create_surety_records, lock_sureties_for_loan, release_sureties_proportionally, release_all_sureties, transfer_balance_to_sureties
 from utils.hijri import hijri_month_display
 from .models import LoanApplication, LoanRepaymentLedger, LoanStatus, LoanConfiguration
+from apps.audit.utils import log_action
 
 
 def get_loan_configuration() -> LoanConfiguration:
@@ -84,11 +85,11 @@ def check_loan_eligibility(member: MemberProfile) -> dict:
     return {"eligible": len(reasons) == 0, "reasons": reasons}
 
 
-   
 def calculate_max_borrowable(member: MemberProfile) -> Decimal:
     config = get_loan_configuration()
     balance = get_or_create_balance(member)
     return (balance.available_balance * config.max_borrowable_ratio).quantize(Decimal("0.01"))
+
 
 @transaction.atomic
 def submit_loan_application(member: MemberProfile, data: dict, sureties: list = None) -> LoanApplication:
@@ -101,7 +102,7 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
     duration = data.get("proposed_duration_months", config.max_repayment_months)
     if duration < 1 or duration > config.max_repayment_months:
         raise ValueError(f"Repayment duration must be between 1 and {config.max_repayment_months} months.")
-    
+
     amount_applied = Decimal(str(data["amount_applied"]))
     if amount_applied <= 0:
         raise ValueError("Loan amount must be positive.")
@@ -167,7 +168,7 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
         status=LoanStatus.SUBMITTED,
     )
 
-    # Auto-set repayment start to the next Hijri month (moved here)
+    # Auto-set repayment start to the next Hijri month
     from utils.hijri import current_hijri as get_hijri_now
     now_month, now_year = get_hijri_now()
     if now_month == 12:
@@ -205,7 +206,18 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
         loan.status = LoanStatus.PENDING_SURETIES
         loan.save(update_fields=["status"])
 
+    # Audit log for loan submission
+    log_action(
+        user=member.user,
+        action="SUBMIT_LOAN",
+        description=f"Loan #{loan.id} submitted by {member.full_name} for ₦{amount_applied}",
+        object_type="Loan",
+        object_id=loan.id,
+        object_name=member.full_name,
+    )
+
     return loan
+
 
 @transaction.atomic
 def committee_approve_loan(loan: LoanApplication, approved_by, amount_approved: Decimal, note: str = "") -> LoanApplication:
@@ -219,6 +231,16 @@ def committee_approve_loan(loan: LoanApplication, approved_by, amount_approved: 
     loan.committee_reviewed_at = timezone.now()
     loan.committee_decision_note = note
     loan.save()
+
+    log_action(
+        user=approved_by,
+        action="COMMITTEE_APPROVE",
+        description=f"Committee approved loan #{loan.id} for {loan.applicant.full_name} with amount ₦{amount_approved}",
+        object_type="Loan",
+        object_id=loan.id,
+        object_name=loan.applicant.full_name,
+    )
+
     return loan
 
 
@@ -229,6 +251,16 @@ def committee_reject_loan(loan: LoanApplication, rejected_by, note: str = "") ->
     loan.committee_reviewed_at = timezone.now()
     loan.committee_decision_note = note
     loan.save()
+
+    log_action(
+        user=rejected_by,
+        action="REJECT_LOAN",
+        description=f"Committee rejected loan #{loan.id} for {loan.applicant.full_name}",
+        object_type="Loan",
+        object_id=loan.id,
+        object_name=loan.applicant.full_name,
+    )
+
     return loan
 
 
@@ -237,7 +269,6 @@ def admin_final_approve_loan(loan: LoanApplication, admin_user, note: str = "") 
     if loan.status != LoanStatus.PENDING_ADMIN:
         raise ValueError("Loan must be pending admin approval before final approval.")
 
-    # Debit the approved amount from borrower's savings
     from utils.hijri import current_hijri
     from apps.savings.services import post_debit_entry
     from apps.savings.models import LedgerEntryType
@@ -262,16 +293,25 @@ def admin_final_approve_loan(loan: LoanApplication, admin_user, note: str = "") 
 
     lock_sureties_for_loan(loan)
 
+    log_action(
+        user=admin_user,
+        action="ADMIN_APPROVE",
+        description=f"Admin gave final approval for loan #{loan.id} for {loan.applicant.full_name}",
+        object_type="Loan",
+        object_id=loan.id,
+        object_name=loan.applicant.full_name,
+    )
+
     return loan
+
 
 @transaction.atomic
 def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hijri_year: int, posted_by) -> LoanRepaymentLedger:
-
     if loan.status != LoanStatus.ACTIVE:
         raise ValueError("Can only post repayment to an active loan.")
 
     if amount > loan.outstanding_balance:
-        amount = loan.outstanding_balance 
+        amount = loan.outstanding_balance
 
     balance_before = loan.outstanding_balance
     balance_after  = balance_before - amount
@@ -312,14 +352,20 @@ def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hij
     if balance_after == Decimal("0.00"):
         release_all_sureties(loan)
 
+    log_action(
+        user=posted_by,
+        action="POST_REPAYMENT",
+        description=f"Posted repayment of ₦{amount} for loan #{loan.id} for {loan.applicant.full_name}",
+        object_type="LoanRepayment",
+        object_id=repayment.id,
+        object_name=loan.applicant.full_name,
+    )
+
     return repayment
+
 
 @transaction.atomic
 def handle_default_or_exit(loan: LoanApplication) -> dict:
-    """
-    SRS Rule M4, SR7 — abrupt exit or default.
-    Transfers outstanding balance to sureties proportionally.
-    """
     if loan.status not in (LoanStatus.ACTIVE,):
         raise ValueError("Loan must be active to process default.")
 

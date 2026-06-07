@@ -15,9 +15,7 @@ from .views import (
     DeactivateMemberView,
     LegacyImportView,
     SendInvitationsView,
-    ChangeMemberRoleView,
     ToggleSpecialSaverView,
-
 )
 
 urlpatterns = [
@@ -37,5 +35,4 @@ urlpatterns = [
     path("change-password/", ChangePasswordView.as_view(), name="change-password"),
     path("toggle-special/<int:member_id>/", ToggleSpecialSaverView.as_view(), name="toggle-special"),
     path("counts/", MemberCountsView.as_view(), name="member-counts"),
-    
 ]

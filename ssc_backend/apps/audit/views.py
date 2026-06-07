@@ -3,12 +3,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
-
+from rest_framework.generics import ListAPIView
+from rest_framework.filters import OrderingFilter, SearchFilter
 from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee
 from .models import AuditLog
 from .serializers import AuditLogSerializer
-
-
+from django.http import HttpResponse
+import csv, io
 class AuditLogListView(generics.ListAPIView):
 
     serializer_class = AuditLogSerializer
@@ -62,3 +63,39 @@ class UserAuditLogView(generics.ListAPIView):
     def get_queryset(self):
         user_id = self.kwargs["user_id"]
         return AuditLog.objects.filter(user_id=user_id).select_related("user")
+
+
+class AuditReportView(ListAPIView):
+    serializer_class = AuditLogSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
+    filterset_fields = ['action', 'object_type', 'object_id']
+    search_fields = ['object_type', 'object_id']
+    ordering = ['-timestamp']
+
+    def get_queryset(self):
+        qs = AuditLog.objects.all()
+        date_from = self.request.query_params.get('date_from')
+        date_to = self.request.query_params.get('date_to')
+        user_id = self.request.query_params.get('user_id')
+        if date_from:
+            qs = qs.filter(timestamp__gte=date_from)
+        if date_to:
+            qs = qs.filter(timestamp__lte=date_to)
+        if user_id:
+            qs = qs.filter(user_id=user_id)
+        return qs
+
+    def list(self, request, *args, **kwargs):
+        if request.query_params.get('format') == 'csv':
+            queryset = self.filter_queryset(self.get_queryset())
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+            writer.writerow(['ID', 'User', 'Action', 'Object Type', 'Object ID', 'Description', 'Timestamp'])
+            for log in queryset:
+                writer.writerow([log.id, log.user.full_name if log.user else 'System', log.action,
+                                 log.object_type, log.object_id, log.description,
+                                 log.timestamp.isoformat()])
+            response = HttpResponse(buffer.getvalue(), content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="audit-report.csv"'
+            return response
+        return super().list(request, *args, **kwargs)
