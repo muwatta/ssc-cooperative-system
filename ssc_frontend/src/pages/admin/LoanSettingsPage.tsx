@@ -9,9 +9,6 @@ import {
   SuccessAlert,
 } from "@/components/common";
 
-/* ------------------------------------------------------------------ */
-/*  Helper components                                                  */
-/* ------------------------------------------------------------------ */
 function Card({
   title,
   children,

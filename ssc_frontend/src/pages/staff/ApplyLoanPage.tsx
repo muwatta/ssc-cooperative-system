@@ -261,12 +261,9 @@ export default function ApplyLoanPage() {
     queryFn: () => loansApi.eligibility().then((r) => r.data),
   });
 
-  // Dynamic limits from backend
+  // Basic eligibility values
   const selfSuretyMax = eligibility?.self_surety_max
     ? Number(eligibility.self_surety_max)
-    : 0;
-  const maxBorrowable = eligibility?.max_borrowable
-    ? Number(eligibility.max_borrowable)
     : 0;
   const ratioPercent = eligibility?.loan_amount_ratio
     ? Math.round(Number(eligibility.loan_amount_ratio) * 100)
@@ -320,10 +317,7 @@ export default function ApplyLoanPage() {
   const monthlyRepayment = duration > 0 ? amountApplied / duration : 0;
   const sureties = watch("sureties") ?? [];
 
-  const needsExternalSureties =
-    amountApplied > selfSuretyMax && amountApplied <= maxBorrowable;
-  const exceedsMax = amountApplied > maxBorrowable;
-
+  // Build surety rows for validation
   const suretyRows = fields.map((field, index) => ({
     id: field.id,
     member_id: Number(sureties[index]?.member_id) || 0,
@@ -332,6 +326,7 @@ export default function ApplyLoanPage() {
 
   const externalSureties = suretyRows.filter((row) => row.member_id > 0);
   const completeSureties = externalSureties.filter((row) => row.amount > 0);
+
   const batchEligibilityPayload = completeSureties.map((row) => ({
     row_id: row.id,
     member_id: row.member_id,
@@ -348,7 +343,7 @@ export default function ApplyLoanPage() {
       suretiesApi
         .checkEligibilityBatch(batchEligibilityPayload)
         .then((r) => r.data),
-    enabled: needsExternalSureties && batchEligibilityPayload.length > 0,
+    enabled: batchEligibilityPayload.length > 0,
     staleTime: 1000 * 60,
   });
 
@@ -367,11 +362,18 @@ export default function ApplyLoanPage() {
     return map;
   }, [batchEligibility]);
 
+  // Calculate totals and gaps
   const externalTotal = externalSureties.reduce(
     (sum, row) => sum + row.amount,
     0,
   );
   const suretyGap = Math.max(0, amountApplied - selfSuretyMax);
+  const totalAvailableWithSureties = selfSuretyMax + externalTotal;
+  const exceedsMax = amountApplied > totalAvailableWithSureties;
+
+  // Determine if external sureties are needed (no static cap)
+  const needsExternalSureties = amountApplied > selfSuretyMax;
+
   const sufficientSuretyGap = externalTotal >= suretyGap;
   const allExternalSuretiesValidated = useMemo(
     () =>
@@ -398,7 +400,7 @@ export default function ApplyLoanPage() {
       reasons.push("You are currently ineligible to apply for a loan.");
     if (exceedsMax)
       reasons.push(
-        `Requested amount exceeds maximum borrowable (${formatNaira(maxBorrowable)}).`,
+        `Requested amount exceeds total coverage (self‑surety + sureties). You can cover up to ${formatNaira(totalAvailableWithSureties)}.`,
       );
     if (needsExternalSureties && externalSureties.length === 0)
       reasons.push("External sureties are required for this amount.");
@@ -433,6 +435,7 @@ export default function ApplyLoanPage() {
     hasInvalidSurety,
     allExternalSuretiesValidated,
     batchEligibilityError,
+    totalAvailableWithSureties,
   ]);
 
   // Clear extra surety rows when not needed
@@ -451,12 +454,10 @@ export default function ApplyLoanPage() {
   }, [monthlyRepayment, setValue]);
 
   // DRAFT LOGIC
-
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [lastDraftSavedAt, setLastDraftSavedAt] = useState<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 1. Fetch existing draft on mount
   const { data: draftData, isLoading: draftIsLoading } = useQuery({
     queryKey: ["loan-draft"],
     queryFn: () => loansApi.getDraft(),
@@ -464,7 +465,6 @@ export default function ApplyLoanPage() {
     retry: false,
   });
 
-  // 2. Populate form with draft data (only once after load)
   useEffect(() => {
     if (!draftLoaded && !draftIsLoading) {
       if (draftData?.data && Object.keys(draftData.data).length > 0) {
@@ -474,7 +474,6 @@ export default function ApplyLoanPage() {
     }
   }, [draftIsLoading, draftLoaded, draftData, reset]);
 
-  // 3. Save draft mutation
   const saveDraftMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => loansApi.saveDraft(data),
     onSuccess: () => setLastDraftSavedAt(new Date().toLocaleTimeString()),
@@ -488,7 +487,6 @@ export default function ApplyLoanPage() {
         ? `Draft saved at ${lastDraftSavedAt}`
         : "";
 
-  // 4. Auto-save on form changes
   const formValues = watch();
 
   useEffect(() => {
@@ -535,13 +533,13 @@ export default function ApplyLoanPage() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
   });
+
   const onSubmit = async (data: ApplyLoanFormValues) => {
     setError("");
     const payload: Record<string, unknown> = { ...data };
     if (needsExternalSureties) {
       payload.sureties = (data.sureties ?? []).filter((s) => s.member_id > 0);
     } else {
-      // Send empty array for self-surety only loans
       payload.sureties = [];
     }
 
@@ -643,9 +641,11 @@ export default function ApplyLoanPage() {
           {canApply && (
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg bg-white/50 p-4">
               <div>
-                <p className="text-sm text-gray-600">Maximum Borrowable</p>
+                <p className="text-sm text-gray-600">
+                  Total Possible with Sureties
+                </p>
                 <p className="text-xl font-bold text-primary-700">
-                  {formatNaira(maxBorrowable)}
+                  {formatNaira(totalAvailableWithSureties)}
                 </p>
               </div>
               <div>
@@ -687,7 +687,7 @@ export default function ApplyLoanPage() {
           </div>
 
           <div className="p-6">
-            {/* Self-surety panel – dynamic ratio */}
+            {/* Self-surety panel */}
             <div className="mb-6 rounded-lg bg-primary-50 p-4 text-sm">
               <p className="font-semibold text-primary-800">
                 Your Self‑surety capacity ({ratioPercent}% of Available Balance)
@@ -704,8 +704,8 @@ export default function ApplyLoanPage() {
                 <div className="mt-3">
                   {exceedsMax ? (
                     <p className="font-medium text-red-700">
-                      ❌ Requested amount exceeds maximum borrowable (
-                      {formatNaira(maxBorrowable)}).
+                      ❌ Requested amount exceeds total coverage (self‑surety +
+                      sureties).
                     </p>
                   ) : needsExternalSureties ? (
                     <p className="font-medium text-amber-700">
@@ -741,10 +741,6 @@ export default function ApplyLoanPage() {
                           value: 1,
                           message: "Amount must be at least ₦1",
                         },
-                        max: {
-                          value: maxBorrowable,
-                          message: `Amount exceeds maximum borrowable (${formatNaira(maxBorrowable)})`,
-                        },
                       })}
                       type="number"
                       step="0.01"
@@ -754,7 +750,7 @@ export default function ApplyLoanPage() {
                           ? "border-red-300 focus:ring-red-500"
                           : "border-gray-300 focus:border-primary-500 focus:ring-primary-500"
                       } ${!canApply ? "bg-gray-50 text-gray-500" : ""}`}
-                      placeholder={`Max: ${formatNaira(maxBorrowable)}`}
+                      placeholder="Enter any amount"
                     />
                     {errors.amount_applied && (
                       <p className="mt-1 text-xs text-red-600">
@@ -958,7 +954,6 @@ export default function ApplyLoanPage() {
                             %
                           </p>
                           <div className="h-1.5 w-full rounded-full bg-gray-200">
-                            {/* eslint-disable-next-line no-inline-styles */}
                             <div
                               className="h-full rounded-full bg-primary-500 transition-all"
                               style={{

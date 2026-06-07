@@ -8,7 +8,6 @@ from apps.sureties.serializers import SuretyRecordSerializer
 from apps.accounts.models import MemberProfile 
 
 
-
 class LoanApplicationSerializer(serializers.ModelSerializer):
     sureties = SuretyRecordSerializer(many=True, read_only=True)
     applicant_file_number = serializers.CharField(source="applicant.file_number", read_only=True)
@@ -91,7 +90,6 @@ class SubmitLoanSerializer(serializers.Serializer):
         return value
 
     def validate_sureties(self, value):
-        # MemberProfile is now imported at the top of the file
         from apps.sureties.services import check_surety_eligibility
 
         request = self.context.get("request")
@@ -161,13 +159,10 @@ class SubmitLoanSerializer(serializers.Serializer):
         if not eligibility["eligible"]:
             raise serializers.ValidationError({"eligibility": eligibility["reasons"]})
 
-        # 2. Absolute borrowable cap
-        max_amount = calculate_max_borrowable(profile)
+        # 2. Absolute borrowable cap – REMOVED (unlimited with sureties)
+        # The static cap is removed. The real limit is dynamic: self-surety + external sureties.
+        # We keep the amount_applied variable because it's used later.
         amount_applied = attrs["amount_applied"]
-        if amount_applied > max_amount:
-            raise serializers.ValidationError({
-                "amount_applied": f"Maximum borrowable is ₦{max_amount}."
-            })
 
         # 3. Repayment cross‑check (amount ÷ duration)
         duration = attrs["proposed_duration_months"]
@@ -180,7 +175,7 @@ class SubmitLoanSerializer(serializers.Serializer):
                 )
             })
 
-        # 4. Surety gap logic
+        # 4. Surety gap logic (75% self‑surety + external sureties up to 85% each)
         config = get_loan_configuration()
         from apps.savings.services import get_or_create_balance
         balance = get_or_create_balance(profile)
@@ -208,7 +203,6 @@ class SubmitLoanSerializer(serializers.Serializer):
                 raise serializers.ValidationError({
                     "sureties": "External sureties are not required for this amount."
                 })
-            # Ensure sureties is always an empty list if not needed
             attrs["sureties"] = []
 
         return attrs
@@ -223,10 +217,6 @@ class CommitteeDecisionSerializer(serializers.Serializer):
         if attrs["decision"] == "approve" and not attrs.get("amount_approved"):
             raise serializers.ValidationError({"amount_approved": "Required when approving."})
         return attrs
-
-
-class AdminFinalApprovalSerializer(serializers.Serializer):
-    note = serializers.CharField(allow_blank=True, default="")
 
 
 class AdminFinalApprovalSerializer(serializers.Serializer):
@@ -289,7 +279,6 @@ class LoanSettingsSerializer(serializers.ModelSerializer):
             "require_no_surety_liabilities",
         ]
 
-from .models import LoanApplication, LoanRepaymentLedger, LoanStatus, LoanConfiguration, LoanDraft
 
 class LoanDraftSerializer(serializers.ModelSerializer):
     class Meta:

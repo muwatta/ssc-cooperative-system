@@ -45,7 +45,8 @@ class LoanEligibilityView(APIView):
             return Response({"error": "No member profile."}, status=status.HTTP_404_NOT_FOUND)
 
         result     = check_loan_eligibility(profile)
-        max_borrow = calculate_max_borrowable(profile)
+        # Remove static cap – set unlimited for frontend (real limit is dynamic)
+        max_borrow = Decimal('999999999.00')
         config     = get_loan_configuration()
 
         balance = get_or_create_balance(profile)
