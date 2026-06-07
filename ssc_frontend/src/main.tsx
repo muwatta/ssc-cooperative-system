@@ -7,6 +7,14 @@ import { AuthProvider } from "@/context/AuthContext";
 import AppRouter from "@/routes";
 import "@/index.css";
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/service-worker.js").catch((err) => {
+      console.warn("Service worker registration failed:", err);
+    });
+  });
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
