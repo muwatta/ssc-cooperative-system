@@ -27,6 +27,9 @@ const LegacyImportPage = lazy(() => import("@/pages/admin/LegacyImportPage"));
 const ReconciliationPage = lazy(
   () => import("@/pages/admin/ReconciliationPage"),
 );
+const PostSpecialSavingsPage = lazy(
+  () => import("@/pages/admin/PostSpecialSavingsPage"),
+);
 const AuditReportPage = lazy(() => import("@/pages/admin/AuditReportPage"));
 const LoanQueuePage = lazy(() => import("@/pages/committee/LoanQueuePage"));
 const ApplyLoanPage = lazy(() => import("@/pages/staff/ApplyLoanPage"));
@@ -222,6 +225,14 @@ const router = createBrowserRouter([
                 ),
               },
               {
+                path: "/special-savings",
+                element: (
+                  <Suspense fallback={<PageLoader />}>
+                    <PostSpecialSavingsPage />
+                  </Suspense>
+                ),
+              },
+                            {
                 path: "/reconciliation",
                 element: (
                   <Suspense fallback={<PageLoader />}>
