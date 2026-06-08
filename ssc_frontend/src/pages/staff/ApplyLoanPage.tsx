@@ -51,6 +51,7 @@ function SuretyRow({
   eligibility,
   isCheckingEligibility,
   eligibilityError,
+  remainingGap, // new prop
 }: {
   index: number;
   register: any;
@@ -62,6 +63,7 @@ function SuretyRow({
   eligibility?: SuretyEligibilityResponse;
   isCheckingEligibility?: boolean;
   eligibilityError?: unknown;
+  remainingGap: number; // max amount this surety can guarantee
 }) {
   const searchTerm = watch(`sureties.${index}.member_label`) || "";
   const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
@@ -189,6 +191,7 @@ function SuretyRow({
               required: "Enter a guarantee amount",
               valueAsNumber: true,
               min: 0.01,
+              max: remainingGap > 0 ? remainingGap : 0,
             })}
             type="number"
             step="0.01"
@@ -199,6 +202,11 @@ function SuretyRow({
             }`}
             placeholder="0.00"
           />
+          {remainingGap > 0 && remainingGap < 1000000 && (
+            <p className="mt-1 text-xs text-gray-500">
+              Max you can ask this surety: {formatNaira(remainingGap)}
+            </p>
+          )}
           {errors?.sureties?.[index]?.amount && (
             <p className="mt-1 text-xs text-red-600">
               {String(errors.sureties[index].amount.message)}
@@ -367,6 +375,7 @@ export default function ApplyLoanPage() {
     0,
   );
   const suretyGap = Math.max(0, amountApplied - selfSuretyMax);
+  const remainingGap = Math.max(0, suretyGap - externalTotal);
   const totalAvailableWithSureties = selfSuretyMax + externalTotal;
   const exceedsMax = amountApplied > totalAvailableWithSureties;
 
@@ -722,8 +731,53 @@ export default function ApplyLoanPage() {
               )}
             </div>
 
+            {/* Gap breakdown – NEW */}
+            {needsExternalSureties && amountApplied > 0 && (
+              <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm">
+                <p className="font-semibold text-blue-800 mb-2">
+                  Loan Breakdown
+                </p>
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span>Loan amount:</span>
+                    <span className="font-medium">
+                      {formatNaira(amountApplied)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Self‑surety (75% of loan):</span>
+                    <span className="font-medium">
+                      {formatNaira(selfSuretyMax)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-blue-800 font-semibold">
+                    <span>Gap to be covered by external sureties:</span>
+                    <span>{formatNaira(suretyGap)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Total external guarantees added:</span>
+                    <span>{formatNaira(externalTotal)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Remaining gap:</span>
+                    <span
+                      className={
+                        remainingGap === 0
+                          ? "text-green-700 font-semibold"
+                          : "text-amber-700"
+                      }
+                    >
+                      {remainingGap === 0
+                        ? "✓ Fully covered"
+                        : formatNaira(remainingGap)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {/* Loan Details */}
+              {/* Loan Details (unchanged) */}
               <div className="space-y-4">
                 <h3 className="text-md font-semibold text-gray-700">
                   Loan Details
@@ -866,7 +920,7 @@ export default function ApplyLoanPage() {
                 </div>
               </div>
 
-              {/* Repayment Plan */}
+              {/* Repayment Plan (unchanged) */}
               <div className="space-y-4">
                 <h3 className="text-md font-semibold text-gray-700">
                   Repayment Plan
@@ -917,7 +971,6 @@ export default function ApplyLoanPage() {
                   </div>
                 </div>
 
-                {/* Repayment Summary */}
                 {amountApplied > 0 && (
                   <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-sm">
                     <p className="font-semibold text-green-800">
@@ -966,7 +1019,6 @@ export default function ApplyLoanPage() {
                   </div>
                 )}
 
-                {/* Repayment start – auto‑calculated */}
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">
                     Repayment Start
@@ -1000,6 +1052,7 @@ export default function ApplyLoanPage() {
                       }
                       disabled={
                         !canApply ||
+                        remainingGap <= 0 ||
                         fields.filter((f) => f.member_id > 0).length >=
                           maxSureties
                       }
@@ -1036,6 +1089,7 @@ export default function ApplyLoanPage() {
                         eligibility={eligibilityByRowId[field.id]}
                         isCheckingEligibility={isCheckingEligibility}
                         eligibilityError={batchEligibilityError}
+                        remainingGap={remainingGap} // pass remaining gap
                       />
                     ))}
                   </div>
