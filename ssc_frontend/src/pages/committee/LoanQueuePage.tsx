@@ -224,6 +224,12 @@ function AdminFinalApprovalModal({
 }) {
   const qc = useQueryClient();
   const [error, setError] = useState("");
+
+  const approvedAmount = parseFloat(
+    loan.amount_approved || loan.amount_applied || "0",
+  );
+  const selfSuretyAmount = (approvedAmount * 0.75).toFixed(2);
+
   const mutation = useMutation({
     mutationFn: () => loansApi.adminApprove(loan.id, {}),
     onSuccess: () => {
@@ -233,22 +239,60 @@ function AdminFinalApprovalModal({
     onError: (e: any) =>
       setError(e?.response?.data?.error || "Approval failed."),
   });
+
   return (
     <div className="space-y-4">
       {error && <ErrorAlert message={error} />}
-      <div className="bg-gray-50 rounded-lg p-4 text-sm">
-        <p className="font-medium">Loan #{loan.id}</p>
-        <p>
-          {loan.applicant_file_number} — {loan.applicant_name}
+
+      {/* Loan summary */}
+      <div className="bg-gray-50 rounded-lg p-4 text-sm space-y-1">
+        <p className="font-semibold text-gray-800">
+          Loan #{loan.id} — {loan.applicant_file_number} {loan.applicant_name}
         </p>
-        <p className="text-primary-700 font-bold mt-1">
-          {formatNaira(loan.amount_approved || loan.amount_applied)}
-        </p>
-        <p className="text-gray-500 mt-1">{loan.committee_decision_note}</p>
+        <div className="flex justify-between">
+          <span className="text-gray-500">Amount Approved</span>
+          <span className="font-bold text-primary-700">
+            {formatNaira(approvedAmount)}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-500">Duration</span>
+          <span>{loan.proposed_duration_months} months</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-500">Purpose</span>
+          <span>{loan.purpose}</span>
+        </div>
+        {loan.committee_decision_note && (
+          <div className="flex justify-between">
+            <span className="text-gray-500">Committee Note</span>
+            <span className="text-gray-700">
+              {loan.committee_decision_note}
+            </span>
+          </div>
+        )}
       </div>
-      <p className="text-sm text-gray-600">
-        Final approval activates the loan and deducts from savings.
-      </p>
+
+      {/* What happens on approval */}
+      <div className="rounded-lg border border-primary-100 bg-primary-50 p-4 text-sm space-y-2">
+        <p className="font-semibold text-primary-800">
+          What happens on approval:
+        </p>
+        <div className="flex justify-between text-primary-700">
+          <span>🔒 Self-surety locked (75%)</span>
+          <span className="font-bold">{formatNaira(selfSuretyAmount)}</span>
+        </div>
+        <div className="flex justify-between text-primary-700">
+          <span>🏦 Loan disbursed from cooperative fund</span>
+          <span className="font-bold">{formatNaira(approvedAmount)}</span>
+        </div>
+        <p className="text-xs text-primary-600 mt-1">
+          The self-surety amount is locked from the member's available balance.
+          The loan itself is paid out from the cooperative's funds — not
+          deducted from the member's savings.
+        </p>
+      </div>
+
       <div className="flex gap-3">
         <button onClick={onClose} className="btn-secondary flex-1">
           Cancel
@@ -503,7 +547,6 @@ export default function LoanQueuePage() {
                       Post Repayment
                     </button>
                   )}
-                  {/* View Details – now uses React Router */}
                   <button
                     onClick={() => navigate(`/loans/${loan.id}`)}
                     className="text-xs text-primary-600 hover:underline"
