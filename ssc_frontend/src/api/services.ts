@@ -152,7 +152,6 @@ export const usersApi = {
 // SAVINGS
 
 export const savingsApi = {
-  // Member balance (total, committed, available)
   getBalance: (memberId: number) =>
     api.get<MemberBalance>(`/savings/balance/${memberId}/`),
 
@@ -211,6 +210,30 @@ export const savingsApi = {
       },
       responseType: "blob",
     }),
+
+  // Post special fixed savings for a member (Admin only)
+  postSpecialSavings: (data: {
+    member_id: number;
+    amount: string | number;
+    hijri_month: number;
+    hijri_year: number;
+    details?: string;
+  }) =>
+    api.post<{
+      message: string;
+      entry_id: number;
+      special_savings: string;
+      total_savings: string;
+      available_balance: string;
+    }>("/savings/special-savings/", data),
+
+  // Get special savings balance for a member
+  getSpecialSavingsBalance: (memberId: number) =>
+    api.get<{
+      special_savings: string;
+      total_savings: string;
+      available_balance: string;
+    }>(`/savings/balance/${memberId}/`),
 
   // Post monthly savings entry (Admin only)
   postSavings: (data: {

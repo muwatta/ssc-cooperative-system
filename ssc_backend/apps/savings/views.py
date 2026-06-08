@@ -24,7 +24,7 @@ from .serializers import (
 )
 from .services import (
     post_debit_entry, post_savings_entry, post_termly_dues,
-    apply_savings_change, get_or_create_balance,
+    apply_savings_change, get_or_create_balance, post_special_savings_entry,
 )
 
 
@@ -604,9 +604,7 @@ class BatchMonthlyDeductionView(APIView):
         members = MemberProfile.objects.filter(membership_status=MembershipStatus.ACTIVE)
         results = []
         for member in members:
-            # fetch approved monthly contribution
             contribution = member.approved_monthly_contribution
-            # fetch active loan repayment
             active_loan = LoanApplication.objects.filter(
                 applicant=member, status=LoanStatus.ACTIVE
             ).first()
@@ -627,9 +625,9 @@ class BatchMonthlyDeductionView(APIView):
             from apps.loans.services import post_repayment
             for item in results:
                 if item["contribution"] > 0:
-                    post_savings_entry(...)  # credit savings
+                    post_savings_entry(...)  
                 if item["loan_repayment"] > 0:
-                    post_repayment(...)      # credit repayment to savings
+                    post_repayment(...)      
 
         return Response({"preview": preview, "deductions": results})
     
@@ -859,3 +857,53 @@ class ReconciliationView(APIView):
             "difference": str(difference),
             "is_balanced": total_credit == total_debit,
         })
+
+class PostSpecialSavingsView(APIView):
+
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        member_id  = request.data.get("member_id")
+        amount_raw = request.data.get("amount")
+        hijri_month = request.data.get("hijri_month")
+        hijri_year  = request.data.get("hijri_year")
+        details     = request.data.get("details", "")
+
+        # Validate required fields
+        if not all([member_id, amount_raw, hijri_month, hijri_year]):
+            return Response(
+                {"error": "member_id, amount, hijri_month, and hijri_year are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            member = MemberProfile.objects.get(pk=member_id)
+        except MemberProfile.DoesNotExist:
+            return Response({"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            amount = Decimal(str(amount_raw))
+        except Exception:
+            return Response({"error": "Invalid amount."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from .services import post_special_savings_entry
+        try:
+            entry = post_special_savings_entry(
+                member=member,
+                amount=amount,
+                hijri_month=int(hijri_month),
+                hijri_year=int(hijri_year),
+                posted_by=request.user,
+                details=details,
+            )
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        balance = get_or_create_balance(member)
+        return Response({
+            "message": f"₦{amount} moved to special savings for {member.full_name}.",
+            "entry_id": entry.id,
+            "special_savings": str(balance.special_savings),
+            "total_savings": str(balance.total_savings),
+            "available_balance": str(balance.available_balance),
+        }, status=status.HTTP_201_CREATED)

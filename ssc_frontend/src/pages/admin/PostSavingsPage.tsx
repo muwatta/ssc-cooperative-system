@@ -22,7 +22,6 @@ interface MemberPostState {
   message: string;
 }
 
-// ---------- Member Savings Card (unchanged) ----------
 function MemberSavingsCard({
   member,
   state,

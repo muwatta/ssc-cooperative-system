@@ -4,14 +4,14 @@ from decimal import Decimal
 
 
 class LedgerEntryType(models.TextChoices):
-    ORDINARY_SAVINGS = "ordinary_savings", "Ordinary Savings"
-    TERMLY_DUES      = "termly_dues",      "Termly Dues"
-    PROFIT_SHARE     = "profit_share",     "Profit Share"
-    ADJUSTMENT       = "adjustment",       "Adjustment"
-    LEGACY_IMPORT    = "legacy_import",    "Legacy Import"
-    LOAN_REPAYMENT   = "loan_repayment",   "Loan Repayment"
+    ORDINARY_SAVINGS  = "ordinary_savings",  "Ordinary Savings"
+    TERMLY_DUES       = "termly_dues",       "Termly Dues"
+    PROFIT_SHARE      = "profit_share",      "Profit Share"
+    ADJUSTMENT        = "adjustment",        "Adjustment"
+    LEGACY_IMPORT     = "legacy_import",     "Legacy Import"
+    LOAN_REPAYMENT    = "loan_repayment",    "Loan Repayment"
     LOAN_DISBURSEMENT = "loan_disbursement", "Loan Disbursement"
-
+    SPECIAL_SAVINGS   = "special_savings",   "Special Fixed Savings"
 
 
 class SavingsChangeStatus(models.TextChoices):
@@ -72,7 +72,7 @@ class MemberBalance(models.Model):
     )
     total_savings        = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
     suretyship_committed = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
-    special_savings = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    special_savings      = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
 
     updated_at = models.DateTimeField(auto_now=True)
 
