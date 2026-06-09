@@ -81,10 +81,17 @@ class MemberBalance(models.Model):
 
     @property
     def available_balance(self):
-        return self.total_savings - self.suretyship_committed
+        # special_savings is a reclassification of total_savings into a locked pool,
+        # so it must be excluded from available balance alongside suretyship_committed.
+        return self.total_savings - self.suretyship_committed - self.special_savings
 
     def __str__(self):
-        return f"{self.member.file_number} | Total: {self.total_savings} | Available: {self.available_balance}"
+        return (
+            f"{self.member.file_number} | "
+            f"Total: {self.total_savings} | "
+            f"Special: {self.special_savings} | "
+            f"Available: {self.available_balance}"
+        )
 
 
 class SavingsChangeRequest(models.Model):
@@ -138,7 +145,6 @@ class TermlyDuesCycle(models.Model):
     is_posted   = models.BooleanField(default=False)
     posted_at   = models.DateTimeField(null=True, blank=True)
 
-    # If null → all active members. If set → specific members only.
     target_members = models.ManyToManyField(
         "accounts.MemberProfile",
         blank=True,

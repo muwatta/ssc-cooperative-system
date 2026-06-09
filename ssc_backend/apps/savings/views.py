@@ -893,7 +893,7 @@ class PostSpecialSavingsView(APIView):
                 amount=amount,
                 hijri_month=int(hijri_month),
                 hijri_year=int(hijri_year),
-                posted_by=request.user,
+                posted_by=request.user, 
                 details=details,
             )
         except ValueError as e:

@@ -131,20 +131,12 @@ def post_special_savings_entry(
     posted_by,
     details: str = "",
 ) -> SavingsLedger:
-    """
-    Move `amount` from the member's available balance into special fixed savings.
-
-    - Debits total_savings (reduces available balance)
-    - Increases special_savings by the same amount
-    - Posts a ledger entry for full audit trail
-    - Does NOT change suretyship_committed
-    """
+   
     balance = get_or_create_balance(member)
 
     if not member.is_special_saver:
         raise ValueError(
-            f"{member.full_name} ({member.file_number}) is not designated as a special saver. "
-            "Enable special saver status first."
+            f"{member.full_name} ({member.file_number}) is not designated as a special saver."
         )
 
     if amount <= Decimal("0.00"):
@@ -157,7 +149,6 @@ def post_special_savings_entry(
         )
 
     hijri_disp = hijri_month_display(hijri_month, hijri_year)
-    new_total = balance.total_savings - amount
 
     entry = SavingsLedger.objects.create(
         member=member,
@@ -166,23 +157,23 @@ def post_special_savings_entry(
         hijri_display=hijri_disp,
         entry_type=LedgerEntryType.SPECIAL_SAVINGS,
         details=details or f"Special Fixed Savings deposit — {hijri_disp}",
-        debit=amount,       # deducted from regular pool
+        debit=None,
         credit=None,
-        balance=new_total,
+        balance=balance.total_savings,  # unchanged
         posted_by=posted_by,
         verified_by_name=posted_by.staff_id,
         verified_by_role=posted_by.role,
     )
 
-    balance.total_savings    -= amount
-    balance.special_savings  += amount
-    balance.save(update_fields=["total_savings", "special_savings", "updated_at"])
+    # Only update special_savings — total_savings stays the same
+    balance.special_savings += amount
+    balance.save(update_fields=["special_savings", "updated_at"])
 
     log_action(
         user=posted_by,
         action="POST_SPECIAL_SAVINGS",
         description=(
-            f"Moved ₦{amount} to special fixed savings for "
+            f"Reclassified ₦{amount} to special fixed savings for "
             f"{member.file_number} ({member.full_name})"
         ),
         object_type="SavingsEntry",
@@ -191,7 +182,6 @@ def post_special_savings_entry(
     )
 
     return entry
-
 
 @transaction.atomic
 def post_termly_dues(cycle: TermlyDuesCycle, posted_by) -> dict:
