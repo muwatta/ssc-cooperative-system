@@ -1,4 +1,3 @@
-
 from rest_framework import serializers
 from django.utils import timezone
 from decimal import Decimal
@@ -30,7 +29,8 @@ class MemberBalanceSerializer(serializers.ModelSerializer):
         model  = MemberBalance
         fields = [
             "member", "file_number", "full_name",
-            "total_savings", "suretyship_committed", "available_balance", "updated_at",
+            "total_savings", "suretyship_committed", "special_savings",
+            "available_balance", "updated_at",
         ]
         read_only_fields = fields
 
@@ -97,7 +97,7 @@ class PostSavingsSerializer(serializers.Serializer):
 class SavingsChangeRequestSerializer(serializers.ModelSerializer):
     member_file_number = serializers.CharField(source="member.file_number", read_only=True)
     member_name        = serializers.CharField(source="member.full_name", read_only=True)
-    member_user_id     = serializers.IntegerField(source="member.user.id", read_only=True)   # new
+    member_user_id     = serializers.IntegerField(source="member.user.id", read_only=True)
     effective_hijri_display = serializers.CharField(read_only=True)
 
     class Meta:
