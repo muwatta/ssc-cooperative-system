@@ -69,7 +69,8 @@ export default function DashboardPage() {
     queryFn: () => api.get("/dashboard/summary/").then((r) => r.data),
     enabled: isLeadership,
     staleTime: 30000,
-    refetchInterval: 60000,
+    refetchInterval: false, 
+    refetchOnWindowFocus: true,
   });
 
   // Optimised member stats – single API call instead of five
@@ -88,7 +89,7 @@ export default function DashboardPage() {
     enabled: isLeadership,
     staleTime: 30000,
     refetchOnWindowFocus: true,
-    refetchInterval: 60000,
+    refetchInterval: false,
   });
 
   const balanceQuery = useQuery<SavingsSummary>({
@@ -100,7 +101,7 @@ export default function DashboardPage() {
     enabled: isAuthenticated,
     staleTime: 30000,
     refetchOnWindowFocus: true,
-    refetchInterval: 60000,
+    refetchInterval: false,
   });
 
   const meQuery = useQuery<MemberProfile | null>({
@@ -112,7 +113,7 @@ export default function DashboardPage() {
     enabled: isAuthenticated,
     staleTime: 30000,
     refetchOnWindowFocus: true,
-    refetchInterval: 60000,
+    refetchInterval: false,
   });
 
   const stats = memberStatsQuery.data as DashboardStats | undefined;

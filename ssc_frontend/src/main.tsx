@@ -6,6 +6,8 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 import { AuthProvider } from "@/context/AuthContext";
 import AppRouter from "@/routes";
 import "@/index.css";
+import { startKeepAlive } from "./utils/keepAlive";
+startKeepAlive();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

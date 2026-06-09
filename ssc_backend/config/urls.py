@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.urls import path, include
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from rest_framework_simplejwt.views import TokenRefreshView
 from apps.accounts.views import SSCTokenObtainPairView, LogoutView
 from apps.accounts.views import ToggleSpecialSaverView
@@ -61,6 +61,9 @@ def loan_book(request):
 def surety_exposure(request):
     return _surety_csv()
 
+def health_check(request):
+    return JsonResponse({"status": "ok"})
+
 urlpatterns = [
     path("ssc-coop-admin-secret/", admin.site.urls),
     path("api/v1/date/", CurrentDateView.as_view(), name="current-date"),
@@ -74,6 +77,8 @@ urlpatterns = [
     path("api/v1/investments/", include("apps.investments.urls")),
     path("api/v1/notifications/", include("apps.notifications.urls")),
     path("api/v1/audit/", include("apps.audit.urls")),
+    path("api/v1/health/", health_check, name="health-check"),
+
 
     path("api/v1/reports/member-statement/<int:member_id>/", member_statement, name="member-statement"),
     path("api/v1/reports/loan-book/", loan_book, name="loan-book"),
