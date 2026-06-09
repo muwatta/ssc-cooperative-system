@@ -129,7 +129,7 @@ class MemberListCreateView(generics.ListCreateAPIView):
     ordering = ["file_number"]
 
     def get_queryset(self):
-        return MemberProfile.objects.select_related("user").prefetch_related("memberbalance").all()
+        return MemberProfile.objects.select_related("user").all()        
 
     def get_serializer_class(self):
         if self.request.method == "POST":
