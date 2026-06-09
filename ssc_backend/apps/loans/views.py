@@ -90,7 +90,6 @@ class LoanSettingsView(APIView):
 
 
 class LoanApplicationListView(generics.ListAPIView):
-    """GET /api/v1/loans/ — list loans (role-filtered)"""
     serializer_class = LoanApplicationSerializer
     filter_backends  = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["status"]
@@ -100,18 +99,27 @@ class LoanApplicationListView(generics.ListAPIView):
         return [IsAdminOrCommitteeOrHOS()]
 
     def get_queryset(self):
-        return LoanApplication.objects.select_related("applicant").all()
+        return LoanApplication.objects.select_related(
+            'applicant'
+        ).prefetch_related(
+            'suretyrecord_set',
+            'repayments'
+        ).all()
 
 
 class MyLoanListView(generics.ListAPIView):
-    """GET /api/v1/loans/mine/ — own loans"""
     serializer_class = LoanApplicationSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         try:
             profile = self.request.user.member_profile
-            return LoanApplication.objects.filter(applicant=profile).order_by("created_at")
+            return LoanApplication.objects.filter(applicant=profile).select_related(
+                'applicant'
+            ).prefetch_related(
+                'suretyrecord_set',  
+                'repayments'       
+            ).order_by("created_at")
         except Exception:
             return LoanApplication.objects.none()
 
@@ -409,8 +417,13 @@ class LoanRepaymentExportView(APIView):
 class LoanDetailView(generics.RetrieveAPIView):
     serializer_class   = LoanApplicationSerializer
     permission_classes = [IsAdminOrCommitteeOrHOS]
-    queryset           = LoanApplication.objects.select_related("applicant").all()
-
+    queryset           = LoanApplication.objects.select_related(
+        'applicant'
+    ).prefetch_related(
+        'suretyrecord_set',
+        'repayments'
+    ).all()
+    
 
 class HandleDefaultView(APIView):
     permission_classes = [IsAdmin]
