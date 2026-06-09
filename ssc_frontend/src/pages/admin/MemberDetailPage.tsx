@@ -15,6 +15,7 @@ function formatNaira(value: string | number) {
     : `₦${n.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+// Responsive InfoRow: on mobile label above value, on desktop side by side
 function InfoRow({
   label,
   value,
@@ -23,7 +24,7 @@ function InfoRow({
   value?: string | number | null;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2 border-b border-gray-50 py-2 last:border-0">
+    <div className="flex flex-col py-2 border-b border-gray-50 last:border-0 sm:grid sm:grid-cols-2 sm:gap-2">
       <span className="text-xs uppercase tracking-wide text-gray-400">
         {label}
       </span>
@@ -51,7 +52,7 @@ function Section({
   );
 }
 
-// Approve modal
+// Approve Modal (responsive)
 function ApproveModal({
   member,
   onClose,
@@ -172,7 +173,7 @@ function ApproveModal({
   );
 }
 
-// Change Role modal
+// Change Role Modal (responsive)
 function ChangeRoleModal({
   member,
   onClose,
@@ -232,7 +233,11 @@ function ChangeRoleModal({
               (role) => (
                 <label
                   key={role}
-                  className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${selectedRole === role ? "border-primary-400 bg-primary-50" : "border-gray-200 hover:bg-gray-50"}`}
+                  className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
+                    selectedRole === role
+                      ? "border-primary-400 bg-primary-50"
+                      : "border-gray-200 hover:bg-gray-50"
+                  }`}
                 >
                   <input
                     type="radio"
@@ -276,7 +281,7 @@ function ChangeRoleModal({
   );
 }
 
-// Main page
+// Main Page
 export default function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
@@ -400,13 +405,14 @@ export default function MemberDetailPage() {
   };
 
   return (
-    <div className="max-w-4xl px-4 sm:px-6">
+    <div className="w-full px-4 sm:px-6 lg:max-w-4xl lg:mx-auto">
       <PageHeader
         title={member.full_name}
         subtitle={`${member.file_number} · ${member.staff_id}`}
         back={{ to: "/members", label: "Back to Members" }}
       />
 
+      {/* Member header card */}
       <div className="card mb-6">
         <div className="card-body">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-4">
@@ -444,8 +450,7 @@ export default function MemberDetailPage() {
               </p>
             </div>
             {isAdmin && (
-              <div className="flex flex-wrap gap-2">
-                {/* Approve – only for pending members */}
+              <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
                 {member.membership_status === "pending" && (
                   <button
                     onClick={() => setShowApprove(true)}
@@ -454,25 +459,21 @@ export default function MemberDetailPage() {
                     ✓ Approve
                   </button>
                 )}
-                {/* Change Role – always available */}
                 <button
                   onClick={() => setShowChangeRole(true)}
                   className="btn-secondary text-sm"
                 >
                   🔑 Change Role
                 </button>
-                {/* Export PDF – always available */}
                 <button
                   onClick={() => {
                     const url = `/api/v1/savings/${member.id}/ledger/export/?format=pdf`;
                     window.open(url, "_blank");
                   }}
                   className="btn-secondary text-sm"
-                  title="Export savings ledger as PDF"
                 >
                   📄 Export PDF
                 </button>
-                {/* Deactivate – only for active members */}
                 {member.membership_status === "active" && (
                   <button
                     onClick={() => setShowDeactivate(true)}
@@ -481,7 +482,6 @@ export default function MemberDetailPage() {
                     Deactivate
                   </button>
                 )}
-                {/* Full Withdrawal – only for exited or inactive members with a balance */}
                 {(member.membership_status === "exited" ||
                   member.membership_status === "inactive") &&
                   balance &&
@@ -508,8 +508,10 @@ export default function MemberDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Balance stats - 2 columns on mobile, 4 on desktop */}
           {balance && (
-            <div className="mt-4 grid grid-cols-4 gap-4 border-t border-gray-100 pt-4">
+            <div className="mt-4 grid grid-cols-2 gap-4 border-t border-gray-100 pt-4 sm:grid-cols-4">
               <div>
                 <p className="text-xs text-gray-400">Total Savings</p>
                 <p className="font-bold text-gray-900">
@@ -560,20 +562,27 @@ export default function MemberDetailPage() {
         </div>
       </div>
 
+      {/* Tabs */}
       <div className="mb-6 flex w-fit gap-1 rounded-lg bg-gray-100 p-1">
         {(["profile", "savings"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${activeTab === tab ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+            className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${
+              activeTab === tab
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
           >
             {tab === "profile" ? "👤 Profile" : "₦ Savings"}
           </button>
         ))}
       </div>
 
+      {/* Profile Tab */}
       {activeTab === "profile" && (
         <div className="grid grid-cols-1 gap-0 md:grid-cols-2 md:gap-6">
+          {/* Left column */}
           <div>
             <Section title="Personal">
               <InfoRow label="Full Name" value={member.full_name} />
@@ -587,14 +596,7 @@ export default function MemberDetailPage() {
             <Section title="Contact">
               <InfoRow label="Primary Phone" value={member.phone_primary} />
               <InfoRow label="Secondary Phone" value={member.phone_secondary} />
-              <div className="grid grid-cols-2 gap-2 border-b border-gray-50 py-2 last:border-0">
-                <span className="text-xs uppercase tracking-wide text-gray-400">
-                  Email
-                </span>
-                <span className="text-sm font-medium text-gray-800 break-all">
-                  {member.email_address || "—"}
-                </span>
-              </div>
+              <InfoRow label="Email" value={member.email_address} />
               <InfoRow label="Residential" value={member.residential_address} />
               <InfoRow
                 label="Permanent Home"
@@ -602,6 +604,8 @@ export default function MemberDetailPage() {
               />
             </Section>
           </div>
+
+          {/* Right column */}
           <div>
             <Section title="School Details">
               <InfoRow label="Branch" value={member.school_branch} />
@@ -615,7 +619,7 @@ export default function MemberDetailPage() {
               />
               {isAdmin ? (
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                       <p className="text-sm text-slate-500">
                         Monthly Contribution
@@ -629,7 +633,7 @@ export default function MemberDetailPage() {
                     {!isEditingContribution && (
                       <button
                         type="button"
-                        className="btn-secondary btn-sm"
+                        className="btn-secondary btn-sm self-start sm:self-auto"
                         onClick={() => setIsEditingContribution(true)}
                       >
                         Edit
@@ -642,9 +646,10 @@ export default function MemberDetailPage() {
                         type="number"
                         min="0"
                         step="0.01"
-                        aria-label="Monthly contribution amount"
                         value={contributionDraft}
                         onChange={(e) => setContributionDraft(e.target.value)}
+                        placeholder="Monthly contribution amount"
+                        aria-label="Monthly contribution amount"
                         className="input w-full"
                       />
                       {contributionError && (
@@ -733,13 +738,14 @@ export default function MemberDetailPage() {
         </div>
       )}
 
+      {/* Savings Tab with scrollable table */}
       {activeTab === "savings" && (
         <div className="card">
           <div className="card-header">
             <h2 className="font-semibold text-gray-900">Savings Ledger</h2>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full table-auto border-collapse text-sm">
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <table className="min-w-[768px] sm:min-w-full table-auto border-collapse text-sm">
               <thead>
                 <tr className="bg-gray-50 text-sm text-gray-500">
                   <th className="px-2 py-2 text-left">Islamic Date</th>
@@ -762,28 +768,28 @@ export default function MemberDetailPage() {
                 ) : (
                   ledger.results.map((entry) => (
                     <tr key={entry.id} className="border-t">
-                      <td className="px-2 py-2 font-medium">
+                      <td className="px-2 py-2 font-medium whitespace-nowrap">
                         {entry.hijri_display}
                       </td>
-                      <td className="px-2 py-2 text-xs text-gray-400">
+                      <td className="px-2 py-2 text-xs text-gray-400 whitespace-nowrap">
                         {entry.gregorian_date}
                       </td>
-                      <td className="px-2 py-2 text-xs capitalize">
+                      <td className="px-2 py-2 text-xs capitalize whitespace-nowrap">
                         {entry.entry_type.replace(/_/g, " ")}
                       </td>
                       <td className="max-w-xs truncate px-2 py-2 text-sm text-gray-600">
                         {entry.details}
                       </td>
-                      <td className="px-2 py-2 font-medium text-success-700">
+                      <td className="px-2 py-2 font-medium text-success-700 whitespace-nowrap">
                         {entry.credit ? formatNaira(entry.credit) : "—"}
                       </td>
-                      <td className="px-2 py-2 font-medium text-danger-700">
+                      <td className="px-2 py-2 font-medium text-danger-700 whitespace-nowrap">
                         {entry.debit ? formatNaira(entry.debit) : "—"}
                       </td>
-                      <td className="px-2 py-2 font-bold">
+                      <td className="px-2 py-2 font-bold whitespace-nowrap">
                         {formatNaira(entry.balance)}
                       </td>
-                      <td className="px-2 py-2 text-xs text-gray-400">
+                      <td className="px-2 py-2 text-xs text-gray-400 whitespace-nowrap">
                         {entry.verified_by_name}
                       </td>
                     </tr>
@@ -795,6 +801,7 @@ export default function MemberDetailPage() {
         </div>
       )}
 
+      {/* Modals */}
       {showApprove && (
         <ApproveModal member={member} onClose={() => setShowApprove(false)} />
       )}
