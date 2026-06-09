@@ -1,6 +1,7 @@
 from decimal import Decimal
 import csv
 import io
+import profile
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import generics, status, filters
@@ -105,30 +106,16 @@ class LoanApplicationListView(generics.ListAPIView):
         return [IsAdminOrCommitteeOrHOS()]
 
     def get_queryset(self):
-        return LoanApplication.objects.select_related(
-            'applicant'
-        ).prefetch_related(
-            'suretyrecord_set',
-            'repayments'
-        ).all()
+        return LoanApplication.objects.select_related('applicant').prefetch_related('suretyrecord_set', 'repayments').all()
 
 
 class MyLoanListView(generics.ListAPIView):
     serializer_class = LoanApplicationSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        try:
-            profile = self.request.user.member_profile
-            return LoanApplication.objects.filter(applicant=profile).select_related(
-                'applicant'
-            ).prefetch_related(
-                'suretyrecord_set',
-                'repayments'
-            ).order_by("created_at")
-        except Exception:
-            return LoanApplication.objects.none()
-
+def get_queryset(self):
+    profile = self.request.user.member_profile
+    return LoanApplication.objects.filter(applicant=profile).order_by("created_at")
 
 class SubmitLoanView(APIView):
     permission_classes = [IsAuthenticated]
@@ -422,12 +409,7 @@ class LoanRepaymentExportView(APIView):
 class LoanDetailView(generics.RetrieveAPIView):
     serializer_class   = LoanApplicationSerializer
     permission_classes = [IsAdminOrCommitteeOrHOS]
-    queryset           = LoanApplication.objects.select_related(
-        'applicant'
-    ).prefetch_related(
-        'suretyrecord_set',
-        'repayments'
-    ).all()
+    queryset = LoanApplication.objects.select_related('applicant').all()
 
 
 class HandleDefaultView(APIView):
