@@ -50,7 +50,7 @@ export default function MySavingsPage() {
       const res = await membersApi.me();
       return res.data;
     },
-    staleTime: 1000 * 60 * 10, // rarely changes
+    staleTime: 1000 * 60 * 10,
     retry: 1,
   });
 
@@ -67,7 +67,7 @@ export default function MySavingsPage() {
     staleTime: 1000 * 60 * 2,
   });
 
-  // Ledger (React Query, 1 min cache, placeholder data)
+  // Ledger (React Query, 1 min cache)
   const ledgerParams: Record<string, string | number> = { page };
   if (appliedFilters.hijri_month)
     ledgerParams.hijri_month = Number(appliedFilters.hijri_month);
@@ -77,7 +77,7 @@ export default function MySavingsPage() {
     ledgerParams.date_from = appliedFilters.date_from;
   if (appliedFilters.date_to) ledgerParams.date_to = appliedFilters.date_to;
 
-  const { data: ledgerResponse } = useQuery({
+  const { data: ledgerResponse, isFetching: ledgerFetching } = useQuery({
     queryKey: ["my-ledger", profile?.id, ledgerParams],
     enabled: !!profile?.id,
     queryFn: async () => {
@@ -85,12 +85,12 @@ export default function MySavingsPage() {
       return res.data;
     },
     staleTime: 1000 * 60 * 1,
-    placeholderData: (prev) => prev, // keep previous data while fetching next page
+    placeholderData: (prev) => prev,
   });
 
   const ledger = ledgerResponse?.results ?? [];
   const totalLedgerCount = ledgerResponse?.count ?? 0;
-  const pageSize = ledger.length || 1;
+  const pageSize = 50; // default page size from API (should match backend)
   const pageCount = Math.max(1, Math.ceil(totalLedgerCount / pageSize));
 
   // Sort ledger chronologically (oldest first)
@@ -109,7 +109,7 @@ export default function MySavingsPage() {
     isLoading: summaryLoading,
     error: summaryLoadError,
   } = useQuery({
-    queryKey: ["my-savings", "summary"],
+    queryKey: ["my-savings-summary"],
     queryFn: async () => {
       const response = await savingsApi.summary();
       return response.data;
@@ -133,6 +133,9 @@ export default function MySavingsPage() {
       loanEligibility: profile?.is_loan_eligible ? "Yes" : "No",
       suretyCommitted: balance
         ? formatCurrency(balance.suretyship_committed)
+        : "₦0.00",
+      specialSavings: balance?.special_savings
+        ? formatCurrency(balance.special_savings)
         : "₦0.00",
     };
   }, [balance, profile]);
@@ -214,7 +217,6 @@ export default function MySavingsPage() {
     }
   };
 
-  // Render
   if (profileLoading) {
     return (
       <AnimatedCard className="p-6">
@@ -226,7 +228,7 @@ export default function MySavingsPage() {
   if (profileError) {
     return (
       <AnimatedCard className="p-6">
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
+        <div className="bg-danger-50 border border-danger-200 text-danger-700 rounded-lg p-4">
           Unable to load your profile. Please try again.
         </div>
       </AnimatedCard>
@@ -234,19 +236,18 @@ export default function MySavingsPage() {
   }
 
   return (
-    <AnimatedCard className="p-6">
-      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">My Savings</h1>
-          <p className="text-sm text-gray-500">
-            View your savings balance, contributions and ledger history.
-          </p>
-        </div>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div>
+        <h1 className="page-title">My Savings</h1>
+        <p className="page-subtitle">
+          View your savings balance, contributions and ledger history.
+        </p>
       </div>
 
       {profileMissing && (
-        <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-yellow-900">
-          <p className="font-semibold">No member savings profile found.</p>
+        <div className="card-panel-light border-warning-500 bg-warning-50 text-warning-700 p-4 rounded-lg">
+          <p className="font-semibold">⚠️ No member savings profile found.</p>
           <p className="text-sm">
             Please create your profile on the My Profile page or contact your
             administrator.
@@ -254,324 +255,317 @@ export default function MySavingsPage() {
         </div>
       )}
 
-      {/* Personal summary cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 mb-6">
-        <AnimatedCard className="bg-gradient-to-br from-primary-50 to-white p-5">
+      {/* Personal summary cards – responsive grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="card-panel bg-gradient-to-br from-primary-50 to-white">
           <p className="text-sm text-gray-500">Total Savings</p>
-          <p className="text-3xl font-semibold mt-2">
+          <p className="text-2xl font-semibold mt-1">
             {summary.savingsBalance}
           </p>
-        </AnimatedCard>
-        <AnimatedCard className="bg-gradient-to-br from-emerald-50 via-emerald-100 to-white p-5">
+        </div>
+        <div className="card-panel bg-gradient-to-br from-emerald-50 to-white">
           <p className="text-sm text-gray-500">Available Balance</p>
-          <p className="text-3xl font-semibold mt-2">
+          <p className="text-2xl font-semibold mt-1">
             {summary.availableBalance}
           </p>
-        </AnimatedCard>
-        <AnimatedCard className="bg-gradient-to-br from-sky-50 via-sky-100 to-white p-5">
+        </div>
+        <div className="card-panel bg-gradient-to-br from-sky-50 to-white">
           <p className="text-sm text-gray-500">Approved Monthly Contribution</p>
-          <p className="text-3xl font-semibold mt-2">{summary.contribution}</p>
-        </AnimatedCard>
-        <AnimatedCard className="bg-gradient-to-br from-amber-50 via-amber-100 to-white p-5">
+          <p className="text-2xl font-semibold mt-1">{summary.contribution}</p>
+        </div>
+        <div className="card-panel bg-gradient-to-br from-amber-50 to-white">
           <p className="text-sm text-gray-500">Loan Eligible</p>
-          <p className="text-3xl font-semibold mt-2">
+          <p className="text-2xl font-semibold mt-1">
             {summary.loanEligibility}
           </p>
-        </AnimatedCard>
-        <AnimatedCard className="p-5">
-          <div className="flex flex-col gap-3">
-            <p className="text-sm text-gray-500">Request Change</p>
-            <button
-              onClick={() => setShowRequestModal(true)}
-              className="mt-2 btn-secondary w-full text-sm"
-            >
-              📝 Increase / Decrease
-            </button>
-          </div>
-        </AnimatedCard>
+        </div>
+        <div className="card-panel flex flex-col items-start">
+          <p className="text-sm text-gray-500">Request Change</p>
+          <button
+            onClick={() => setShowRequestModal(true)}
+            className="btn-secondary btn-sm mt-2 w-full"
+          >
+            📝 Increase / Decrease
+          </button>
+        </div>
       </div>
 
-      {/* Suretyship Commitment */}
-      <div className="mb-6">
-        <div className="bg-gradient-to-br from-purple-50 to-white p-5 rounded-lg shadow">
+      {/* Suretyship Commitment and Special Savings (if any) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="card-panel bg-gradient-to-br from-purple-50 to-white">
           <p className="text-sm text-gray-500">Suretyship Commitment</p>
-          <p className="text-3xl font-semibold mt-2">
+          <p className="text-2xl font-semibold mt-1">
             {summary.suretyCommitted}
           </p>
           <p className="text-xs text-gray-400 mt-1">
             Total amount you have guaranteed for others
           </p>
         </div>
+        {Number(balance?.special_savings || 0) > 0 && (
+          <div className="card-panel bg-gradient-to-br from-indigo-50 to-white">
+            <p className="text-sm text-gray-500">🔒 Special Fixed Savings</p>
+            <p className="text-2xl font-semibold mt-1 text-indigo-700">
+              {summary.specialSavings}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Locked savings – not available for loans
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Cooperative Balances (only for admin/committee) */}
+      {/* Cooperative Balances (admin/committee only) */}
       {canSeeCoopBalances && (
-        <div className="card-panel mb-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="card-panel">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-lg font-semibold">Cooperative Balances</h2>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-gray-500">
                 General totals for all members.
               </p>
             </div>
             {summaryLoadError && (
-              <div className="text-sm text-red-600">
+              <p className="text-sm text-danger-700">
                 Unable to load cooperative summary.
-              </div>
+              </p>
             )}
           </div>
-          <div className="mt-6 grid gap-4 lg:grid-cols-4">
-            <div className="card-panel">
-              <p className="text-sm text-gray-500">Total Savings</p>
-              <p className="text-3xl font-semibold mt-2">
-                {summaryLoading
-                  ? "Loading..."
-                  : cooperativeSummary
+          {summaryLoading ? (
+            <div className="mt-4 text-gray-500">Loading...</div>
+          ) : (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="card-panel-light">
+                <p className="text-xs text-gray-500">Total Savings</p>
+                <p className="text-xl font-semibold">
+                  {cooperativeSummary
                     ? formatCurrency(
                         cooperativeSummary.cooperative.total_savings,
                       )
                     : "₦0.00"}
-              </p>
-            </div>
-            <div className="card-panel">
-              <p className="text-sm text-gray-500">Total Commitments</p>
-              <p className="text-3xl font-semibold mt-2">
-                {summaryLoading
-                  ? "Loading..."
-                  : cooperativeSummary
+                </p>
+              </div>
+              <div className="card-panel-light">
+                <p className="text-xs text-gray-500">Total Commitments</p>
+                <p className="text-xl font-semibold">
+                  {cooperativeSummary
                     ? formatCurrency(
                         cooperativeSummary.cooperative.total_committed,
                       )
                     : "₦0.00"}
-              </p>
-            </div>
-            <div className="card-panel">
-              <p className="text-sm text-gray-500">Total Available</p>
-              <p className="text-3xl font-semibold mt-2">
-                {summaryLoading
-                  ? "Loading..."
-                  : cooperativeSummary
+                </p>
+              </div>
+              <div className="card-panel-light">
+                <p className="text-xs text-gray-500">Total Available</p>
+                <p className="text-xl font-semibold">
+                  {cooperativeSummary
                     ? formatCurrency(
                         cooperativeSummary.cooperative.total_available,
                       )
                     : "₦0.00"}
-              </p>
+                </p>
+              </div>
+              <div className="card-panel-light">
+                <p className="text-xs text-gray-500">Members Count</p>
+                <p className="text-xl font-semibold">
+                  {cooperativeSummary?.cooperative.member_count ?? 0}
+                </p>
+              </div>
             </div>
-            <div className="card-panel">
-              <p className="text-sm text-gray-500">Members Count</p>
-              <p className="text-3xl font-semibold mt-2">
-                {summaryLoading
-                  ? "..."
-                  : (cooperativeSummary?.cooperative.member_count ?? 0)}
-              </p>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
       {/* Member details */}
       {!profileMissing && profile && (
         <>
-          <div className="grid gap-4 lg:grid-cols-3 mb-8">
-            <div className="card-panel">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="card-panel-light">
               <p className="text-sm text-gray-500">Membership Status</p>
-              <p className="text-xl font-semibold mt-2 capitalize">
+              <p className="text-lg font-semibold capitalize">
                 {summary.status}
               </p>
             </div>
-            <div className="card-panel">
+            <div className="card-panel-light">
               <p className="text-sm text-gray-500">
                 Consecutive Savings Months
               </p>
-              <p className="text-xl font-semibold mt-2">{summary.months}</p>
+              <p className="text-lg font-semibold">{summary.months}</p>
             </div>
-            <div className="card-panel">
+            <div className="card-panel-light">
               <p className="text-sm text-gray-500">SSC File Number</p>
-              <p className="text-xl font-semibold mt-2">
-                {profile.file_number}
+              <p className="text-lg font-semibold">{profile.file_number}</p>
+            </div>
+          </div>
+
+          {/* Ledger section */}
+          <div>
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold">Savings Ledger</h2>
+              <p className="text-sm text-gray-500">
+                Filter your ledger by Hijri month/year or by date range, then
+                export.
               </p>
             </div>
-          </div>
 
-          {/* Ledger */}
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold">Savings Ledger</h2>
-            <p className="text-sm text-gray-500">
-              Filter your ledger by Hijri month/year or by date range, then
-              export.
-            </p>
-          </div>
+            {/* Filter bar */}
+            <div className="card-panel-light mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="label">Hijri Month</label>
+                  <select
+                    value={filters.hijri_month}
+                    onChange={(e) =>
+                      setFilters((p) => ({ ...p, hijri_month: e.target.value }))
+                    }
+                    className="input"
+                    aria-label="Hijri month filter"
+                  >
+                    <option value="">All months</option>
+                    {HIJRI_MONTHS.map((m) => (
+                      <option key={m.value} value={m.value}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Hijri Year</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={filters.hijri_year}
+                    onChange={(e) =>
+                      setFilters((p) => ({ ...p, hijri_year: e.target.value }))
+                    }
+                    className="input"
+                    placeholder="YYYY"
+                  />
+                </div>
+                <div>
+                  <label className="label">From</label>
+                  <input
+                    type="date"
+                    value={filters.date_from}
+                    onChange={(e) =>
+                      setFilters((p) => ({ ...p, date_from: e.target.value }))
+                    }
+                    className="input"
+                    aria-label="Start date filter"
+                  />
+                </div>
+                <div>
+                  <label className="label">To</label>
+                  <input
+                    type="date"
+                    value={filters.date_to}
+                    onChange={(e) =>
+                      setFilters((p) => ({ ...p, date_to: e.target.value }))
+                    }
+                    className="input"
+                    aria-label="End date filter"
+                  />
+                </div>
+              </div>
 
-          <div className="card-panel-light mb-6">
-            <div className="grid gap-4 lg:grid-cols-4">
-              <div>
-                <label className="label">Hijri Month</label>
-                <select
-                  id="filter-hijri-month"
-                  aria-label="Hijri Month"
-                  value={filters.hijri_month}
-                  onChange={(e) =>
-                    setFilters((p) => ({ ...p, hijri_month: e.target.value }))
-                  }
-                  className="input"
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button className="btn-primary" onClick={handleApplyFilters}>
+                  Apply Filters
+                </button>
+                <button className="btn-secondary" onClick={handleClearFilters}>
+                  Clear Filters
+                </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => window.print()}
                 >
-                  <option value="">All months</option>
-                  {HIJRI_MONTHS.map((m) => (
-                    <option key={m.value} value={m.value}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="label">Hijri Year</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={filters.hijri_year}
-                  onChange={(e) =>
-                    setFilters((p) => ({ ...p, hijri_year: e.target.value }))
-                  }
-                  className="input"
-                  placeholder="YYYY"
-                />
-              </div>
-              <div>
-                <label className="label">From</label>
-                <input
-                  id="filter-date-from"
-                  aria-label="From date"
-                  type="date"
-                  value={filters.date_from}
-                  onChange={(e) =>
-                    setFilters((p) => ({ ...p, date_from: e.target.value }))
-                  }
-                  className="input"
-                />
-              </div>
-              <div>
-                <label className="label">To</label>
-                <input
-                  id="filter-date-to"
-                  aria-label="To date"
-                  type="date"
-                  value={filters.date_to}
-                  onChange={(e) =>
-                    setFilters((p) => ({ ...p, date_to: e.target.value }))
-                  }
-                  className="input"
-                />
+                  Print
+                </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => handleDownload("csv")}
+                  disabled={downloading}
+                >
+                  {downloading && downloadFormat === "csv"
+                    ? "Preparing..."
+                    : "Download CSV / Excel"}
+                </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => handleDownload("pdf")}
+                  disabled={downloading}
+                >
+                  {downloading && downloadFormat === "pdf"
+                    ? "Preparing..."
+                    : "Download PDF"}
+                </button>
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button
-                className="btn-primary rounded-md px-4 py-2"
-                onClick={handleApplyFilters}
-              >
-                Apply Filters
-              </button>
-              <button
-                className="btn-secondary rounded-md px-4 py-2"
-                onClick={handleClearFilters}
-              >
-                Clear Filters
-              </button>
-              <button
-                className="btn-secondary rounded-md px-4 py-2"
-                onClick={() => window.print()}
-              >
-                Print
-              </button>
-              <button
-                className="btn-outline rounded-md px-4 py-2"
-                onClick={() => handleDownload("csv")}
-                disabled={downloading}
-              >
-                {downloading && downloadFormat === "csv"
-                  ? "Preparing..."
-                  : "Download CSV / Excel"}
-              </button>
-              <button
-                className="btn-secondary rounded-md px-4 py-2"
-                onClick={() => handleDownload("pdf")}
-                disabled={downloading}
-              >
-                {downloading && downloadFormat === "pdf"
-                  ? "Preparing..."
-                  : "Download PDF"}
-              </button>
-            </div>
-          </div>
-
-          {sortedLedger.length === 0 ? (
-            <div className="text-gray-600">No ledger entries found yet.</div>
-          ) : (
-            <div className="table-container">
-              <table className="table border-collapse">
-                <thead>
-                  <tr className="bg-gray-50 text-sm text-gray-500">
-                    <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3">Hijri</th>
-                    <th className="px-4 py-3">Type</th>
-                    <th className="px-4 py-3">Details</th>
-                    <th className="px-4 py-3">Debit</th>
-                    <th className="px-4 py-3">Credit</th>
-                    <th className="px-4 py-3">Balance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedLedger.map((entry) => (
-                    <tr key={entry.id} className="border-t hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {entry.gregorian_date}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {entry.hijri_display}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700 capitalize">
-                        {entry.entry_type.replace("_", " ")}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {entry.details || "—"}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {entry.debit ? formatCurrency(entry.debit) : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {entry.credit ? formatCurrency(entry.credit) : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {formatCurrency(entry.balance)}
-                      </td>
+            {/* Table */}
+            {ledgerFetching && !ledger.length ? (
+              <div className="text-gray-500">Loading ledger entries…</div>
+            ) : sortedLedger.length === 0 ? (
+              <div className="text-gray-500">No ledger entries found.</div>
+            ) : (
+              <div className="table-container">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Hijri</th>
+                      <th>Type</th>
+                      <th>Details</th>
+                      <th>Debit</th>
+                      <th>Credit</th>
+                      <th>Balance</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody>
+                    {sortedLedger.map((entry) => (
+                      <tr key={entry.id}>
+                        <td>{entry.gregorian_date}</td>
+                        <td>{entry.hijri_display}</td>
+                        <td className="capitalize">
+                          {entry.entry_type.replace(/_/g, " ")}
+                        </td>
+                        <td>{entry.details || "—"}</td>
+                        <td>
+                          {entry.debit ? formatCurrency(entry.debit) : "—"}
+                        </td>
+                        <td>
+                          {entry.credit ? formatCurrency(entry.credit) : "—"}
+                        </td>
+                        <td>{formatCurrency(entry.balance)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
-          {pageCount > 1 && (
-            <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="btn-ghost rounded-md border px-3 py-2 text-sm"
-              >
-                Previous
-              </button>
-              <span className="text-sm text-gray-600">
-                Page {page} of {pageCount}
-              </span>
-              <button
-                disabled={page >= pageCount}
-                onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-                className="btn-ghost rounded-md border px-3 py-2 text-sm"
-              >
-                Next
-              </button>
-            </div>
-          )}
+            {/* Pagination */}
+            {pageCount > 1 && (
+              <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+                <button
+                  className="btn-ghost btn-sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  ← Previous
+                </button>
+                <span className="text-sm text-gray-600">
+                  Page {page} of {pageCount}
+                </span>
+                <button
+                  className="btn-ghost btn-sm"
+                  disabled={page >= pageCount}
+                  onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                >
+                  Next →
+                </button>
+              </div>
+            )}
+          </div>
         </>
       )}
 
@@ -579,8 +573,10 @@ export default function MySavingsPage() {
       {showRequestModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="card-panel w-full max-w-md">
-            <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-              <h2 className="font-semibold">Request Savings Change</h2>
+            <div className="flex items-center justify-between border-b border-gray-200 pb-4 mb-4">
+              <h2 className="font-semibold text-gray-900">
+                Request Savings Change
+              </h2>
               <button
                 onClick={() => setShowRequestModal(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -588,9 +584,9 @@ export default function MySavingsPage() {
                 ✕
               </button>
             </div>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4">
               {requestError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="bg-danger-50 border border-danger-200 text-danger-700 px-4 py-3 rounded-lg text-sm">
                   {requestError}
                 </div>
               )}
@@ -642,6 +638,6 @@ export default function MySavingsPage() {
           </div>
         </div>
       )}
-    </AnimatedCard>
+    </div>
   );
 }
