@@ -119,10 +119,6 @@ class CreateUserView(generics.CreateAPIView):
         serializer.save()
 
 
-
-# MEMBER MANAGEMENT — Admin only
-
-
 class MemberListCreateView(generics.ListCreateAPIView):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["membership_status", "school_branch"]
@@ -131,7 +127,7 @@ class MemberListCreateView(generics.ListCreateAPIView):
     ordering = ["file_number"]
 
     def get_queryset(self):
-        return MemberProfile.objects.select_related("user").all()
+        return MemberProfile.objects.select_related("user").prefetch_related("memberbalance").all()
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -157,9 +153,10 @@ class MemberDetailView(generics.RetrieveUpdateAPIView):
     def get_queryset(self):
         user = self.request.user
         if user.role in ("admin", "committee", "head_of_school"):
-            return MemberProfile.objects.select_related("user").all()
-        # Staff: only their own profile
-        return MemberProfile.objects.filter(user=user)
+            return MemberProfile.objects.select_related("user").prefetch_related(
+                'memberbalance'
+            ).all()
+        return MemberProfile.objects.filter(user=user).select_related('user').prefetch_related('memberbalance')
 
     def get_permissions(self):
         if self.request.method in ("PUT", "PATCH"):
@@ -174,10 +171,6 @@ class MemberSummaryListView(generics.ListAPIView):
     search_fields = ["file_number", "full_name"]
 
     def get_queryset(self):
-        # Do not select_related('user') here — only a lightweight member
-        # summary is required for dropdowns. Using select_related together
-        # with `only()` can cause Django to attempt to traverse a deferred
-        # field which raises a FieldError. Keep this queryset simple.
         return MemberProfile.objects.filter(
             membership_status="active"
         ).only(
@@ -583,5 +576,3 @@ class ChangeMemberRoleView(APIView):
             "old_role": old_role,
             "new_role": new_role,
         })
-    
-
