@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
+from django.core.cache import cache          # <-- cache for dashboard stats
 
 from django.db.models import Sum
 
@@ -35,8 +36,10 @@ from utils.hijri import current_hijri
 from utils.hijri import hijri_month_display
 import json
 
-from django.core.cache import cache
-cache.delete("dashboard_summary_admin_stats")
+# Helper to clear the dashboard cache
+def invalidate_dashboard_cache():
+    cache.delete("dashboard_summary_admin_stats")
+
 
 class LoanEligibilityView(APIView):
     permission_classes = [IsAuthenticated]
@@ -120,8 +123,8 @@ class MyLoanListView(generics.ListAPIView):
             return LoanApplication.objects.filter(applicant=profile).select_related(
                 'applicant'
             ).prefetch_related(
-                'suretyrecord_set',  
-                'repayments'       
+                'suretyrecord_set',
+                'repayments'
             ).order_by("created_at")
         except Exception:
             return LoanApplication.objects.none()
@@ -140,7 +143,6 @@ class SubmitLoanView(APIView):
         serializer.is_valid(raise_exception=True)
         d = serializer.validated_data
 
-        # The serializer now sends empty list for sureties if not needed
         sureties = d.pop("sureties", [])
 
         try:
@@ -163,7 +165,6 @@ class CommitteeDecisionView(APIView):
         except LoanApplication.DoesNotExist:
             return Response({"error": "Loan not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # SRS Rule L9 — admin cannot approve own loan
         if request.user.role == "admin" and loan.applicant.user == request.user:
             return Response(
                 {"error": "Admin cannot approve their own loan application (SRS Rule L9)."},
@@ -179,6 +180,8 @@ class CommitteeDecisionView(APIView):
                 loan = committee_approve_loan(loan, request.user, d["amount_approved"], d.get("note", ""))
             else:
                 loan = committee_reject_loan(loan, request.user, d.get("note", ""))
+            # Invalidate dashboard cache because loan status changed
+            invalidate_dashboard_cache()
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -197,7 +200,6 @@ class AdminFinalApprovalView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Prevent admin from approving their own loan
         if loan.applicant.user == request.user:
             return Response(
                 {"error": "Admin cannot approve their own loan."},
@@ -210,6 +212,7 @@ class AdminFinalApprovalView(APIView):
 
         try:
             loan = admin_final_approve_loan(loan, request.user, d.get("note", ""))
+            invalidate_dashboard_cache()
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -217,20 +220,17 @@ class AdminFinalApprovalView(APIView):
 
 
 class PendingLoanCountView(APIView):
-    """GET /api/v1/loans/pending-count/ — get count of pending loans by status"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
         counts = {}
         
-        # Admin sees pending admin approvals
         if user.role == "admin":
             counts["pending_admin"] = LoanApplication.objects.filter(
                 status=LoanStatus.PENDING_ADMIN
             ).count()
         
-        # Committee sees submitted and under review
         if user.role in ["committee", "admin"]:
             counts["submitted"] = LoanApplication.objects.filter(
                 status=LoanStatus.SUBMITTED
@@ -288,6 +288,8 @@ class PostRepaymentView(APIView):
                 hijri_year=d["hijri_year"],
                 posted_by=request.user,
             )
+            # Invalidate dashboard cache because outstanding balance changed
+            invalidate_dashboard_cache()
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -438,6 +440,8 @@ class HandleDefaultView(APIView):
             return Response({"error": "Active loan not found."}, status=status.HTTP_404_NOT_FOUND)
         try:
             result = handle_default_or_exit(loan)
+            # Invalidate dashboard cache because loan status changed to defaulted
+            invalidate_dashboard_cache()
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"message": "Loan defaulted. Balance transferred to sureties.", "detail": result})
@@ -457,7 +461,6 @@ class LoanRepaymentExportAsyncView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Queue async task
         task = generate_loan_repayment_pdf.delay(pk)
         
         return Response({
@@ -520,7 +523,6 @@ class AdminApprovalPreviewView(APIView):
         if loan.status != LoanStatus.PENDING_ADMIN:
             return Response({"error": "Loan is not pending admin approval."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Borrower details
         member = loan.applicant
         balance = get_or_create_balance(member)
         config = get_loan_configuration()
@@ -540,12 +542,10 @@ class AdminApprovalPreviewView(APIView):
             "proposed_duration_months": loan.proposed_duration_months,
         }
 
-        # Repayment breakdown
         monthly_repayment = (loan.amount_applied / loan.proposed_duration_months).quantize(Decimal("0.01"))
         monthly_contribution = member.approved_monthly_contribution
         first_month_debit = monthly_repayment + monthly_contribution
 
-        # External sureties
         sureties_qs = SuretyRecord.objects.filter(
             loan=loan,
             is_self_surety=False
@@ -620,7 +620,6 @@ class MemberStatementExportView(APIView):
             response["Content-Disposition"] = f"attachment; filename=statement_{member.file_number}.pdf"
             return response
 
-        # CSV
         buffer = io.StringIO()
         writer = csv.writer(buffer)
         writer.writerow(["Hijri Date", "Type", "Details", "Debit", "Credit", "Balance", "Gregorian"])

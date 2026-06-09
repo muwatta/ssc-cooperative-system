@@ -9,6 +9,7 @@ from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.core.cache import cache              # <-- added for cache invalidation
 
 from django.http import JsonResponse
 from rest_framework.views import APIView
@@ -34,6 +35,11 @@ from .permissions import (
 from apps.audit.utils import log_action, get_client_ip
 from .services import import_legacy_members
 from .email_service import send_bulk_invitations
+
+# Helper to clear dashboard cache (same key as in loans/views.py and savings/views.py)
+def invalidate_dashboard_cache():
+    cache.delete("dashboard_summary_admin_stats")
+
 
 class SSCTokenObtainPairView(TokenObtainPairView):
     serializer_class = SSCTokenObtainPairSerializer
@@ -76,7 +82,6 @@ class SetInitialPasswordView(APIView):
         )
 
 
-
 # STAFF ID REGISTRY — Admin only
 class StaffIDRegistryListCreateView(generics.ListCreateAPIView):
     queryset = StaffIDRegistry.objects.all().order_by("staff_id")
@@ -96,7 +101,6 @@ class StaffIDRegistryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        # If a user account exists for this ID, deactivate instead of delete
         if User.objects.filter(staff_id=instance.staff_id).exists():
             instance.is_active = False
             instance.save(update_fields=["is_active"])
@@ -108,9 +112,7 @@ class StaffIDRegistryDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-
 # ADMIN: Create User (Admin only)
-
 class CreateUserView(generics.CreateAPIView):
     serializer_class = CreateUserSerializer
     permission_classes = [IsAdmin]
@@ -144,6 +146,8 @@ class MemberListCreateView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         profile = serializer.save()
         response_serializer = MemberProfileSerializer(profile)
+        # Invalidate dashboard cache because member count / total savings changed
+        invalidate_dashboard_cache()
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -209,7 +213,6 @@ class MyProfileView(APIView):
         serializer.is_valid(raise_exception=True)
         profile = serializer.save()
 
-        # Log the action
         log_action(
             user=request.user,
             action="profile_create",
@@ -275,6 +278,17 @@ class ApproveMemberView(APIView):
             "approval_date", "approved_monthly_contribution", "updated_at"
         ])
 
+        log_action(
+            user=request.user,
+            action="APPROVE_MEMBER",
+            description=f"Approved member {profile.file_number} ({profile.full_name})",
+            object_type="MemberProfile",
+            object_id=profile.id,
+            object_name=profile.full_name,
+        )
+        # Invalidate dashboard cache because active members count changed
+        invalidate_dashboard_cache()
+
         return Response(
             MemberProfileSerializer(profile).data,
             status=status.HTTP_200_OK
@@ -295,7 +309,8 @@ class DeactivateMemberView(APIView):
             profile.save(update_fields=["membership_status", "updated_at"])
             profile.user.is_active = False
             profile.user.save(update_fields=["is_active"])
-
+        # Invalidate dashboard cache because member status changed
+        invalidate_dashboard_cache()
         return Response({"message": f"{profile.file_number} deactivated."}, status=status.HTTP_200_OK)
 
 
@@ -327,7 +342,6 @@ class LegacyImportView(APIView):
         if not csv_file:
             return Response({"error": "CSV file is required (field name: file)."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Streaming the uploaded file into the service
         summary = import_legacy_members(
             csv_file,
             dry_run=dry_run,
@@ -339,7 +353,6 @@ class LegacyImportView(APIView):
             frontend_url=frontend_url,
         )
 
-        # If requested and there are errors, return CSV attachment
         if download_errors and summary.get('errors'):
             import io, csv
             buf = io.StringIO()
@@ -351,6 +364,8 @@ class LegacyImportView(APIView):
             resp['Content-Disposition'] = 'attachment; filename="import-errors.csv"'
             return resp
 
+        # Invalidate cache after legacy import (members added/changed)
+        invalidate_dashboard_cache()
         return Response(summary)
 
 
@@ -369,165 +384,6 @@ class SendInvitationsView(APIView):
         summary = send_bulk_invitations(user_ids, frontend_url=frontend_url)
         return Response(summary)
 
-
-
-class ChangeMemberRoleView(APIView):
-    
-    permission_classes = [IsAdmin]
-
-    def post(self, request, pk):
-        try:
-            profile = MemberProfile.objects.select_related("user").get(pk=pk)
-        except MemberProfile.DoesNotExist:
-            return Response(
-                {"error": "Member not found."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        # Cannot change own role
-        if profile.user == request.user:
-            return Response(
-                {"error": "You cannot change your own role."},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        new_role = request.data.get("role", "").strip()
-        valid_roles = ("staff", "committee", "head_of_school", "admin")
-
-        if new_role not in valid_roles:
-            return Response(
-                {"error": f"Invalid role. Must be one of: {', '.join(valid_roles)}"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        old_role = profile.user.role
-        profile.user.role = new_role
-        profile.user.save(update_fields=["role", "updated_at"])
-
-        return Response({
-            "message": f"{profile.full_name} role changed from {old_role} to {new_role}.",
-            "file_number": profile.file_number,
-            "full_name": profile.full_name,
-            "old_role": old_role,
-            "new_role": new_role,
-        })
-
-
-class ChangePasswordView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        user = request.user
-        current = request.data.get("current_password")
-        new = request.data.get("new_password")
-        confirm = request.data.get("confirm_password")
-
-        if not user.check_password(current):
-            return Response({"error": "Current password is incorrect."}, status=400)
-
-        if new != confirm:
-            return Response({"error": "New passwords do not match."}, status=400)
-
-        from django.contrib.auth.password_validation import validate_password
-        from django.core.exceptions import ValidationError
-        try:
-            validate_password(new, user)
-        except ValidationError as e:
-            return Response({"error": e.messages}, status=400)
-
-        user.set_password(new)
-        user.save()
-        return Response({"message": "Password changed successfully."})
-    
-
-class ToggleSpecialSaverView(APIView):
-    permission_classes = [IsAdmin]
-
-    def post(self, request, member_id):
-        try:
-            member = MemberProfile.objects.get(pk=member_id)
-        except MemberProfile.DoesNotExist:
-            return Response({"error": "Member not found."}, status=404)
-
-        member.is_special_saver = not member.is_special_saver
-        member.save(update_fields=["is_special_saver", "updated_at"])
-        return Response({
-            "member_id": member.id,
-            "file_number": member.file_number,
-            "is_special_saver": member.is_special_saver,
-        })
-    
-    
-from django.db.models import Count, Q 
-
-class MemberCountsView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        stats = MemberProfile.objects.aggregate(
-            total=Count("id"),
-            active=Count("id", filter=Q(membership_status=MembershipStatus.ACTIVE)),
-            pending=Count("id", filter=Q(membership_status=MembershipStatus.PENDING)),
-            inactive=Count("id", filter=Q(membership_status=MembershipStatus.INACTIVE)),
-            exited=Count("id", filter=Q(membership_status=MembershipStatus.EXITED)),
-        )
-        return Response({
-            "total": stats["total"],
-            "active": stats["active"],
-            "pending": stats["pending"],
-            "inactive": stats["inactive"],
-            "exited": stats["exited"],
-        })
-    
-
-
-class ApproveMemberView(APIView):
-    permission_classes = [IsAdmin]
-
-    def post(self, request, pk):
-        try:
-            profile = MemberProfile.objects.get(pk=pk, membership_status="pending")
-        except MemberProfile.DoesNotExist:
-            return Response(
-                {"error": "Member not found or not in pending status."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        approved_by = request.data.get("approved_by_name", "")
-        officer = request.data.get("officer_in_charge", "")
-        approval_date = request.data.get("approval_date")
-        approved_contribution = request.data.get("approved_monthly_contribution")
-
-        if not all([approved_by, officer, approval_date, approved_contribution]):
-            return Response(
-                {"error": "approved_by_name, officer_in_charge, approval_date, and approved_monthly_contribution are required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        profile.membership_status = "active"
-        profile.approved_by_name = approved_by
-        profile.officer_in_charge = officer
-        profile.approval_date = approval_date
-        profile.approved_monthly_contribution = approved_contribution
-        profile.save(update_fields=[
-            "membership_status", "approved_by_name", "officer_in_charge",
-            "approval_date", "approved_monthly_contribution", "updated_at"
-        ])
-
-        log_action(
-            user=request.user,
-            action="APPROVE_MEMBER",
-            description=f"Approved member {profile.file_number} ({profile.full_name})",
-            object_type="MemberProfile",
-            object_id=profile.id,
-            object_name=profile.full_name,
-        )
-
-        return Response(
-            MemberProfileSerializer(profile).data,
-            status=status.HTTP_200_OK
-        )
-    
 
 class ChangeMemberRoleView(APIView):
     permission_classes = [IsAdmin]
@@ -568,6 +424,8 @@ class ChangeMemberRoleView(APIView):
             object_id=profile.user.id,
             object_name=profile.full_name,
         )
+        # Invalidate dashboard cache because role affects dashboard visibility
+        invalidate_dashboard_cache()
 
         return Response({
             "message": f"{profile.full_name} role changed from {old_role} to {new_role}.",
@@ -575,4 +433,71 @@ class ChangeMemberRoleView(APIView):
             "full_name": profile.full_name,
             "old_role": old_role,
             "new_role": new_role,
+        })
+
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        current = request.data.get("current_password")
+        new = request.data.get("new_password")
+        confirm = request.data.get("confirm_password")
+
+        if not user.check_password(current):
+            return Response({"error": "Current password is incorrect."}, status=400)
+
+        if new != confirm:
+            return Response({"error": "New passwords do not match."}, status=400)
+
+        try:
+            validate_password(new, user)
+        except ValidationError as e:
+            return Response({"error": e.messages}, status=400)
+
+        user.set_password(new)
+        user.save()
+        return Response({"message": "Password changed successfully."})
+
+
+class ToggleSpecialSaverView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request, member_id):
+        try:
+            member = MemberProfile.objects.get(pk=member_id)
+        except MemberProfile.DoesNotExist:
+            return Response({"error": "Member not found."}, status=404)
+
+        member.is_special_saver = not member.is_special_saver
+        member.save(update_fields=["is_special_saver", "updated_at"])
+        # Invalidate dashboard cache because special savings totals may change
+        invalidate_dashboard_cache()
+        return Response({
+            "member_id": member.id,
+            "file_number": member.file_number,
+            "is_special_saver": member.is_special_saver,
+        })
+
+
+from django.db.models import Count, Q
+
+class MemberCountsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        stats = MemberProfile.objects.aggregate(
+            total=Count("id"),
+            active=Count("id", filter=Q(membership_status=MembershipStatus.ACTIVE)),
+            pending=Count("id", filter=Q(membership_status=MembershipStatus.PENDING)),
+            inactive=Count("id", filter=Q(membership_status=MembershipStatus.INACTIVE)),
+            exited=Count("id", filter=Q(membership_status=MembershipStatus.EXITED)),
+        )
+        return Response({
+            "total": stats["total"],
+            "active": stats["active"],
+            "pending": stats["pending"],
+            "inactive": stats["inactive"],
+            "exited": stats["exited"],
         })

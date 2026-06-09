@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
+from django.core.cache import cache          # <-- added for cache invalidation
 
 from apps.accounts.models import MemberProfile, MembershipStatus
 from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee, IsAdminOrCommitteeOrHOS
@@ -27,8 +28,10 @@ from .services import (
     apply_savings_change, get_or_create_balance, post_special_savings_entry,
 )
 
-from django.core.cache import cache
-cache.delete("dashboard_summary_admin_stats")
+# Helper to clear dashboard cache (same key as in loans/views.py)
+def invalidate_dashboard_cache():
+    cache.delete("dashboard_summary_admin_stats")
+
 
 class PostSavingsView(APIView):
     permission_classes = [IsAdmin]
@@ -50,6 +53,8 @@ class PostSavingsView(APIView):
                     posted_by=request.user,
                 )
             )
+        # Invalidate dashboard cache because total savings changed
+        invalidate_dashboard_cache()
 
         if len(entries) == 1:
             return Response(SavingsLedgerSerializer(entries[0]).data, status=status.HTTP_201_CREATED)
@@ -85,8 +90,8 @@ class MemberLedgerView(generics.ListAPIView):
             qs = qs.filter(gregorian_date__lte=date_to)
         return qs
 
+
 class MemberBalanceView(APIView):
-    
     def get_permissions(self):
         from rest_framework.permissions import IsAuthenticated
         return [IsAuthenticated()]
@@ -97,14 +102,14 @@ class MemberBalanceView(APIView):
         except MemberProfile.DoesNotExist:
             return Response({"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Allow if admin/committee OR the user is viewing their own balance
         if request.user.role not in ("admin", "committee"):
             if member.user != request.user:
                 return Response({"error": "Access denied."}, status=status.HTTP_403_FORBIDDEN)
 
         balance = get_or_create_balance(member)
         return Response(MemberBalanceSerializer(balance).data)
-    
+
+
 class SavingsSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -121,7 +126,6 @@ class SavingsSummaryView(APIView):
                 member_balance = get_or_create_balance(profile)
                 member_data = MemberBalanceSerializer(member_balance).data
 
-            # Allow both admin and committee to see cooperative totals
             if request.user.role in ("admin", "committee"):
                 summary = MemberBalance.objects.aggregate(
                     total_savings=Sum("total_savings"),
@@ -129,11 +133,10 @@ class SavingsSummaryView(APIView):
                     member_count=Count("id"),
                 )
                 total_savings = summary["total_savings"] or Decimal("0.00")
-                total_committed = summary[ "total_committed"] or Decimal("0.00")
+                total_committed = summary["total_committed"] or Decimal("0.00")
                 total_available = total_savings - total_committed
                 member_count = summary["member_count"] or 0
             else:
-                # Non-privileged users see zero totals
                 total_savings = Decimal("0.00")
                 total_committed = Decimal("0.00")
                 total_available = Decimal("0.00")
@@ -156,6 +159,7 @@ class SavingsSummaryView(APIView):
             },
         })
 
+
 class MyBalanceView(APIView):
     def get(self, request):
         try:
@@ -176,7 +180,6 @@ class MyBalanceView(APIView):
         return Response(MemberBalanceSerializer(balance).data)
 
 
-# apps/savings/views.py - Make sure this view exists
 class MyLedgerView(generics.ListAPIView):
     serializer_class = SavingsLedgerSerializer
 
@@ -186,7 +189,7 @@ class MyLedgerView(generics.ListAPIView):
             return SavingsLedger.objects.filter(member=profile).order_by("-hijri_year", "-hijri_month", "-created_at")
         except Exception:
             return SavingsLedger.objects.none()
-        
+
 
 class SavingsChangeRequestListCreateView(generics.ListCreateAPIView):
     serializer_class = SavingsChangeRequestSerializer
@@ -206,7 +209,6 @@ class SavingsChangeRequestListCreateView(generics.ListCreateAPIView):
         from decimal import Decimal
         profile = self.request.user.member_profile
         balance = get_or_create_balance(profile)
-        # Get current loan balance
         from apps.loans.models import LoanApplication, LoanStatus
         active_loan = LoanApplication.objects.filter(
             applicant=profile, status=LoanStatus.ACTIVE
@@ -222,7 +224,7 @@ class SavingsChangeRequestListCreateView(generics.ListCreateAPIView):
 
 
 class ApproveSavingsChangeView(APIView):
-    permission_classes = [IsAdmin]   # or IsAdminOrCommittee if committee can also approve
+    permission_classes = [IsAdmin]
 
     def post(self, request, pk):
         try:
@@ -230,7 +232,6 @@ class ApproveSavingsChangeView(APIView):
         except SavingsChangeRequest.DoesNotExist:
             return Response({"error": "Request not found or not pending."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Prevent self‑approval
         if change_req.member.user == request.user:
             return Response(
                 {"error": "You cannot approve your own savings change request. Another admin/committee member must approve it."},
@@ -247,8 +248,11 @@ class ApproveSavingsChangeView(APIView):
             hijri_month=d["effective_hijri_month"],
             hijri_year=d["effective_hijri_year"],
         )
+        # Invalidate dashboard cache because savings totals may change
+        invalidate_dashboard_cache()
         return Response(SavingsChangeRequestSerializer(result).data)
-    
+
+
 class RejectSavingsChangeView(APIView):
     permission_classes = [IsAdmin]
 
@@ -271,6 +275,7 @@ class PendingChangeRequestsCountView(APIView):
         else:
             count = 0
         return Response({"count": count})
+
 
 class DuesCycleListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAdmin]
@@ -316,6 +321,8 @@ class PostDuesCycleView(APIView):
 
         try:
             result = post_termly_dues(cycle=cycle, posted_by=request.user)
+            # Invalidate dashboard cache because savings balances changed
+            invalidate_dashboard_cache()
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -325,6 +332,7 @@ class PostDuesCycleView(APIView):
             "failed": len(result["failures"]),
             "failures": result["failures"],
         })
+
 
 class LedgerExportView(APIView):
     permission_classes = [IsAdminOrCommitteeOrHOS]
@@ -590,50 +598,9 @@ class BulkSavingsReportView(APIView):
             'attachment; filename="bulk-savings-report.csv"'
         )
         return response
-    
 
 
-
-class BatchMonthlyDeductionView(APIView):
-    permission_classes = [IsAdmin]
-
-    def post(self, request):
-        hijri_month = request.data.get("hijri_month")
-        hijri_year = request.data.get("hijri_year")
-        preview = request.data.get("preview", True)
-
-        # get all active members
-        members = MemberProfile.objects.filter(membership_status=MembershipStatus.ACTIVE)
-        results = []
-        for member in members:
-            contribution = member.approved_monthly_contribution
-            active_loan = LoanApplication.objects.filter(
-                applicant=member, status=LoanStatus.ACTIVE
-            ).first()
-            loan_repayment = active_loan.proposed_monthly_repayment if active_loan else Decimal(0)
-            total_debit = contribution + loan_repayment
-            results.append({
-                "member_id": member.id,
-                "file_number": member.file_number,
-                "name": member.full_name,
-                "contribution": str(contribution),
-                "loan_repayment": str(loan_repayment),
-                "total_debit": str(total_debit),
-            })
-
-        if not preview:
-            # actually post the entries
-            from apps.savings.services import post_savings_entry, post_debit_entry
-            from apps.loans.services import post_repayment
-            for item in results:
-                if item["contribution"] > 0:
-                    post_savings_entry(...)  
-                if item["loan_repayment"] > 0:
-                    post_repayment(...)      
-
-        return Response({"preview": preview, "deductions": results})
-    
-
+# SINGLE CORRECT BatchMonthlyDeductionView (removed duplicate)
 class BatchMonthlyDeductionView(APIView):
     permission_classes = [IsAdmin]
 
@@ -666,7 +633,6 @@ class BatchMonthlyDeductionView(APIView):
             })
 
         if not preview:
-            # Actually post the deductions
             from apps.savings.services import post_savings_entry
             from apps.loans.services import post_repayment
             from utils.hijri import current_hijri as get_hijri
@@ -676,7 +642,6 @@ class BatchMonthlyDeductionView(APIView):
 
             for item in results:
                 member = MemberProfile.objects.get(pk=item["member_id"])
-                # 1. Ordinary savings (credit)
                 if Decimal(item["contribution"]) > 0:
                     post_savings_entry(
                         member=member,
@@ -687,22 +652,27 @@ class BatchMonthlyDeductionView(APIView):
                         entry_type="ordinary_savings",
                         details=f"Monthly contribution {hijri_month}/{hijri_year}",
                     )
-                # 2. Loan repayment
-                if Decimal(item["loan_repayment"]) > 0 and active_loan:
-                    post_repayment(
-                        loan=active_loan,
-                        amount=Decimal(item["loan_repayment"]),
-                        hijri_month=hijri_month,
-                        hijri_year=hijri_year,
-                        posted_by=posted_by,
-                    )
+                if Decimal(item["loan_repayment"]) > 0:
+                    active_loan = LoanApplication.objects.filter(
+                        applicant=member, status=LoanStatus.ACTIVE
+                    ).first()
+                    if active_loan:
+                        post_repayment(
+                            loan=active_loan,
+                            amount=Decimal(item["loan_repayment"]),
+                            hijri_month=hijri_month,
+                            hijri_year=hijri_year,
+                            posted_by=posted_by,
+                        )
+            # Invalidate dashboard cache after bulk operations
+            invalidate_dashboard_cache()
 
         return Response({
             "preview": preview,
             "total_members": len(results),
             "deductions": results,
         })
-    
+
 
 class FullWithdrawalView(APIView):
     permission_classes = [IsAdmin]
@@ -713,7 +683,6 @@ class FullWithdrawalView(APIView):
         except MemberProfile.DoesNotExist:
             return Response({"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Only allow if member is deactivated (exited)
         if member.membership_status not in ["exited", "inactive"]:
             return Response(
                 {"error": "Full withdrawal is only allowed for deactivated members."},
@@ -728,7 +697,6 @@ class FullWithdrawalView(APIView):
         h_month, h_year = current_hijri()
 
         try:
-            # Debit the full available balance
             entry = post_debit_entry(
                 member=member,
                 amount=balance.available_balance,
@@ -738,6 +706,7 @@ class FullWithdrawalView(APIView):
                 entry_type=LedgerEntryType.ADJUSTMENT,
                 details=f"Full withdrawal — member deactivated",
             )
+            invalidate_dashboard_cache()
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -745,7 +714,7 @@ class FullWithdrawalView(APIView):
             "message": f"Withdrew ₦{balance.available_balance} from {member.full_name}.",
             "new_balance": str(balance.available_balance),
         })
-    
+
 
 class MoveToSpecialView(APIView):
     permission_classes = [IsAdmin]
@@ -764,12 +733,10 @@ class MoveToSpecialView(APIView):
         if amount > balance.available_balance:
             return Response({"error": "Insufficient available balance."}, status=400)
 
-        # Move from available to special (no ledger entry needed, just reclassify)
-        balance.total_savings -= amount  # total stays the same, but we adjust special
+        balance.total_savings -= amount
         balance.special_savings += amount
         balance.save()
 
-        # Post a note in ledger? We'll create a simple ledger entry for audit
         from utils.hijri import current_hijri
         h_month, h_year = current_hijri()
         SavingsLedger.objects.create(
@@ -786,7 +753,7 @@ class MoveToSpecialView(APIView):
             verified_by_name=request.user.staff_id,
             verified_by_role=request.user.role,
         )
-
+        invalidate_dashboard_cache()
         return Response({"message": f"₦{amount} moved to special savings.", "special_savings": str(balance.special_savings)})
 
 
@@ -804,11 +771,9 @@ class WithdrawSpecialView(APIView):
         if amount <= 0:
             return Response({"error": "No special savings to withdraw."}, status=400)
 
-        # Transfer from special back to available (total remains same)
         balance.special_savings = Decimal("0")
         balance.save()
 
-        # Ledger entry
         from utils.hijri import current_hijri
         h_month, h_year = current_hijri()
         SavingsLedger.objects.create(
@@ -825,9 +790,9 @@ class WithdrawSpecialView(APIView):
             verified_by_name=request.user.staff_id,
             verified_by_role=request.user.role,
         )
-
+        invalidate_dashboard_cache()
         return Response({"message": f"₦{amount} withdrawn from special savings.", "special_savings": str(balance.special_savings)})
-    
+
 
 class ReconciliationView(APIView):
     permission_classes = [IsAdminOrCommitteeOrHOS]
@@ -860,8 +825,8 @@ class ReconciliationView(APIView):
             "is_balanced": total_credit == total_debit,
         })
 
-class PostSpecialSavingsView(APIView):
 
+class PostSpecialSavingsView(APIView):
     permission_classes = [IsAdmin]
 
     def post(self, request):
@@ -871,7 +836,6 @@ class PostSpecialSavingsView(APIView):
         hijri_year  = request.data.get("hijri_year")
         details     = request.data.get("details", "")
 
-        # Validate required fields
         if not all([member_id, amount_raw, hijri_month, hijri_year]):
             return Response(
                 {"error": "member_id, amount, hijri_month, and hijri_year are required."},
@@ -888,16 +852,16 @@ class PostSpecialSavingsView(APIView):
         except Exception:
             return Response({"error": "Invalid amount."}, status=status.HTTP_400_BAD_REQUEST)
 
-        from .services import post_special_savings_entry
         try:
             entry = post_special_savings_entry(
                 member=member,
                 amount=amount,
                 hijri_month=int(hijri_month),
                 hijri_year=int(hijri_year),
-                posted_by=request.user, 
+                posted_by=request.user,
                 details=details,
             )
+            invalidate_dashboard_cache()
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -909,5 +873,3 @@ class PostSpecialSavingsView(APIView):
             "total_savings": str(balance.total_savings),
             "available_balance": str(balance.available_balance),
         }, status=status.HTTP_201_CREATED)
-    
-
