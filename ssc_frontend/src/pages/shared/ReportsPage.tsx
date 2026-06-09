@@ -108,7 +108,7 @@ export default function ReportsPage() {
   const isLoading = loading && !members.length;
   const isRefreshing = fetchingMembers && members.length > 0;
 
-  // ---------- Export Handlers ----------
+  // Export Handlers
   const exportMemberStatement = (format: "csv" | "pdf") => {
     const id = selectedMemberId;
     if (!id) return alert("Please select a member from the list.");

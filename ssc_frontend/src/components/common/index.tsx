@@ -202,9 +202,8 @@ export function DateBadge() {
       })
     : "…";
 
-  const hijriFull = currentDate?.hijri
-    ? `${currentDate.hijri.day} ${currentDate.hijri.display} ${currentDate.hijri.year} AH`
-    : "…";
+  // ✅ Use only the display string – it already contains day, month, year, and "AH"
+  const hijriFull = currentDate?.hijri?.display || "…";
 
   const mobileCompact = `${gregorianMobile} · ${hijriFull}`;
 

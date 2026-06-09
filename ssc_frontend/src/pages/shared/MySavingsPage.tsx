@@ -39,7 +39,7 @@ export default function MySavingsPage() {
   const [requestAmount, setRequestAmount] = useState("");
   const [requestError, setRequestError] = useState("");
 
-  // ---------- Profile (React Query, 10 min cache) ----------
+  // Profile (React Query, 10 min cache)
   const {
     data: profile,
     isLoading: profileLoading,
@@ -56,7 +56,7 @@ export default function MySavingsPage() {
 
   const profileMissing = profile === null && !profileLoading && !profileError;
 
-  // ---------- Balance (React Query, 2 min cache) ----------
+  // Balance (React Query, 2 min cache)
   const { data: balance } = useQuery<MemberBalance>({
     queryKey: ["my-balance", profile?.id],
     enabled: !!profile?.id,
@@ -67,7 +67,7 @@ export default function MySavingsPage() {
     staleTime: 1000 * 60 * 2,
   });
 
-  // ---------- Ledger (React Query, 1 min cache, placeholder data) ----------
+  // Ledger (React Query, 1 min cache, placeholder data)
   const ledgerParams: Record<string, string | number> = { page };
   if (appliedFilters.hijri_month)
     ledgerParams.hijri_month = Number(appliedFilters.hijri_month);
@@ -102,7 +102,7 @@ export default function MySavingsPage() {
     });
   }, [ledger]);
 
-  // ---------- Cooperative summary (admin/committee only, 10 min cache) ----------
+  // Cooperative summary (admin/committee only, 10 min cache)
   const canSeeCoopBalances = isAdmin || isCommittee;
   const {
     data: cooperativeSummary,
@@ -118,7 +118,7 @@ export default function MySavingsPage() {
     enabled: canSeeCoopBalances,
   });
 
-  // ---------- Summary derived state ----------
+  // Summary derived state
   const summary = useMemo(() => {
     return {
       savingsBalance: balance ? formatCurrency(balance.total_savings) : "₦0.00",
@@ -137,7 +137,7 @@ export default function MySavingsPage() {
     };
   }, [balance, profile]);
 
-  // ---------- Savings change request mutation ----------
+  // Savings change request mutation
   const createRequestMutation = useMutation({
     mutationFn: (amount: string) =>
       savingsApi.changeRequests.create({ requested_amount: amount }),
@@ -154,7 +154,7 @@ export default function MySavingsPage() {
     },
   });
 
-  // ---------- Filter helpers ----------
+  // Filter helpers
   const handleApplyFilters = () => {
     setPage(1);
     setAppliedFilters(filters);
@@ -172,7 +172,7 @@ export default function MySavingsPage() {
     setPage(1);
   };
 
-  // ---------- Download handler ----------
+  // Download handler
   const [downloading, setDownloading] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<"csv" | "pdf">("csv");
 
@@ -214,7 +214,7 @@ export default function MySavingsPage() {
     }
   };
 
-  // ---------- Render ----------
+  // Render
   if (profileLoading) {
     return (
       <AnimatedCard className="p-6">

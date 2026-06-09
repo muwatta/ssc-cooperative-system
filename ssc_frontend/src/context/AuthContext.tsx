@@ -76,7 +76,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         await authApi.logout(refresh);
       } catch {
-        // Blacklist may fail if token already expired
       }
     }
     tokenStorage.clearTokens();
