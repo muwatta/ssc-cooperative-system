@@ -35,6 +35,9 @@ from utils.hijri import current_hijri
 from utils.hijri import hijri_month_display
 import json
 
+from django.core.cache import cache
+cache.delete("dashboard_summary_admin_stats")
+
 class LoanEligibilityView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -423,7 +426,7 @@ class LoanDetailView(generics.RetrieveAPIView):
         'suretyrecord_set',
         'repayments'
     ).all()
-    
+
 
 class HandleDefaultView(APIView):
     permission_classes = [IsAdmin]

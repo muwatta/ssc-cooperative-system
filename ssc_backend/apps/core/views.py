@@ -1,5 +1,5 @@
 from decimal import Decimal
-
+from django.core.cache import cache
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -31,7 +31,6 @@ class CurrentDateView(APIView):
             },
             "gregorian": today.isoformat(),
         })
-        
 
 class DashboardSummaryView(APIView):
     permission_classes = [IsAuthenticated]
@@ -42,39 +41,61 @@ class DashboardSummaryView(APIView):
         data = {}
 
         if is_admin:
-            # Pending approvals
-            data["pending_admin"] = LoanApplication.objects.filter(status=LoanStatus.PENDING_ADMIN).count()
-            data["submitted"] = LoanApplication.objects.filter(status=LoanStatus.SUBMITTED).count()
-            data["under_review"] = LoanApplication.objects.filter(status=LoanStatus.UNDER_REVIEW).count()
-            data["pending_sureties"] = LoanApplication.objects.filter(status=LoanStatus.PENDING_SURETIES).count()
+            # Cache key for expensive aggregated stats (5 minutes)
+            cache_key = "dashboard_summary_admin_stats"
+            cached_stats = cache.get(cache_key)
 
-            # Active loans
-            data["active_loans"] = LoanApplication.objects.filter(status=LoanStatus.ACTIVE).count()
-            data["total_outstanding"] = str(
-                LoanApplication.objects.filter(status=LoanStatus.ACTIVE).aggregate(
+            if cached_stats:
+                # Use cached values for the heavy aggregates
+                data.update(cached_stats)
+            else:
+                # Pending approvals (counts are cheap, but we include them in cache)
+                pending_admin = LoanApplication.objects.filter(status=LoanStatus.PENDING_ADMIN).count()
+                submitted = LoanApplication.objects.filter(status=LoanStatus.SUBMITTED).count()
+                under_review = LoanApplication.objects.filter(status=LoanStatus.UNDER_REVIEW).count()
+                pending_sureties = LoanApplication.objects.filter(status=LoanStatus.PENDING_SURETIES).count()
+
+                # Active loans
+                active_loans = LoanApplication.objects.filter(status=LoanStatus.ACTIVE).count()
+                total_outstanding = LoanApplication.objects.filter(status=LoanStatus.ACTIVE).aggregate(
                     total=Sum("outstanding_balance")
                 )["total"] or 0
-            )
 
-            # Total savings
-            total_savings = MemberBalance.objects.aggregate(total=Sum("total_savings"))["total"] or 0
-            data["total_savings"] = str(total_savings)
+                # Total savings (cooperative)
+                total_savings = MemberBalance.objects.aggregate(total=Sum("total_savings"))["total"] or 0
+                total_special_savings = MemberBalance.objects.aggregate(
+                    total=Sum("special_savings")
+                )["total"] or Decimal("0.00")
 
-            # After total_savings = ... line, add:
-            total_special_savings = MemberBalance.objects.aggregate(
-                total=Sum("special_savings")
-            )["total"] or Decimal("0.00")
-            data["total_special_savings"] = str(total_special_savings)
+                # Build cache dictionary
+                cached_stats = {
+                    "pending_admin": pending_admin,
+                    "submitted": submitted,
+                    "under_review": under_review,
+                    "pending_sureties": pending_sureties,
+                    "active_loans": active_loans,
+                    "total_outstanding": str(total_outstanding),
+                    "total_savings": str(total_savings),
+                    "total_special_savings": str(total_special_savings),
+                }
+                data.update(cached_stats)
+                # Store in cache for 5 minutes (300 seconds)
+                cache.set(cache_key, cached_stats, 300)
 
-            # Upcoming repayments (loans with start month > current)
+            # Upcoming repayments (not cached because it loops over active loans)
             h_month, h_year = current_hijri()
-            active_loans = LoanApplication.objects.filter(status=LoanStatus.ACTIVE)
-            upcoming = []
-            for loan in active_loans:
-                upcoming.append({"loan_id": loan.id, "applicant": loan.applicant.full_name, "amount": str(loan.proposed_monthly_repayment)})
+            active_loans_qs = LoanApplication.objects.filter(status=LoanStatus.ACTIVE).only('id', 'applicant__full_name', 'proposed_monthly_repayment')
+            upcoming = [
+                {
+                    "loan_id": loan.id,
+                    "applicant": loan.applicant.full_name,
+                    "amount": str(loan.proposed_monthly_repayment)
+                }
+                for loan in active_loans_qs
+            ]
             data["upcoming_repayments"] = upcoming
 
-        # Common for all roles
+        # Common for all roles (per‑user data – do NOT cache)
         try:
             profile = request.user.member_profile
             balance = get_or_create_balance(profile)
@@ -90,7 +111,6 @@ class DashboardSummaryView(APIView):
 
         return Response(data)
     
-
 class ResetDataView(APIView):
     permission_classes = [IsAuthenticated]
 

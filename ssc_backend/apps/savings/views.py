@@ -27,6 +27,8 @@ from .services import (
     apply_savings_change, get_or_create_balance, post_special_savings_entry,
 )
 
+from django.core.cache import cache
+cache.delete("dashboard_summary_admin_stats")
 
 class PostSavingsView(APIView):
     permission_classes = [IsAdmin]
