@@ -126,6 +126,7 @@ export interface SavingsSummary {
     total_committed: string;
     total_available: string;
     member_count: number;
+    total_special_savings?: string;
   };
 }
 

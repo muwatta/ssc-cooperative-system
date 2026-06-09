@@ -119,15 +119,15 @@ class SavingsSummaryView(APIView):
                 member_balance = get_or_create_balance(profile)
                 member_data = MemberBalanceSerializer(member_balance).data
 
-            # Check if user is admin only
-            if request.user.role in ("admin"):
+            # Allow both admin and committee to see cooperative totals
+            if request.user.role in ("admin", "committee"):
                 summary = MemberBalance.objects.aggregate(
                     total_savings=Sum("total_savings"),
                     total_committed=Sum("suretyship_committed"),
                     member_count=Count("id"),
                 )
                 total_savings = summary["total_savings"] or Decimal("0.00")
-                total_committed = summary["total_committed"] or Decimal("0.00")
+                total_committed = summary[ "total_committed"] or Decimal("0.00")
                 total_available = total_savings - total_committed
                 member_count = summary["member_count"] or 0
             else:

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -57,6 +59,12 @@ class DashboardSummaryView(APIView):
             # Total savings
             total_savings = MemberBalance.objects.aggregate(total=Sum("total_savings"))["total"] or 0
             data["total_savings"] = str(total_savings)
+
+            # After total_savings = ... line, add:
+            total_special_savings = MemberBalance.objects.aggregate(
+                total=Sum("special_savings")
+            )["total"] or Decimal("0.00")
+            data["total_special_savings"] = str(total_special_savings)
 
             # Upcoming repayments (loans with start month > current)
             h_month, h_year = current_hijri()

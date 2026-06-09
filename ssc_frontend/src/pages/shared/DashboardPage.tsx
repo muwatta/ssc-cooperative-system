@@ -69,7 +69,7 @@ export default function DashboardPage() {
     queryFn: () => api.get("/dashboard/summary/").then((r) => r.data),
     enabled: isLeadership,
     staleTime: 30000,
-    refetchInterval: false, 
+    refetchInterval: false,
     refetchOnWindowFocus: true,
   });
 
@@ -160,6 +160,10 @@ export default function DashboardPage() {
     ? `₦${Number(dashSummary.total_savings).toLocaleString()}`
     : "₦0.00";
 
+  const totalSpecialSavings = dashSummary?.total_special_savings
+    ? `₦${Number(dashSummary.total_special_savings).toLocaleString()}`
+    : "₦0.00";
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="mb-6">
@@ -174,7 +178,7 @@ export default function DashboardPage() {
       {isLeadership && dashSummary && (
         <div className="card-panel mb-6 bg-white border border-gray-200">
           <h2 className="text-lg font-semibold mb-3">At a Glance</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <StatCard
               label="Pending Admin Approval"
               value={pendingAdmin}
@@ -195,6 +199,13 @@ export default function DashboardPage() {
               value={totalSavingsCoop}
               color="success"
             />
+            {isAdmin && (
+              <StatCard
+                label="🔒 Total Special Savings Locked"
+                value={totalSpecialSavings}
+                color="primary"
+              />
+            )}
           </div>
         </div>
       )}
@@ -460,7 +471,7 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              {/* Special Fixed Savings Card */}
+              {/* Special Fixed Savings Card (member's own) */}
               {hasMemberBalance &&
                 Number(memberBalance!.special_savings || 0) > 0 && (
                   <div className="card-panel-light">
@@ -476,16 +487,14 @@ export default function DashboardPage() {
                 )}
 
               {/* Cooperative totals – ADMIN ONLY */}
-              {isAdmin && (
+              {isAdmin && coopSummary && (
                 <>
                   <div className="card-panel-light">
                     <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
                       Cooperative Total Savings
                     </p>
                     <p className="mt-3 text-2xl font-semibold text-gray-900">
-                      {coopSummary
-                        ? maskIfNeeded(formatNaira(coopSummary.total_savings))
-                        : "₦0.00"}
+                      {maskIfNeeded(formatNaira(coopSummary.total_savings))}
                     </p>
                   </div>
                   <div className="card-panel-light">
@@ -493,11 +502,23 @@ export default function DashboardPage() {
                       Total Available Across Members
                     </p>
                     <p className="mt-3 text-2xl font-semibold text-gray-900">
-                      {coopSummary
-                        ? maskIfNeeded(formatNaira(coopSummary.total_available))
-                        : "₦0.00"}
+                      {maskIfNeeded(formatNaira(coopSummary.total_available))}
                     </p>
                   </div>
+                  {/* Total Special Savings (cooperative) – use type assertion */}
+                  {(coopSummary as any).total_special_savings &&
+                    Number((coopSummary as any).total_special_savings) > 0 && (
+                      <div className="card-panel-light">
+                        <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                          🔒 Total Special Savings (Locked)
+                        </p>
+                        <p className="mt-3 text-2xl font-semibold text-purple-700">
+                          {formatNaira(
+                            (coopSummary as any).total_special_savings,
+                          )}
+                        </p>
+                      </div>
+                    )}
                 </>
               )}
             </div>
