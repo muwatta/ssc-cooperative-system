@@ -1,7 +1,6 @@
 from decimal import Decimal
 import csv
 import io
-import profile
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import generics, status, filters
@@ -9,7 +8,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
-from django.core.cache import cache          # <-- cache for dashboard stats
+from django.core.cache import cache
 
 from django.db.models import Sum
 
@@ -28,16 +27,15 @@ from .serializers import (
 )
 from .services import (
     check_loan_eligibility, calculate_max_borrowable,
-    get_loan_configuration, submit_loan_application, create_surety_records,
+    get_loan_configuration, submit_loan_application,
     committee_approve_loan, committee_reject_loan,
     admin_final_approve_loan,
     post_repayment, handle_default_or_exit,
 )
 from utils.hijri import current_hijri
-from utils.hijri import hijri_month_display
 import json
 
-# Helper to clear the dashboard cache
+
 def invalidate_dashboard_cache():
     cache.delete("dashboard_summary_admin_stats")
 
@@ -51,35 +49,32 @@ class LoanEligibilityView(APIView):
         except Exception:
             return Response({"error": "No member profile."}, status=status.HTTP_404_NOT_FOUND)
 
-        result     = check_loan_eligibility(profile)
+        result = check_loan_eligibility(profile)
         max_borrow = Decimal('999999999.00')
-
-        config     = get_loan_configuration()
-
+        config = get_loan_configuration()
         balance = get_or_create_balance(profile)
         self_surety_max = (balance.available_balance * config.self_surety_ratio).quantize(Decimal("0.01"))
-
         h_now_month, h_now_year = current_hijri()
 
         return Response({
-            "eligible":                      result["eligible"],
-            "reasons":                       result["reasons"],
-            "max_borrowable":                str(max_borrow),
-            "self_surety_max":               str(self_surety_max),
-            "consecutive_months":            profile.consecutive_savings_months,
-            "required_consecutive_months":   config.consecutive_savings_months_required,
-            "is_new_member":                 profile.is_new_member,
-            "max_repayment_months":          config.max_repayment_months,
-            "loan_amount_ratio":             str(config.self_surety_ratio),
-            "max_sureties":                  config.max_sureties,
-            "min_loan_amount":               str(config.min_loan_amount),
-            "max_loan_amount":               str(config.max_loan_amount),
-            "require_no_active_loan":        config.require_no_active_loan,
+            "eligible": result["eligible"],
+            "reasons": result["reasons"],
+            "max_borrowable": str(max_borrow),
+            "self_surety_max": str(self_surety_max),
+            "consecutive_months": profile.consecutive_savings_months,
+            "required_consecutive_months": config.consecutive_savings_months_required,
+            "is_new_member": profile.is_new_member,
+            "max_repayment_months": config.max_repayment_months,
+            "loan_amount_ratio": str(config.self_surety_ratio),
+            "max_sureties": config.max_sureties,
+            "min_loan_amount": str(config.min_loan_amount),
+            "max_loan_amount": str(config.max_loan_amount),
+            "require_no_active_loan": config.require_no_active_loan,
             "require_no_surety_liabilities": config.require_no_surety_liabilities,
-            "current_hijri_month":           h_now_month,
-            "current_hijri_year":            h_now_year, 
+            "current_hijri_month": h_now_month,
+            "current_hijri_year": h_now_year,
         })
-    
+
 
 class LoanSettingsView(APIView):
     permission_classes = [IsAdmin]
@@ -98,24 +93,28 @@ class LoanSettingsView(APIView):
 
 class LoanApplicationListView(generics.ListAPIView):
     serializer_class = LoanApplicationSerializer
-    filter_backends  = [DjangoFilterBackend, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["status"]
-    ordering         = ["created_at"]
+    ordering = ["created_at"]
 
     def get_permissions(self):
         return [IsAdminOrCommitteeOrHOS()]
 
     def get_queryset(self):
-        return LoanApplication.objects.select_related('applicant').prefetch_related('suretyrecord_set', 'repayments').all()
+        return LoanApplication.objects.select_related('applicant').all()
 
 
 class MyLoanListView(generics.ListAPIView):
     serializer_class = LoanApplicationSerializer
     permission_classes = [IsAuthenticated]
 
-def get_queryset(self):
-    profile = self.request.user.member_profile
-    return LoanApplication.objects.filter(applicant=profile).order_by("created_at")
+    def get_queryset(self):
+        try:
+            profile = self.request.user.member_profile
+            return LoanApplication.objects.filter(applicant=profile).order_by("created_at")
+        except Exception:
+            return LoanApplication.objects.none()
+
 
 class SubmitLoanView(APIView):
     permission_classes = [IsAuthenticated]
@@ -129,19 +128,19 @@ class SubmitLoanView(APIView):
         serializer = SubmitLoanSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         d = serializer.validated_data
-
         sureties = d.pop("sureties", [])
 
         try:
-            loan = submit_loan_application(member=profile, data={
-            **d,
-            "monthly_salary": d.get("monthly_salary", profile.monthly_income),
-        }, sureties=sureties if sureties else None)
+            loan = submit_loan_application(
+                member=profile,
+                data={**d, "monthly_salary": d.get("monthly_salary", profile.monthly_income)},
+                sureties=sureties if sureties else None
+            )
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(LoanApplicationSerializer(loan).data, status=status.HTTP_201_CREATED)
-    
+
 
 class CommitteeDecisionView(APIView):
     permission_classes = [CanApproveLoan]
@@ -167,7 +166,6 @@ class CommitteeDecisionView(APIView):
                 loan = committee_approve_loan(loan, request.user, d["amount_approved"], d.get("note", ""))
             else:
                 loan = committee_reject_loan(loan, request.user, d.get("note", ""))
-            # Invalidate dashboard cache because loan status changed
             invalidate_dashboard_cache()
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -188,10 +186,7 @@ class AdminFinalApprovalView(APIView):
             )
 
         if loan.applicant.user == request.user:
-            return Response(
-                {"error": "Admin cannot approve their own loan."},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({"error": "Admin cannot approve their own loan."}, status=status.HTTP_403_FORBIDDEN)
 
         serializer = AdminFinalApprovalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -212,23 +207,12 @@ class PendingLoanCountView(APIView):
     def get(self, request):
         user = request.user
         counts = {}
-        
         if user.role == "admin":
-            counts["pending_admin"] = LoanApplication.objects.filter(
-                status=LoanStatus.PENDING_ADMIN
-            ).count()
-        
+            counts["pending_admin"] = LoanApplication.objects.filter(status=LoanStatus.PENDING_ADMIN).count()
         if user.role in ["committee", "admin"]:
-            counts["submitted"] = LoanApplication.objects.filter(
-                status=LoanStatus.SUBMITTED
-            ).count()
-            counts["under_review"] = LoanApplication.objects.filter(
-                status=LoanStatus.UNDER_REVIEW
-            ).count()
-            counts["pending_sureties"] = LoanApplication.objects.filter(
-                status=LoanStatus.PENDING_SURETIES
-            ).count()
-        
+            counts["submitted"] = LoanApplication.objects.filter(status=LoanStatus.SUBMITTED).count()
+            counts["under_review"] = LoanApplication.objects.filter(status=LoanStatus.UNDER_REVIEW).count()
+            counts["pending_sureties"] = LoanApplication.objects.filter(status=LoanStatus.PENDING_SURETIES).count()
         return Response(counts)
 
 
@@ -237,20 +221,15 @@ class HOSApprovalView(APIView):
 
     def post(self, request, pk):
         try:
-            loan = LoanApplication.objects.get(
-                pk=pk,
-                status__in=[LoanStatus.APPROVED, LoanStatus.PENDING_ADMIN],
-            )
+            loan = LoanApplication.objects.get(pk=pk, status__in=[LoanStatus.APPROVED, LoanStatus.PENDING_ADMIN])
         except LoanApplication.DoesNotExist:
             return Response(
                 {"error": "Loan not found or not in a valid endorsement state."},
                 status=status.HTTP_404_NOT_FOUND
             )
-
         loan.hos_approved_by = request.user
         loan.hos_approved_at = timezone.now()
         loan.save(update_fields=["hos_approved_by", "hos_approved_at"])
-
         return Response(LoanApplicationSerializer(loan).data)
 
 
@@ -275,7 +254,6 @@ class PostRepaymentView(APIView):
                 hijri_year=d["hijri_year"],
                 posted_by=request.user,
             )
-            # Invalidate dashboard cache because outstanding balance changed
             invalidate_dashboard_cache()
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -284,7 +262,7 @@ class PostRepaymentView(APIView):
 
 
 class LoanRepaymentHistoryView(generics.ListAPIView):
-    serializer_class   = LoanRepaymentLedgerSerializer
+    serializer_class = LoanRepaymentLedgerSerializer
     permission_classes = [IsAdminOrCommitteeOrHOS]
 
     def get_queryset(self):
@@ -407,7 +385,7 @@ class LoanRepaymentExportView(APIView):
 
 
 class LoanDetailView(generics.RetrieveAPIView):
-    serializer_class   = LoanApplicationSerializer
+    serializer_class = LoanApplicationSerializer
     permission_classes = [IsAdminOrCommitteeOrHOS]
     queryset = LoanApplication.objects.select_related('applicant').all()
 
@@ -422,7 +400,6 @@ class HandleDefaultView(APIView):
             return Response({"error": "Active loan not found."}, status=status.HTTP_404_NOT_FOUND)
         try:
             result = handle_default_or_exit(loan)
-            # Invalidate dashboard cache because loan status changed to defaulted
             invalidate_dashboard_cache()
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -434,7 +411,7 @@ class LoanRepaymentExportAsyncView(APIView):
 
     def post(self, request, pk):
         from apps.loans.tasks import generate_loan_repayment_pdf
-        
+
         try:
             loan = LoanApplication.objects.get(pk=pk)
         except LoanApplication.DoesNotExist:
@@ -444,7 +421,6 @@ class LoanRepaymentExportAsyncView(APIView):
             )
 
         task = generate_loan_repayment_pdf.delay(pk)
-        
         return Response({
             "message": "PDF export queued",
             "task_id": task.id,
@@ -457,16 +433,14 @@ class TaskStatusView(APIView):
 
     def get(self, request, task_id):
         from celery.result import AsyncResult
-        
+
         task = AsyncResult(task_id)
-        
         return Response({
             "task_id": task_id,
             "status": task.status,
             "result": task.result if task.status == "SUCCESS" else None,
             "error": str(task.info) if task.status == "FAILURE" else None,
         })
-    
 
 
 class LoanDraftView(APIView):
@@ -555,7 +529,7 @@ class AdminApprovalPreviewView(APIView):
             },
             "sureties": sureties_list,
         })
-    
+
 
 class MemberStatementExportView(APIView):
     permission_classes = [IsAdminOrCommitteeOrHOS]
