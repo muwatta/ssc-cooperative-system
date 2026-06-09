@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/client";
 import { loansApi } from "@/api/services";
@@ -51,10 +52,9 @@ function useNavItems(): NavItem[] {
   return shared;
 }
 
-// Hijri conversion is now provided by the backend endpoint; remove local conversion.
-
 export default function AppLayout() {
   const { user, logout, isAdmin, isCommittee } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -66,7 +66,6 @@ export default function AppLayout() {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
-  // Fetch pending savings change requests count (only for admin/committee)
   const { data: pendingCountData } = useQuery({
     queryKey: ["pending-change-requests-count"],
     queryFn: () =>
@@ -78,7 +77,6 @@ export default function AppLayout() {
   });
   const pendingCount = pendingCountData ?? 0;
 
-  // Fetch pending loan counts (only for admin/committee)
   const { data: pendingLoanCountsData } = useQuery({
     queryKey: ["pending-loan-counts"],
     queryFn: () => loansApi.pendingCount().then((r) => r.data),
@@ -114,23 +112,24 @@ export default function AppLayout() {
     staff: "badge-gray",
   }[user?.role ?? "staff"];
 
-  // Dates are provided by the backend via `useCurrentDate` hook
-
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-950 overflow-hidden">
+      {/* Desktop sidebar */}
       <aside
         className={clsx(
-          "hidden lg:flex flex-col bg-white border-r border-gray-200 transition-all duration-200 shrink-0",
+          "hidden lg:flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-200 shrink-0",
           sidebarOpen ? "w-72" : "w-20",
         )}
       >
-        <div className="flex items-center gap-3 px-4 py-5 border-b border-gray-100">
+        <div className="flex items-center gap-3 px-4 py-5 border-b border-gray-100 dark:border-gray-800">
           <div className="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
             S
           </div>
           {sidebarOpen && (
             <div className="overflow-hidden">
-              <p className="font-bold text-sm text-gray-900 truncate">SSC</p>
+              <p className="font-bold text-sm text-gray-900 dark:text-white truncate">
+                SSC
+              </p>
               <p className="text-xs text-gray-400 truncate">Cooperative</p>
             </div>
           )}
@@ -145,8 +144,8 @@ export default function AppLayout() {
                 clsx(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-primary-50 text-primary-700"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+                    ? "bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200",
                 )
               }
             >
@@ -185,14 +184,14 @@ export default function AppLayout() {
           ))}
         </nav>
 
-        <div className="border-t border-gray-100 p-4 space-y-3">
+        <div className="border-t border-gray-100 dark:border-gray-800 p-4 space-y-3">
           {sidebarOpen ? (
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-sm shrink-0">
+              <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-700 dark:text-primary-300 font-semibold text-sm shrink-0">
                 {(user?.full_name || user?.staff_id)?.slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                   {user?.full_name || user?.staff_id}
                 </p>
                 <span className={clsx("badge text-xs mt-1", roleBadgeClass)}>
@@ -202,7 +201,7 @@ export default function AppLayout() {
             </div>
           ) : (
             <div className="flex justify-center">
-              <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-sm">
+              <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-700 dark:text-primary-300 font-semibold text-sm">
                 {(user?.full_name || user?.staff_id)?.slice(0, 2).toUpperCase()}
               </div>
             </div>
@@ -211,7 +210,8 @@ export default function AppLayout() {
           <button
             onClick={() => navigate("/change-password")}
             className={clsx(
-              "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-100 transition-colors",
+              "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors",
+              "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800",
               !sidebarOpen && "justify-center px-2",
             )}
           >
@@ -220,9 +220,22 @@ export default function AppLayout() {
           </button>
 
           <button
+            onClick={toggleTheme}
+            className={clsx(
+              "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors",
+              "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800",
+              !sidebarOpen && "justify-center px-2",
+            )}
+          >
+            <span>{theme === "light" ? "🌙" : "☀️"}</span>
+            {sidebarOpen && (theme === "light" ? "Dark Mode" : "Light Mode")}
+          </button>
+
+          <button
             onClick={() => setShowLogoutConfirm(true)}
             className={clsx(
-              "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-100 transition-colors",
+              "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors",
+              "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800",
               !sidebarOpen && "justify-center px-2",
             )}
           >
@@ -233,35 +246,33 @@ export default function AppLayout() {
       </aside>
 
       <div className="flex flex-col flex-1 overflow-hidden">
-        <header className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 py-3 flex flex-col gap-3 lg:px-6">
+        <header className="sticky top-0 z-20 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex flex-col gap-3 lg:px-6">
           <div className="w-full max-w-screen-2xl mx-auto">
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleToggleSidebar}
-                  className="btn-ghost p-2 rounded-md text-gray-700 hover:bg-gray-100 lg:hidden"
+                  className="btn-ghost p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden"
                 >
                   ☰
                 </button>
 
                 <button
                   onClick={handleToggleSidebar}
-                  className="btn-ghost p-2 rounded-md text-gray-700 hover:bg-gray-100 hidden lg:inline-flex"
+                  className="btn-ghost p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hidden lg:inline-flex"
                 >
                   {sidebarOpen ? "⟨" : "⟩"}
                 </button>
 
                 <div className="flex flex-col gap-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                     SSC Cooperative
                   </p>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     Quick access to your dashboard and reports
                   </p>
                 </div>
               </div>
-
-              {/* date badge removed; banner below shows canonical date */}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -280,7 +291,7 @@ export default function AppLayout() {
                 Next →
               </button>
 
-              <div className="hidden md:flex items-center gap-2 rounded-full bg-gray-100 px-3 py-2 text-sm text-gray-700 ml-auto">
+              <div className="hidden md:flex items-center gap-2 rounded-full bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 ml-auto">
                 <span className="font-semibold truncate">
                   {(user?.full_name || user?.staff_id) ?? "Guest"}
                 </span>
@@ -289,13 +300,12 @@ export default function AppLayout() {
           </div>
         </header>
 
-        {/* Date banner moved to PageHeader -> DateBadge for canonical display */}
-
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <Outlet />
         </main>
       </div>
 
+      {/* Mobile sidebar overlay */}
       <div
         className={clsx(
           "fixed inset-0 z-40 transition-opacity lg:hidden",
@@ -308,26 +318,29 @@ export default function AppLayout() {
         <div className="absolute inset-0 bg-black/40" />
       </div>
 
+      {/* Mobile sidebar drawer */}
       <aside
         className={clsx(
-          "fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col overflow-hidden border-r border-gray-200 bg-white transition-transform duration-200 lg:hidden",
+          "fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col overflow-hidden border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-transform duration-200 lg:hidden",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex items-center justify-between px-3 py-3 border-b border-gray-100">
+        <div className="flex items-center justify-between px-3 py-3 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold text-sm">
               S
             </div>
             <div>
-              <p className="font-bold text-sm text-gray-900">SSC</p>
+              <p className="font-bold text-sm text-gray-900 dark:text-white">
+                SSC
+              </p>
               <p className="text-xs text-gray-400">Cooperative</p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => setMobileMenuOpen(false)}
-            className="btn-ghost text-gray-700"
+            className="btn-ghost text-gray-700 dark:text-gray-300"
           >
             ✕
           </button>
@@ -343,8 +356,8 @@ export default function AppLayout() {
                 clsx(
                   "flex items-center gap-3 rounded-lg px-2 py-2 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-primary-50 text-primary-700"
-                    : "text-gray-700 hover:bg-gray-100",
+                    ? "bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800",
                 )
               }
             >
@@ -367,22 +380,17 @@ export default function AppLayout() {
                       (pendingLoanCounts.pending_admin ?? 0)}
                   </span>
                 )}
-              {item.to === "/savings/change-requests" && pendingCount > 0 && (
-                <span className="ml-auto inline-flex items-center justify-center rounded-full bg-primary-600 px-2 py-0.5 text-xs font-medium text-white">
-                  {pendingCount}
-                </span>
-              )}
             </NavLink>
           ))}
         </nav>
 
-        <div className="border-t border-gray-100 p-3 space-y-2">
+        <div className="border-t border-gray-100 dark:border-gray-800 p-3 space-y-2">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-sm">
+            <div className="w-9 h-9 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-700 dark:text-primary-300 font-semibold text-sm">
               {(user?.full_name || user?.staff_id)?.slice(0, 2).toUpperCase()}
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
                 {user?.full_name || user?.staff_id}
               </p>
               <span className={clsx("badge text-xs mt-1", roleBadgeClass)}>
@@ -396,9 +404,16 @@ export default function AppLayout() {
               setMobileMenuOpen(false);
               navigate("/change-password");
             }}
-            className="w-full rounded-md border border-gray-200 bg-white px-4 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             🔒 Change Password
+          </button>
+
+          <button
+            onClick={toggleTheme}
+            className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            {theme === "light" ? "🌙 Dark Mode" : "☀️ Light Mode"}
           </button>
 
           <button
@@ -412,11 +427,11 @@ export default function AppLayout() {
 
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="card w-full max-w-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <div className="card w-full max-w-sm p-6 dark:bg-gray-800 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               Confirm Logout
             </h3>
-            <p className="text-sm text-gray-500 mb-6">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
               Are you sure you want to logout? You will need to login again to
               access your account.
             </p>
