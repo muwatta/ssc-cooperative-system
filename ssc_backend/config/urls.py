@@ -78,8 +78,6 @@ urlpatterns = [
     path("api/v1/notifications/", include("apps.notifications.urls")),
     path("api/v1/audit/", include("apps.audit.urls")),
     path("api/v1/health/", health_check, name="health-check"),
-
-
     path("api/v1/reports/member-statement/<int:member_id>/", member_statement, name="member-statement"),
     path("api/v1/reports/loan-book/", loan_book, name="loan-book"),
     path("api/v1/reports/surety-exposure/", surety_exposure, name="surety-exposure"),

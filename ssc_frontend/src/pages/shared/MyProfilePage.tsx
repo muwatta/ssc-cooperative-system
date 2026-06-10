@@ -196,13 +196,23 @@ export default function MyProfilePage() {
   }
 
   return (
-    <div className="card p-6 max-w-4xl mx-auto space-y-6">
-      {/* Colorful Header */}
-      <div className="rounded-3xl bg-gradient-to-r from-primary-600 to-primary-800 p-6 text-white shadow-lg">
+    <div className="space-y-6">
+      {/* Page Header using design system */}
+      <div>
+        <h1 className="page-title">My Profile</h1>
+        <p className="page-subtitle">
+          {profileMissing
+            ? "Complete your member profile to get started."
+            : "Manage your personal and cooperative information."}
+        </p>
+      </div>
+
+      {/* Colorful Header Card (now uses card-panel with gradient) */}
+      <div className="card-panel bg-gradient-to-r from-primary-600 to-primary-800 dark:from-primary-800 dark:to-primary-950 p-6 text-white shadow-lg">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold">My Profile</h1>
-            <p className="mt-1 text-primary-100 text-sm">
+            <p className="mt-1 text-primary-100 dark:text-primary-300 text-sm">
               {profileMissing
                 ? "Complete your member profile to get started."
                 : "Manage your personal and cooperative information."}
@@ -222,25 +232,33 @@ export default function MyProfilePage() {
         {/* Quick metrics */}
         <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-white/10 rounded-xl p-3">
-            <p className="text-xs text-primary-200">Staff ID</p>
+            <p className="text-xs text-primary-200 dark:text-primary-300">
+              Staff ID
+            </p>
             <p className="font-mono font-semibold mt-1">
               {profile?.staff_id ?? "—"}
             </p>
           </div>
           <div className="bg-white/10 rounded-xl p-3">
-            <p className="text-xs text-primary-200">File No.</p>
+            <p className="text-xs text-primary-200 dark:text-primary-300">
+              File No.
+            </p>
             <p className="font-mono font-semibold mt-1">
               {profile?.file_number ?? "—"}
             </p>
           </div>
           <div className="bg-white/10 rounded-xl p-3">
-            <p className="text-xs text-primary-200">Branch</p>
+            <p className="text-xs text-primary-200 dark:text-primary-300">
+              Branch
+            </p>
             <p className="capitalize font-semibold mt-1">
               {profile?.school_branch ?? "—"}
             </p>
           </div>
           <div className="bg-white/10 rounded-xl p-3">
-            <p className="text-xs text-primary-200">Contribution</p>
+            <p className="text-xs text-primary-200 dark:text-primary-300">
+              Contribution
+            </p>
             <p className="font-semibold mt-1">
               ₦{profile?.approved_monthly_contribution || "0"}
             </p>
@@ -248,57 +266,58 @@ export default function MyProfilePage() {
         </div>
       </div>
 
+      {/* Alert message */}
       {serverMessage && (
         <div
-          className={`rounded-lg border px-4 py-3 text-sm ${
+          className={`rounded-xl border px-4 py-3 text-sm ${
             isError
-              ? "border-red-200 bg-red-50 text-red-700"
-              : "border-green-200 bg-green-50 text-green-700"
+              ? "border-danger-200 bg-danger-50 text-danger-700 dark:border-danger-800 dark:bg-danger-900/30 dark:text-danger-300"
+              : "border-success-200 bg-success-50 text-success-700 dark:border-success-800 dark:bg-success-900/30 dark:text-success-300"
           }`}
         >
           {serverMessage}
         </div>
       )}
 
-      {/* Identity & Status Cards */}
+      {/* Identity & Status Cards (now using card-panel-light) */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm">
+        <div className="card-panel-light border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/30 dark:to-gray-800 p-5">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-widest text-emerald-700">
+            <span className="text-xs font-semibold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
               Profile Status
             </span>
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200" />
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-800" />
           </div>
-          <p className="mt-3 text-2xl font-bold text-gray-900">
+          <p className="mt-3 text-2xl font-bold text-gray-900 dark:text-white">
             {profileMissing ? "Incomplete" : "Complete"}
           </p>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             Membership: {profile?.membership_status || "Pending"}
           </p>
         </div>
 
-        <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm">
+        <div className="card-panel-light border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-white dark:from-amber-950/30 dark:to-gray-800 p-5">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-widest text-amber-700">
+            <span className="text-xs font-semibold uppercase tracking-widest text-amber-700 dark:text-amber-300">
               Loan Eligibility
             </span>
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-amber-200" />
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-amber-200 dark:ring-amber-800" />
           </div>
-          <p className="mt-3 text-2xl font-bold text-gray-900">
+          <p className="mt-3 text-2xl font-bold text-gray-900 dark:text-white">
             {profile?.is_loan_eligible ? "Eligible" : "Not Eligible"}
           </p>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             Consecutive months: {profile?.consecutive_savings_months ?? 0}
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Personal Information */}
-        <section className="rounded-3xl border border-purple-200 bg-gradient-to-br from-purple-50 to-white p-5 shadow-sm">
+        <section className="card-panel-light border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/30 dark:to-gray-800 p-5">
           <div className="flex items-center gap-3">
             <span className="text-2xl">👤</span>
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-purple-700">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-purple-700 dark:text-purple-300">
               Personal Information
             </h2>
           </div>
@@ -398,10 +417,10 @@ export default function MyProfilePage() {
         </section>
 
         {/* School Details */}
-        <section className="rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm">
+        <section className="card-panel-light border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/30 dark:to-gray-800 p-5">
           <div className="flex items-center gap-3">
             <span className="text-2xl">🏫</span>
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-blue-700">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-blue-700 dark:text-blue-300">
               School Details
             </h2>
           </div>
@@ -442,10 +461,10 @@ export default function MyProfilePage() {
         </section>
 
         {/* Financial */}
-        <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm">
+        <section className="card-panel-light border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/30 dark:to-gray-800 p-5">
           <div className="flex items-center gap-3">
             <span className="text-2xl">💰</span>
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-emerald-700">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
               Financial
             </h2>
           </div>
@@ -461,7 +480,9 @@ export default function MyProfilePage() {
               min="1000"
               className={`input ${errors.approved_monthly_contribution ? "input-error" : ""}`}
             />
-            <p className="text-xs text-gray-400 mt-1">Minimum ₦1,000.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              Minimum ₦1,000.
+            </p>
             {errors.approved_monthly_contribution && (
               <p className="field-error">
                 {errors.approved_monthly_contribution.message}
@@ -471,10 +492,10 @@ export default function MyProfilePage() {
         </section>
 
         {/* Addresses */}
-        <section className="rounded-3xl border border-rose-200 bg-gradient-to-br from-rose-50 to-white p-5 shadow-sm">
+        <section className="card-panel-light border-rose-200 dark:border-rose-800 bg-gradient-to-br from-rose-50 to-white dark:from-rose-950/30 dark:to-gray-800 p-5">
           <div className="flex items-center gap-3">
             <span className="text-2xl">📍</span>
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-rose-700">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-rose-700 dark:text-rose-300">
               Addresses
             </h2>
           </div>
@@ -509,10 +530,10 @@ export default function MyProfilePage() {
         </section>
 
         {/* Next of Kin */}
-        <section className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm">
+        <section className="card-panel-light border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-white dark:from-amber-950/30 dark:to-gray-800 p-5">
           <div className="flex items-center gap-3">
             <span className="text-2xl">🆘</span>
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-amber-700">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-amber-700 dark:text-amber-300">
               Next of Kin
             </h2>
           </div>
@@ -575,11 +596,11 @@ export default function MyProfilePage() {
           </div>
         </section>
 
-        {/* Submit */}
+        {/* Submit Button */}
         <button
           type="submit"
           disabled={isSubmitting || (!profileMissing && !isDirty)}
-          className="w-full rounded-xl bg-gradient-to-r from-primary-600 to-primary-800 py-3 text-white font-semibold shadow-lg hover:from-primary-700 hover:to-primary-900 disabled:opacity-50 transition-all"
+          className="w-full rounded-xl bg-gradient-to-r from-primary-600 to-primary-800 py-3 text-white font-semibold shadow-lg hover:from-primary-700 hover:to-primary-900 disabled:opacity-50 transition-all dark:from-primary-700 dark:to-primary-900"
         >
           {isSubmitting
             ? profileMissing
@@ -590,7 +611,7 @@ export default function MyProfilePage() {
               : "Save Changes"}
         </button>
         {!profileMissing && !isDirty && !isSubmitting && (
-          <p className="mt-2 text-center text-xs text-gray-400">
+          <p className="mt-2 text-center text-xs text-gray-400 dark:text-gray-500">
             No changes to save.
           </p>
         )}

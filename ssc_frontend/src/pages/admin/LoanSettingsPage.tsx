@@ -17,8 +17,10 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">{title}</h2>
+    <div className="card-panel p-6">
+      <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+        {title}
+      </h2>
       {children}
     </div>
   );
@@ -45,10 +47,12 @@ function SliderField({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
         {label}
       </label>
-      <p className="text-xs text-gray-500 mb-2">{description}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+        {description}
+      </p>
       <div className="flex items-center gap-3">
         <input
           type="range"
@@ -57,10 +61,10 @@ function SliderField({
           step={step}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
+          className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-600 dark:accent-primary-500"
           aria-label={label}
         />
-        <span className="text-sm font-semibold w-20 text-right">
+        <span className="text-sm font-semibold w-20 text-right text-gray-900 dark:text-white">
           {value} {unit}
         </span>
       </div>
@@ -82,14 +86,20 @@ function ToggleField({
   return (
     <div className="flex items-start justify-between gap-2">
       <div>
-        <p className="text-sm font-medium text-gray-700">{label}</p>
-        <p className="text-xs text-gray-500">{description}</p>
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          {label}
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {description}
+        </p>
       </div>
       <button
         type="button"
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-          checked ? "bg-primary-600" : "bg-gray-300"
+          checked
+            ? "bg-primary-600 dark:bg-primary-500"
+            : "bg-gray-300 dark:bg-gray-600"
         }`}
         aria-label={label}
       >
@@ -103,20 +113,15 @@ function ToggleField({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Main component                                                    */
-/* ------------------------------------------------------------------ */
 export default function LoanSettingsPage() {
   const qc = useQueryClient();
   const [saved, setSaved] = useState(false);
 
-  // Fetch current settings
   const { data: settings, isLoading } = useQuery<LoanSettings>({
     queryKey: ["loan-settings"],
     queryFn: () => loansApi.settings().then((r) => r.data),
   });
 
-  // Local state that mirrors the settings
   const [form, setForm] = useState<LoanSettings | null>(null);
 
   useEffect(() => {
