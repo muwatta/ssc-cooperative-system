@@ -220,18 +220,6 @@ export default function AppLayout() {
           </button>
 
           <button
-            onClick={toggleTheme}
-            className={clsx(
-              "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors",
-              "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800",
-              !sidebarOpen && "justify-center px-2",
-            )}
-          >
-            <span>{theme === "light" ? "🌙" : "☀️"}</span>
-            {sidebarOpen && (theme === "light" ? "Dark Mode" : "Light Mode")}
-          </button>
-
-          <button
             onClick={() => setShowLogoutConfirm(true)}
             className={clsx(
               "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors",
@@ -291,10 +279,19 @@ export default function AppLayout() {
                 Next →
               </button>
 
-              <div className="hidden md:flex items-center gap-2 rounded-full bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 ml-auto">
-                <span className="font-semibold truncate">
-                  {(user?.full_name || user?.staff_id) ?? "Guest"}
-                </span>
+              <div className="flex items-center gap-2 ml-auto">
+                <div className="hidden md:flex items-center gap-2 rounded-full bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300">
+                  <span className="font-semibold truncate">
+                    {(user?.full_name || user?.staff_id) ?? "Guest"}
+                  </span>
+                </div>
+                <button
+                  onClick={toggleTheme}
+                  className="rounded-full bg-gray-100 dark:bg-gray-800 p-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  aria-label="Toggle theme"
+                >
+                  {theme === "light" ? "🌙" : "☀️"}
+                </button>
               </div>
             </div>
           </div>
@@ -407,13 +404,6 @@ export default function AppLayout() {
             className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             🔒 Change Password
-          </button>
-
-          <button
-            onClick={toggleTheme}
-            className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-          >
-            {theme === "light" ? "🌙 Dark Mode" : "☀️ Light Mode"}
           </button>
 
           <button
