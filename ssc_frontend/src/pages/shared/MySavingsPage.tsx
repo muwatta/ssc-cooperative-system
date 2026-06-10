@@ -225,7 +225,9 @@ export default function MySavingsPage() {
   if (profileLoading) {
     return (
       <AnimatedCard className="p-6">
-        <div className="text-gray-600">Loading your savings profile…</div>
+        <div className="text-gray-600 dark:text-gray-300">
+          Loading your savings profile…
+        </div>
       </AnimatedCard>
     );
   }
@@ -262,34 +264,51 @@ export default function MySavingsPage() {
 
       {/* Personal summary cards – responsive grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        <div className="card-panel bg-gradient-to-br from-primary-50 to-white">
-          <p className="text-sm m-3 text-gray-500">Total Savings</p>
-          <p className="text-2xl m-3 font-semibold mt-1">
+        {/* Total Savings */}
+        <div className="card-panel bg-gradient-to-br from-primary-50 to-white dark:from-primary-900/30 dark:to-gray-900">
+          <p className="text-sm m-3 text-gray-500 dark:text-gray-400">
+            Total Savings
+          </p>
+          <p className="text-2xl m-3 font-semibold mt-1 dark:text-white">
             {summary.savingsBalance}
           </p>
         </div>
-        <div className="card-panel bg-gradient-to-br from-emerald-50 to-white">
-          <p className="text-sm m-3 text-gray-500">Available Balance</p>
-          <p className="text-2xl m-3 font-semibold mt-1">
+
+        {/* Available Balance */}
+        <div className="card-panel bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-900/30 dark:to-gray-900">
+          <p className="text-sm m-3 text-gray-500 dark:text-gray-400">
+            Available Balance
+          </p>
+          <p className="text-2xl m-3 font-semibold mt-1 dark:text-white">
             {summary.availableBalance}
           </p>
         </div>
-        <div className="card-panel bg-gradient-to-br from-sky-50 to-white">
-          <p className="text-sm m-3 text-gray-500">
+
+        {/* Approved Monthly Contribution */}
+        <div className="card-panel bg-gradient-to-br from-sky-50 to-white dark:from-sky-900/30 dark:to-gray-900">
+          <p className="text-sm m-3 text-gray-500 dark:text-gray-400">
             Approved Monthly Contribution
           </p>
-          <p className="text-2xl m-3 font-semibold mt-1">
+          <p className="text-2xl m-3 font-semibold mt-1 dark:text-white">
             {summary.contribution}
           </p>
         </div>
-        <div className="card-panel bg-gradient-to-br from-amber-50 to-white">
-          <p className="text-sm m-3 text-gray-500">Loan Eligible</p>
-          <p className="text-2xl m-3 font-semibold mt-1">
+
+        {/* Loan Eligible */}
+        <div className="card-panel bg-gradient-to-br from-amber-50 to-white dark:from-amber-900/30 dark:to-gray-900">
+          <p className="text-sm m-3 text-gray-500 dark:text-gray-400">
+            Loan Eligible
+          </p>
+          <p className="text-2xl m-3 font-semibold mt-1 dark:text-white">
             {summary.loanEligibility}
           </p>
         </div>
-        <div className="card-panel flex flex-col items-start">
-          <p className="text-sm m-3 text-gray-500">Request Change</p>
+
+        {/* Request Change */}
+        <div className="card-panel dark:bg-gray-900 flex flex-col items-start">
+          <p className="text-sm m-3 text-gray-500 dark:text-gray-400">
+            Request Change
+          </p>
           <button
             onClick={() => setShowRequestModal(true)}
             className="btn-secondary btn-sm mt-2 w-full"
@@ -301,36 +320,43 @@ export default function MySavingsPage() {
 
       {/* Suretyship Commitment, Reserved for Investment, and Special Savings (if any) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="card-panel bg-gradient-to-br from-purple-50 to-white">
-          <p className="text-sm text-gray-500 m-3">Suretyship Commitment</p>
-          <p className="text-2xl m-3 font-semibold mt-1">
+        {/* Suretyship Commitment */}
+        <div className="card-panel bg-gradient-to-br from-purple-50 to-white dark:from-purple-900/30 dark:to-gray-900">
+          <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
+            Suretyship Commitment
+          </p>
+          <p className="text-2xl m-3 font-semibold mt-1 dark:text-white">
             {summary.suretyCommitted}
           </p>
-          <p className="text-xs m-3 text-gray-400 mt-1">
+          <p className="text-xs m-3 text-gray-400 dark:text-gray-500 mt-1">
             Total amount you have guaranteed for others
           </p>
         </div>
 
-        <div className="card-panel bg-gradient-to-br from-blue-50 to-white">
-          <p className="text-sm text-gray-500 m-3">Reserved for Investment</p>
-          <p className="text-2xl font-semibold mt-1 m-3">
+        {/* Reserved for Investment */}
+        <div className="card-panel bg-gradient-to-br from-blue-50 to-white dark:from-blue-900/30 dark:to-gray-900">
+          <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
+            Reserved for Investment
+          </p>
+          <p className="text-2xl font-semibold mt-1 m-3 dark:text-white">
             {summary.reservedForInvestment}
           </p>
-          <p className="text-xs text-gray-400 mt-1 m-3">
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 m-3">
             25% of (total savings − special savings) – not available for loans
             or surety
           </p>
         </div>
 
+        {/* Special Fixed Savings */}
         {Number(balance?.special_savings || 0) > 0 && (
-          <div className="card-panel bg-gradient-to-br from-indigo-50 to-white">
-            <p className="text-sm m-3 text-gray-500">
+          <div className="card-panel bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900/30 dark:to-gray-900">
+            <p className="text-sm m-3 text-gray-500 dark:text-gray-400">
               🔒 Special Fixed Savings
             </p>
-            <p className="text-2xl m-3 font-semibold mt-1 text-indigo-700">
+            <p className="text-2xl m-3 font-semibold mt-1 text-indigo-700 dark:text-indigo-400">
               {summary.specialSavings}
             </p>
-            <p className="text-xs m-3 text-gray-400 mt-1">
+            <p className="text-xs m-3 text-gray-400 dark:text-gray-500 mt-1">
               Locked savings – not available for loans
             </p>
           </div>
@@ -342,10 +368,10 @@ export default function MySavingsPage() {
         <div className="card-panel">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold m-3">
+              <h2 className="text-lg font-semibold m-3 dark:text-white">
                 Cooperative Balances
               </h2>
-              <p className="text-sm text-gray-500 m-3">
+              <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
                 General totals for all members.
               </p>
             </div>
@@ -356,12 +382,16 @@ export default function MySavingsPage() {
             )}
           </div>
           {summaryLoading ? (
-            <div className="mt-4 m-3 text-gray-500">Loading...</div>
+            <div className="mt-4 m-3 text-gray-500 dark:text-gray-400">
+              Loading...
+            </div>
           ) : (
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="card-panel-light">
-                <p className="text-xs text-gray-500 m-3">Total Savings</p>
-                <p className="text-xl font-semibold m-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 m-3">
+                  Total Savings
+                </p>
+                <p className="text-xl font-semibold m-3 dark:text-white">
                   {cooperativeSummary
                     ? formatCurrency(
                         cooperativeSummary.cooperative.total_savings,
@@ -370,8 +400,10 @@ export default function MySavingsPage() {
                 </p>
               </div>
               <div className="card-panel-light">
-                <p className="text-xs text-gray-500 m-3">Total Commitments</p>
-                <p className="text-xl font-semibold m-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 m-3">
+                  Total Commitments
+                </p>
+                <p className="text-xl font-semibold m-3 dark:text-white">
                   {cooperativeSummary
                     ? formatCurrency(
                         cooperativeSummary.cooperative.total_committed,
@@ -380,8 +412,10 @@ export default function MySavingsPage() {
                 </p>
               </div>
               <div className="card-panel-light">
-                <p className="text-xs text-gray-500 m-3">Total Available</p>
-                <p className="text-xl font-semibold m-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 m-3">
+                  Total Available
+                </p>
+                <p className="text-xl font-semibold m-3 dark:text-white">
                   {cooperativeSummary
                     ? formatCurrency(
                         cooperativeSummary.cooperative.total_available,
@@ -390,8 +424,10 @@ export default function MySavingsPage() {
                 </p>
               </div>
               <div className="card-panel-light">
-                <p className="text-xs text-gray-500 m-3">Members Count</p>
-                <p className="text-xl font-semibold m-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 m-3">
+                  Members Count
+                </p>
+                <p className="text-xl font-semibold m-3 dark:text-white">
                   {cooperativeSummary?.cooperative.member_count ?? 0}
                 </p>
               </div>
@@ -405,35 +441,45 @@ export default function MySavingsPage() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="card-panel-light">
-              <p className="text-sm text-gray-500">Membership Status</p>
-              <p className="text-lg font-semibold capitalize">
+              <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
+                Membership Status
+              </p>
+              <p className="text-lg font-semibold capitalize dark:text-white m-3">
                 {summary.status}
               </p>
             </div>
             <div className="card-panel-light">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
                 Consecutive Savings Months
               </p>
-              <p className="text-lg font-semibold">{summary.months}</p>
+              <p className="text-lg font-semibold dark:text-white m-3">
+                {summary.months}
+              </p>
             </div>
             <div className="card-panel-light">
-              <p className="text-sm text-gray-500">SSC File Number</p>
-              <p className="text-lg font-semibold">{profile.file_number}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
+                SSC File Number
+              </p>
+              <p className="text-lg font-semibold dark:text-white m-3">
+                {profile.file_number}
+              </p>
             </div>
           </div>
 
           {/* Ledger section */}
           <div>
             <div className="mb-4">
-              <h2 className="text-lg font-semibold">Savings Ledger</h2>
-              <p className="text-sm text-gray-500">
+              <h2 className="text-lg font-semibold dark:text-white">
+                Savings Ledger
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 Filter your ledger by Hijri month/year or by date range, then
                 export.
               </p>
             </div>
 
             {/* Filter bar */}
-            <div className="card-panel-light mb-6">
+            <div className="card-panel-light mb-6 p-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="label">Hijri Month</label>
@@ -528,9 +574,13 @@ export default function MySavingsPage() {
 
             {/* Table */}
             {ledgerFetching && !ledger.length ? (
-              <div className="text-gray-500">Loading ledger entries…</div>
+              <div className="text-gray-500 dark:text-gray-400">
+                Loading ledger entries…
+              </div>
             ) : sortedLedger.length === 0 ? (
-              <div className="text-gray-500">No ledger entries found.</div>
+              <div className="text-gray-500 dark:text-gray-400">
+                No ledger entries found.
+              </div>
             ) : (
               <div className="table-container">
                 <table className="table">
@@ -578,7 +628,7 @@ export default function MySavingsPage() {
                 >
                   ← Previous
                 </button>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   Page {page} of {pageCount}
                 </span>
                 <button
@@ -598,13 +648,13 @@ export default function MySavingsPage() {
       {showRequestModal && (
         <div className="fixed inset-0 z-50 m-4 flex items-center justify-center bg-black/40 p-4">
           <div className="card-panel w-full max-w-md">
-            <div className="flex items-center justify-between border-b border-gray-200 pb-4 mb-4">
-              <h2 className="font-semibold m-3 text-gray-900">
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
+              <h2 className="font-semibold m-3 text-gray-900 dark:text-white">
                 Request Savings Change
               </h2>
               <button
                 onClick={() => setShowRequestModal(false)}
-                className="text-gray-400 m-3 hover:text-gray-600"
+                className="text-gray-400 m-3 hover:text-gray-600 dark:hover:text-gray-300"
               >
                 ✕
               </button>
@@ -615,7 +665,7 @@ export default function MySavingsPage() {
                   {requestError}
                 </div>
               )}
-              <p className="text-sm text-gray-600 m-3">
+              <p className="text-sm text-gray-600 dark:text-gray-300 m-3">
                 Your current monthly contribution:{" "}
                 <strong>
                   {formatCurrency(
@@ -624,7 +674,9 @@ export default function MySavingsPage() {
                 </strong>
               </p>
               <div>
-                <label className="label m-3">New monthly contribution (₦)</label>
+                <label className="label m-3">
+                  New monthly contribution (₦)
+                </label>
                 <input
                   type="number"
                   step="1000"
@@ -634,7 +686,9 @@ export default function MySavingsPage() {
                   className="input"
                   placeholder="Enter new amount"
                 />
-                <p className="text-xs text-gray-400 mt-1 m-3">Minimum ₦1,000</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 m-3">
+                  Minimum ₦1,000
+                </p>
               </div>
               <div className="flex gap-3 pt-2">
                 <button
