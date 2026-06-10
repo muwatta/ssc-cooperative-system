@@ -27,6 +27,7 @@ urlpatterns = [
     path("move-to-special/<int:member_id>/", MoveToSpecialView.as_view(), name="move-to-special"),
     path("withdraw-special/<int:member_id>/", WithdrawSpecialView.as_view(), name="withdraw-special"),
     path("reconciliation/", ReconciliationView.as_view(), name="reconciliation"),
-     path('special-savings/', PostSpecialSavingsView.as_view(), name='special-savings'),
+    path('special-savings/', PostSpecialSavingsView.as_view(), name='special-savings'),
+    path('special-savings/withdraw/<int:member_id>/', WithdrawSpecialView.as_view(), name='special-savings-withdraw'),
 ]
 

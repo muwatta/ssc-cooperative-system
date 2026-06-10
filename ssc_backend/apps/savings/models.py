@@ -79,12 +79,6 @@ class MemberBalance(models.Model):
     class Meta:
         db_table = "ssc_member_balances"
 
-    @property
-    def available_balance(self):
-        # special_savings is a reclassification of total_savings into a locked pool,
-        # so it must be excluded from available balance alongside suretyship_committed.
-        return self.total_savings - self.suretyship_committed - self.special_savings
-
     def __str__(self):
         return (
             f"{self.member.file_number} | "
@@ -92,6 +86,18 @@ class MemberBalance(models.Model):
             f"Special: {self.special_savings} | "
             f"Available: {self.available_balance}"
         )
+    
+    @property
+    def reserved_for_investment(self):
+        base = self.total_savings - self.special_savings
+        return base * Decimal('0.25')
+
+    @property
+    def available_balance(self):
+        base = self.total_savings - self.suretyship_committed - self.special_savings
+        if self.member.membership_status not in ("exited", "inactive"):
+            base -= self.reserved_for_investment
+        return base
 
 
 class SavingsChangeRequest(models.Model):

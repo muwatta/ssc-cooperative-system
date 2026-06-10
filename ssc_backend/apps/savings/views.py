@@ -766,16 +766,34 @@ class WithdrawSpecialView(APIView):
         except MemberProfile.DoesNotExist:
             return Response({"error": "Member not found or not a special saver."}, status=404)
 
-        balance = get_or_create_balance(member)
-        amount = balance.special_savings
-        if amount <= 0:
-            return Response({"error": "No special savings to withdraw."}, status=400)
+        amount_raw = request.data.get("amount")
+        hijri_month = request.data.get("hijri_month")
+        hijri_year = request.data.get("hijri_year")
 
-        balance.special_savings = Decimal("0")
+        if not all([amount_raw, hijri_month, hijri_year]):
+            return Response(
+                {"error": "amount, hijri_month, hijri_year are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            amount = Decimal(str(amount_raw))
+        except Exception:
+            return Response({"error": "Invalid amount."}, status=400)
+
+        balance = get_or_create_balance(member)
+        if amount <= 0 or amount > balance.special_savings:
+            return Response(
+                {"error": f"Amount must be between 0 and {balance.special_savings}."},
+                status=400
+            )
+
+        balance.special_savings -= amount
         balance.save()
 
-        from utils.hijri import current_hijri
-        h_month, h_year = current_hijri()
+        from utils.hijri import hijri_month_display
+        h_month = int(hijri_month)
+        h_year = int(hijri_year)
         SavingsLedger.objects.create(
             member=member,
             hijri_month=h_month,
@@ -791,8 +809,11 @@ class WithdrawSpecialView(APIView):
             verified_by_role=request.user.role,
         )
         invalidate_dashboard_cache()
-        return Response({"message": f"₦{amount} withdrawn from special savings.", "special_savings": str(balance.special_savings)})
-
+        return Response({
+            "message": f"₦{amount} withdrawn from special savings.",
+            "special_savings": str(balance.special_savings),
+        })
+    
 
 class ReconciliationView(APIView):
     permission_classes = [IsAdminOrCommitteeOrHOS]
@@ -873,3 +894,5 @@ class PostSpecialSavingsView(APIView):
             "total_savings": str(balance.total_savings),
             "available_balance": str(balance.available_balance),
         }, status=status.HTTP_201_CREATED)
+    
+

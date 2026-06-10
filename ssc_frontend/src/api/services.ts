@@ -21,17 +21,13 @@ import type {
 } from "@/types";
 
 // AUTH
-
 export const authApi = {
   login: (data: LoginRequest) => api.post<LoginResponse>("/auth/login/", data),
-
   logout: (refresh: string) => api.post("/auth/logout/", { refresh }),
-
   refresh: (refresh: string) =>
     api.post<{ access: string; refresh: string }>("/auth/refresh/", {
       refresh,
     }),
-
   setInitialPassword: (data: {
     staff_id?: string;
     token?: string;
@@ -41,7 +37,6 @@ export const authApi = {
 };
 
 // MEMBERS
-
 export const membersApi = {
   counts: () =>
     api
@@ -53,9 +48,7 @@ export const membersApi = {
         exited: number;
       }>("/accounts/members/counts/")
       .then((r) => r.data),
-      
   me: () => api.get<MemberProfile | null>("/accounts/me/"),
-
   list: (params?: {
     page?: number;
     search?: string;
@@ -63,26 +56,19 @@ export const membersApi = {
     school_branch?: string;
   }) =>
     api.get<PaginatedResponse<MemberProfile>>("/accounts/members/", { params }),
-
   summary: (search?: string) =>
     api.get<PaginatedResponse<MemberSummary>>("/accounts/members/summary/", {
       params: search ? { search } : undefined,
     }),
-
   get: (id: number) => api.get<MemberProfile>(`/accounts/members/${id}/`),
-
   create: (data: Record<string, unknown>) =>
     api.post<MemberProfile>("/accounts/members/", data),
-
   update: (id: number, data: Partial<MemberProfile>) =>
     api.patch<MemberProfile>(`/accounts/members/${id}/`, data),
-
   createMe: (data: Partial<MemberProfile>) =>
     api.post<MemberProfile>("/accounts/me/", data),
-
   updateMe: (data: Partial<MemberProfile>) =>
     api.patch<MemberProfile>("/accounts/me/", data),
-
   approve: (
     id: number,
     data: {
@@ -92,7 +78,6 @@ export const membersApi = {
       approved_monthly_contribution: string;
     },
   ) => api.post<MemberProfile>(`/accounts/members/${id}/approve/`, data),
-
   deactivate: (id: number) => api.post(`/accounts/members/${id}/deactivate/`),
   importLegacy: (
     file: File,
@@ -124,19 +109,15 @@ export const membersApi = {
 };
 
 // STAFF ID REGISTRY
-
 export const staffIdApi = {
   list: (search?: string) =>
     api.get<PaginatedResponse<StaffIDEntry>>("/accounts/staff-ids/", {
       params: search ? { search } : undefined,
     }),
-
   create: (staff_id: string) =>
     api.post<StaffIDEntry>("/accounts/staff-ids/", { staff_id }),
-
   update: (id: number, data: Partial<StaffIDEntry>) =>
     api.patch<StaffIDEntry>(`/accounts/staff-ids/${id}/`, data),
-
   delete: (id: number) => api.delete(`/accounts/staff-ids/${id}/`),
 };
 
@@ -150,14 +131,10 @@ export const usersApi = {
 };
 
 // SAVINGS
-
 export const savingsApi = {
   getBalance: (memberId: number) =>
     api.get<MemberBalance>(`/savings/balance/${memberId}/`),
-
   summary: () => api.get<SavingsSummary>("/savings/summary/"),
-
-  // Savings ledger for a member
   getLedger: (
     memberId: number,
     params?: {
@@ -172,7 +149,6 @@ export const savingsApi = {
       `/savings/ledger/${memberId}/`,
       { params },
     ),
-
   exportLedger: (
     memberId: number,
     params?: {
@@ -184,13 +160,9 @@ export const savingsApi = {
     format: "csv" | "pdf" = "csv",
   ) =>
     api.get<Blob>(`/savings/ledger/${memberId}/export/`, {
-      params: {
-        ...params,
-        format,
-      },
+      params: { ...params, format },
       responseType: "blob",
     }),
-
   exportBulkReport: (
     params?: {
       member_id?: number;
@@ -204,14 +176,9 @@ export const savingsApi = {
     format: "csv" | "pdf" = "csv",
   ) =>
     api.get<Blob>(`/savings/reports/export/`, {
-      params: {
-        ...params,
-        format,
-      },
+      params: { ...params, format },
       responseType: "blob",
     }),
-
-  // Post special fixed savings for a member (Admin only)
   postSpecialSavings: (data: {
     member_id: number;
     amount: string | number;
@@ -226,16 +193,18 @@ export const savingsApi = {
       total_savings: string;
       available_balance: string;
     }>("/savings/special-savings/", data),
-
-  // Get special savings balance for a member
+  withdrawSpecialSavings: (data: {
+    member_id: number;
+    amount: string;
+    hijri_month: number;
+    hijri_year: number;
+  }) => api.post("/savings/special-savings/withdraw/", data),
   getSpecialSavingsBalance: (memberId: number) =>
     api.get<{
       special_savings: string;
       total_savings: string;
       available_balance: string;
     }>(`/savings/balance/${memberId}/`),
-
-  // Post monthly savings entry (Admin only)
   postSavings: (data: {
     member?: number;
     member_ids?: number[];
@@ -243,50 +212,39 @@ export const savingsApi = {
     hijri_month: number;
     hijri_year: number;
   }) => api.post<SavingsLedgerEntry>("/savings/post/", data),
-
-  // Post termly dues against members (Admin only)
   postDues: (data: {
     amount: string | number;
     hijri_month: number;
     hijri_year: number;
-    member_ids?: number[]; // empty = all active members
+    member_ids?: number[];
     description?: string;
   }) => api.post("/savings/dues/", data),
-
-  // Savings increase/decrease requests
   changeRequests: {
     list: (params?: { status?: string; page?: number }) =>
       api.get<PaginatedResponse<SavingsChangeRequest>>(
         "/savings/change-requests/",
         { params },
       ),
-
     create: (data: { requested_amount: string }) =>
       api.post<SavingsChangeRequest>("/savings/change-requests/", data),
-
     approve: (
       id: number,
-      data: {
-        effective_hijri_month: number;
-        effective_hijri_year: number;
-      },
+      data: { effective_hijri_month: number; effective_hijri_year: number },
     ) =>
       api.post<SavingsChangeRequest>(
         `/savings/change-requests/${id}/approve/`,
         data,
       ),
-
     reject: (id: number) =>
       api.post<SavingsChangeRequest>(`/savings/change-requests/${id}/reject/`),
   },
 };
 
+// LOANS
 export const loansApi = {
   list: (params?: { status?: string; page?: number }) =>
     api.get<PaginatedResponse<LoanApplication>>("/loans/", { params }),
-
   mine: () => api.get<PaginatedResponse<LoanApplication>>("/loans/mine/"),
-
   pendingCount: () =>
     api.get<{
       pending_admin?: number;
@@ -294,40 +252,29 @@ export const loansApi = {
       under_review?: number;
       pending_sureties?: number;
     }>("/loans/pending-count/"),
-
   eligibility: () => api.get<LoanEligibilityResponse>("/loans/eligibility/"),
-
   settings: () => api.get<LoanSettings>("/loans/settings/"),
   updateSettings: (data: Partial<LoanSettings>) =>
     api.patch<LoanSettings>("/loans/settings/", data),
-
   apply: (data: Record<string, unknown>) =>
     api.post<LoanApplication>("/loans/apply/", data),
-
   committeeDecision: (id: number, data: Record<string, unknown>) =>
     api.post<LoanApplication>(`/loans/${id}/committee-decision/`, data),
-
   adminApprove: (id: number, data: Record<string, unknown> = {}) =>
     api.post<LoanApplication>(`/loans/${id}/admin-approve/`, data),
-
   hosApprove: (id: number) =>
     api.post<LoanApplication>(`/loans/${id}/hos-approve/`),
-
   get: (id: number) => api.get<LoanApplication>(`/loans/${id}/`),
-
-  getAdminPreview: (id: number) => api.get(`/loans/${id}/admin-approval-preview/`),
-
+  getAdminPreview: (id: number) =>
+    api.get(`/loans/${id}/admin-approval-preview/`),
   postRepayment: (id: number, data: Record<string, unknown>) =>
     api.post(`/loans/${id}/repayment/`, data),
-
   repaymentHistory: (id: number) => api.get(`/loans/${id}/repayments/`),
-
   exportRepayments: (id: number, format: "csv" | "pdf" = "csv") =>
     api.get<Blob>(`/loans/${id}/repayments/export/`, {
       params: { format },
       responseType: "blob",
     }),
-
   saveDraft: (data: Record<string, unknown>) =>
     api.post("/loans/draft/", { data }),
   getDraft: () =>
@@ -336,26 +283,21 @@ export const loansApi = {
     ),
 };
 
+// SURETIES
 export const suretiesApi = {
   mine: () => api.get<PaginatedResponse<SuretyRecord>>("/sureties/mine/"),
-
   loan: (loanId: number) =>
     api.get<PaginatedResponse<SuretyRecord>>(`/sureties/loan/${loanId}/`),
-
   confirm: (id: number) => api.post<SuretyRecord>(`/sureties/${id}/confirm/`),
-
   decline: (id: number) => api.post<SuretyRecord>(`/sureties/${id}/decline/`),
-
   checkEligibility: (memberId: number, amount: number) =>
-    api.get(`/sureties/check-eligibility/${memberId}/`, {
-      params: { amount },
-    }),
-
+    api.get(`/sureties/check-eligibility/${memberId}/`, { params: { amount } }),
   checkEligibilityBatch: (
     sureties: Array<{ row_id: string; member_id: number; amount: number }>,
   ) => api.post(`/sureties/check-eligibility/batch/`, { sureties }),
 };
 
+// NOTIFICATIONS
 export const notificationsApi = {
   list: () => api.get<PaginatedResponse<Notification>>("/notifications/"),
   unreadCount: () =>
@@ -364,6 +306,7 @@ export const notificationsApi = {
   markAllRead: () => api.post(`/notifications/mark-all-read/`),
 };
 
+// INVESTMENTS
 export const investmentsApi = {
   list: () => api.get<PaginatedResponse<InvestmentRecord>>("/investments/"),
   create: (data: Record<string, unknown>) =>

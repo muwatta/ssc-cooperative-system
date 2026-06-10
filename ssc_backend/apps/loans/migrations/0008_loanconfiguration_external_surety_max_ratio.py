@@ -14,6 +14,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='loanconfiguration',
             name='external_surety_max_ratio',
-            field=models.DecimalField(decimal_places=2, default=Decimal('0.85'), help_text="Maximum fraction of a surety's available balance they can guarantee.", max_digits=4),
+            field=models.DecimalField(decimal_places=2, default=Decimal('0.75'), help_text="Maximum fraction of a surety's available balance they can guarantee.", max_digits=4),
         ),
     ]

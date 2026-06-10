@@ -57,7 +57,9 @@ export default function MySavingsPage() {
   const profileMissing = profile === null && !profileLoading && !profileError;
 
   // Balance (React Query, 2 min cache)
-  const { data: balance } = useQuery<MemberBalance>({
+  const { data: balance } = useQuery<
+    MemberBalance & { reserved_for_investment?: string }
+  >({
     queryKey: ["my-balance", profile?.id],
     enabled: !!profile?.id,
     queryFn: async () => {
@@ -90,7 +92,7 @@ export default function MySavingsPage() {
 
   const ledger = ledgerResponse?.results ?? [];
   const totalLedgerCount = ledgerResponse?.count ?? 0;
-  const pageSize = 50; // default page size from API (should match backend)
+  const pageSize = 50;
   const pageCount = Math.max(1, Math.ceil(totalLedgerCount / pageSize));
 
   // Sort ledger chronologically (oldest first)
@@ -136,6 +138,9 @@ export default function MySavingsPage() {
         : "₦0.00",
       specialSavings: balance?.special_savings
         ? formatCurrency(balance.special_savings)
+        : "₦0.00",
+      reservedForInvestment: balance?.reserved_for_investment
+        ? formatCurrency(balance.reserved_for_investment)
         : "₦0.00",
     };
   }, [balance, profile]);
@@ -290,8 +295,8 @@ export default function MySavingsPage() {
         </div>
       </div>
 
-      {/* Suretyship Commitment and Special Savings (if any) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Suretyship Commitment, Reserved for Investment, and Special Savings (if any) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="card-panel bg-gradient-to-br from-purple-50 to-white">
           <p className="text-sm text-gray-500">Suretyship Commitment</p>
           <p className="text-2xl font-semibold mt-1">
@@ -301,6 +306,18 @@ export default function MySavingsPage() {
             Total amount you have guaranteed for others
           </p>
         </div>
+
+        <div className="card-panel bg-gradient-to-br from-blue-50 to-white">
+          <p className="text-sm text-gray-500">Reserved for Investment</p>
+          <p className="text-2xl font-semibold mt-1">
+            {summary.reservedForInvestment}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            25% of (total savings − special savings) – not available for loans
+            or surety
+          </p>
+        </div>
+
         {Number(balance?.special_savings || 0) > 0 && (
           <div className="card-panel bg-gradient-to-br from-indigo-50 to-white">
             <p className="text-sm text-gray-500">🔒 Special Fixed Savings</p>

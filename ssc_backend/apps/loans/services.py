@@ -124,10 +124,10 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
 
             surety_member = MemberProfile.objects.select_related("user").get(pk=surety_item["member_id"])
             surety_balance = get_or_create_balance(surety_member)
-            max_surety = (surety_balance.available_balance * Decimal("0.85")).quantize(Decimal("0.01"))
+            max_surety = (surety_balance.available_balance * Decimal("0.75")).quantize(Decimal("0.01"))
             if amount > max_surety:
                 raise ValueError(
-                    f"{surety_member.full_name} can guarantee at most ₦{max_surety} (85% of their available balance)."
+                    f"{surety_member.full_name} can guarantee at most ₦{max_surety} (75% of their available balance)."
                 )
         if total_external < shortfall:
             raise ValueError(
@@ -428,10 +428,10 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
 
             surety_member = MemberProfile.objects.select_related("user").get(pk=surety_item["member_id"])
             surety_balance = get_or_create_balance(surety_member)
-            max_surety = (surety_balance.available_balance * Decimal("0.85")).quantize(Decimal("0.01"))
+            max_surety = (surety_balance.available_balance * Decimal("0.75")).quantize(Decimal("0.01"))
             if amount > max_surety:
                 raise ValueError(
-                    f"{surety_member.full_name} can guarantee at most ₦{max_surety} (85% of their available balance)."
+                    f"{surety_member.full_name} can guarantee at most ₦{max_surety} (75% of their available balance)."
                 )
         if total_external < shortfall:
             raise ValueError(

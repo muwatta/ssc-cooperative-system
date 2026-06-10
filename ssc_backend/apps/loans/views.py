@@ -686,9 +686,9 @@ class SuretyExposureExportView(APIView):
 
         buffer = io.StringIO()
         writer = csv.writer(buffer)
-        writer.writerow(["File No", "Name", "Total Savings", "Available", "Surety Committed", "Remaining Capacity (85%)"])
+        writer.writerow(["File No", "Name", "Total Savings", "Available", "Surety Committed", "Remaining Capacity (75%)"])
         for b in balances:
-            max_capacity = b.available_balance * 0.85
+            max_capacity = b.available_balance * 0.75
             writer.writerow([
                 b.member.file_number,
                 b.member.full_name,

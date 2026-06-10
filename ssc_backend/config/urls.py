@@ -43,9 +43,9 @@ def _surety_csv():
     balances = MemberBalance.objects.filter(suretyship_committed__gt=0).select_related("member")
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(["File No", "Name", "Total Savings", "Available", "Surety Committed", "Remaining Capacity (85%)"])
+    w.writerow(["File No", "Name", "Total Savings", "Available", "Surety Committed", "Remaining Capacity (75%)"])
     for b in balances:
-        cap = b.available_balance * 0.85
+        cap = b.available_balance * 0.75
         w.writerow([b.member.file_number, b.member.full_name, str(b.total_savings), str(b.available_balance), str(b.suretyship_committed), f"{cap:.2f}"])
     resp = HttpResponse(buf.getvalue(), content_type='text/csv')
     resp['Content-Disposition'] = 'attachment; filename=surety_exposure.csv'

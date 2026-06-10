@@ -16,15 +16,21 @@ export default function PostSpecialSavingsPage() {
   const [balances, setBalances] = useState<Record<number, MemberBalance>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-
   const [selectedMember, setSelectedMember] = useState<MemberProfile | null>(
     null,
   );
+
+  // Post fields
   const [amount, setAmount] = useState("");
   const [hijriMonth, setHijriMonth] = useState(1);
   const [hijriYear, setHijriYear] = useState(1446);
   const [details, setDetails] = useState("");
   const [posting, setPosting] = useState(false);
+
+  // Withdrawal fields
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawing, setWithdrawing] = useState(false);
+
   const [result, setResult] = useState<{
     type: "success" | "error";
     message: string;
@@ -35,12 +41,10 @@ export default function PostSpecialSavingsPage() {
     membersApi
       .list({ membership_status: "active" })
       .then(async (r) => {
-        // Filter to special savers only
         const all = r.data.results;
         const special = all.filter((m) => m.is_special_saver);
         setSpecialMembers(special);
 
-        // Load balances for all special savers
         const results = await Promise.allSettled(
           special.map((m) => savingsApi.getBalance(m.id)),
         );
@@ -69,8 +73,16 @@ export default function PostSpecialSavingsPage() {
     setSelectedMember(member);
     setAmount("");
     setDetails("");
+    setWithdrawAmount("");
     setResult(null);
   };
+
+  const selectedBalance = selectedMember ? balances[selectedMember.id] : null;
+  const maxAmount = selectedBalance
+    ? Number(selectedBalance.available_balance)
+    : 0;
+  const enteredAmount = Number(amount);
+  const amountValid = enteredAmount > 0 && enteredAmount <= maxAmount;
 
   const handlePost = async () => {
     if (!selectedMember || !amount) return;
@@ -93,7 +105,6 @@ export default function PostSpecialSavingsPage() {
           "Available Balance": formatNaira(res.data.available_balance),
         },
       });
-      // Refresh balance for this member
       const updated = await savingsApi.getBalance(selectedMember.id);
       setBalances((prev) => ({
         ...prev,
@@ -101,6 +112,7 @@ export default function PostSpecialSavingsPage() {
       }));
       setAmount("");
       setDetails("");
+      setWithdrawAmount("");
     } catch (e: any) {
       const msg =
         e?.response?.data?.error ||
@@ -111,12 +123,35 @@ export default function PostSpecialSavingsPage() {
     }
   };
 
-  const selectedBalance = selectedMember ? balances[selectedMember.id] : null;
-  const maxAmount = selectedBalance
-    ? Number(selectedBalance.available_balance)
-    : 0;
-  const enteredAmount = Number(amount);
-  const amountValid = enteredAmount > 0 && enteredAmount <= maxAmount;
+  const handleWithdraw = async () => {
+    if (!selectedMember) return;
+    const wAmount = Number(withdrawAmount);
+    const specialBal = Number(selectedBalance?.special_savings || 0);
+    if (wAmount <= 0 || wAmount > specialBal) {
+      alert("Invalid amount. Must be between 1 and current special savings.");
+      return;
+    }
+    setWithdrawing(true);
+    try {
+      const res = await savingsApi.withdrawSpecialSavings({
+        member_id: selectedMember.id,
+        amount: withdrawAmount,
+        hijri_month: hijriMonth,
+        hijri_year: hijriYear,
+      });
+      setResult({ type: "success", message: res.data.message });
+      const updated = await savingsApi.getBalance(selectedMember.id);
+      setBalances((prev) => ({ ...prev, [selectedMember.id]: updated.data }));
+      setWithdrawAmount("");
+    } catch (err: any) {
+      setResult({
+        type: "error",
+        message: err?.response?.data?.error || "Withdrawal failed",
+      });
+    } finally {
+      setWithdrawing(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl">
@@ -205,7 +240,7 @@ export default function PostSpecialSavingsPage() {
           )}
         </div>
 
-        {/* RIGHT — posting form */}
+        {/* RIGHT — posting & withdrawal form */}
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
             Post Special Savings
@@ -258,6 +293,46 @@ export default function PostSpecialSavingsPage() {
                 )}
               </div>
 
+              {/* Withdrawal section (if special savings > 0) */}
+              {selectedBalance &&
+                Number(selectedBalance.special_savings) > 0 && (
+                  <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                      Withdraw from Special Savings
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="label text-xs">
+                          Amount to withdraw (₦)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="1"
+                          max={Number(selectedBalance.special_savings ?? 0)}
+                          value={withdrawAmount}
+                          onChange={(e) => setWithdrawAmount(e.target.value)}
+                          className="input"
+                          aria-label="Withdrawal amount"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Max:{" "}
+                          {formatNaira(selectedBalance.special_savings ?? 0)}
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleWithdraw}
+                        disabled={withdrawing || !withdrawAmount}
+                        className="btn-secondary w-full"
+                      >
+                        {withdrawing
+                          ? "Withdrawing..."
+                          : "💰 Withdraw from Special Savings"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
               {/* Period */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -288,10 +363,10 @@ export default function PostSpecialSavingsPage() {
                 </div>
               </div>
 
-              {/* Amount */}
+              {/* Amount to lock */}
               <div>
                 <label className="label text-xs">
-                  Amount (₦)
+                  Amount to lock (₦)
                   {selectedBalance && (
                     <span className="ml-2 text-gray-400 font-normal">
                       max {formatNaira(selectedBalance.available_balance)}
@@ -311,7 +386,7 @@ export default function PostSpecialSavingsPage() {
                       : ""
                   }`}
                   placeholder="Enter amount to lock into special savings"
-                  aria-label="Amount"
+                  aria-label="Amount to lock"
                 />
                 {amount && !amountValid && (
                   <p className="text-xs text-danger-700 mt-1">
@@ -322,7 +397,7 @@ export default function PostSpecialSavingsPage() {
                 )}
               </div>
 
-              {/* Details / note */}
+              {/* Note */}
               <div>
                 <label className="label text-xs">
                   Note{" "}
@@ -339,7 +414,7 @@ export default function PostSpecialSavingsPage() {
                 />
               </div>
 
-              {/* Result */}
+              {/* Result message */}
               {result && (
                 <div
                   className={`rounded-lg border p-3 text-sm ${
@@ -364,7 +439,7 @@ export default function PostSpecialSavingsPage() {
                 </div>
               )}
 
-              {/* Submit */}
+              {/* Post button */}
               <button
                 onClick={handlePost}
                 disabled={!amountValid || posting}
@@ -381,9 +456,8 @@ export default function PostSpecialSavingsPage() {
               </button>
 
               <p className="text-xs text-gray-400 text-center">
-                This deducts from available balance and locks the amount into
-                the special savings pool. The member's total savings decreases
-                by this amount.
+                Locking deducts from available balance and adds to special
+                savings. Withdrawing does the opposite.
               </p>
             </div>
           )}

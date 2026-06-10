@@ -46,7 +46,7 @@ class LoanConfiguration(models.Model):
     external_surety_max_ratio = models.DecimalField(
     max_digits=4,
     decimal_places=2,
-    default=Decimal("0.85"),
+    default=Decimal("0.75"),
     help_text="Maximum fraction of a surety's available balance they can guarantee.",
 )
 

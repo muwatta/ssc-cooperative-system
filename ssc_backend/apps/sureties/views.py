@@ -1,5 +1,3 @@
-"""SSC Cooperative — Sureties Views"""
-
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -12,7 +10,6 @@ from decimal import Decimal
 
 
 class LoanSuretiesView(generics.ListAPIView):
-    """GET /api/v1/sureties/loan/<loan_id>/"""
     serializer_class   = SuretyRecordSerializer
     permission_classes = [IsAdminOrCommittee]
 
@@ -21,7 +18,6 @@ class LoanSuretiesView(generics.ListAPIView):
 
 
 class MySuretiesView(generics.ListAPIView):
-    """GET /api/v1/sureties/mine/ — own surety obligations"""
     serializer_class   = SuretyRecordSerializer
     permission_classes = [IsAuthenticated]
 
@@ -34,7 +30,6 @@ class MySuretiesView(generics.ListAPIView):
 
 
 class ConfirmSuretyView(APIView):
-    """POST /api/v1/sureties/<id>/confirm/"""
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
@@ -56,7 +51,6 @@ class ConfirmSuretyView(APIView):
 
 
 class DeclineSuretyView(APIView):
-    """POST /api/v1/sureties/<id>/decline/"""
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
@@ -73,7 +67,6 @@ class DeclineSuretyView(APIView):
 
 
 class CheckSuretyEligibilityView(APIView):
-    """GET /api/v1/sureties/check-eligibility/<member_id>/?amount=50000"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, member_id):
@@ -91,13 +84,12 @@ class CheckSuretyEligibilityView(APIView):
         return Response({
             **result,
             "available_balance":   str(balance.available_balance),
-            "max_can_commit":      str((balance.available_balance * Decimal("0.85")).quantize(Decimal("0.01"))),
+            "max_can_commit":      str((balance.available_balance * Decimal("0.75")).quantize(Decimal("0.01"))),
             "consecutive_months":  member.consecutive_savings_months,
         })
 
 
 class BatchCheckSuretyEligibilityView(APIView):
-    """POST /api/v1/sureties/check-eligibility/batch/"""
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -138,7 +130,7 @@ class BatchCheckSuretyEligibilityView(APIView):
                 "amount": str(amount.quantize(Decimal("0.01"))),
                 **eligibility,
                 "available_balance": str(balance.available_balance),
-                "max_can_commit": str((balance.available_balance * Decimal("0.85")).quantize(Decimal("0.01"))),
+                "max_can_commit": str((balance.available_balance * Decimal("0.75")).quantize(Decimal("0.01"))),
                 "consecutive_months": member.consecutive_savings_months,
             })
 
