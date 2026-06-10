@@ -177,7 +177,7 @@ export default function DashboardPage() {
       {/* Loan & Approval snapshot (leadership only) */}
       {isLeadership && dashSummary && (
         <div className="card-panel mb-6 bg-white border border-gray-200">
-          <h2 className="text-lg font-semibold mb-3">At a Glance</h2>
+          <h2 className="text-lg font-semibold mb-3 mt-2 ml-2">At a Glance</h2>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <StatCard
               label="Pending Admin Approval"
@@ -213,10 +213,10 @@ export default function DashboardPage() {
       {/* Upcoming Repayments (leadership) */}
       {isLeadership && dashSummary?.upcoming_repayments?.length > 0 && (
         <div className="card-panel mb-6 bg-white border border-gray-200">
-          <h2 className="text-lg font-semibold mb-2">
+          <h2 className="text-lg font-semibold m-3">
             Upcoming Repayments (next month)
           </h2>
-          <div className="text-sm space-y-1 max-h-48 overflow-y-auto">
+          <div className="text-sm space-y-1 max-h-48 overflow-y-auto m-3">
             {dashSummary.upcoming_repayments.map((r: any) => (
               <div
                 key={r.loan_id}
@@ -308,13 +308,13 @@ export default function DashboardPage() {
         <div className="card-panel mb-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold">Membership Summary</h2>
-              <p className="text-sm text-gray-500">
+              <h2 className="text-lg font-semibold m-3">Membership Summary</h2>
+              <p className="text-sm text-gray-500 m-2">
                 Live member counts for your role.
               </p>
             </div>
             {loading && (
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 m-2">
                 Loading membership stats...
               </div>
             )}
@@ -329,51 +329,57 @@ export default function DashboardPage() {
           {stats && !loading && !error && (
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <div className="card-panel-light">
-                <p className="text-xs uppercase tracking-[0.24em] text-gray-500">
+                <p className="text-xs m-3 uppercase tracking-[0.24em] text-gray-500">
                   Total Members
                 </p>
-                <p className="mt-3 text-2xl font-semibold text-gray-900">
+                <p className="mt-3 text-2xl m-3 font-semibold text-gray-900">
                   {stats.totalMembers}
                 </p>
-                <p className="text-sm text-gray-500 mt-2">All registrations</p>
+                <p className="text-sm m-3 text-gray-500 mt-2">
+                  All registrations
+                </p>
               </div>
               <div className="card-panel-light">
-                <p className="text-xs uppercase tracking-[0.24em] text-gray-500">
+                <p className="text-xs m-3 uppercase tracking-[0.24em] text-gray-500">
                   Active Members
                 </p>
-                <p className="mt-3 text-2xl font-semibold text-green-700">
+                <p className="mt-3 m-3 text-2xl font-semibold text-green-700">
                   {stats.activeMembers}
                 </p>
-                <p className="text-sm text-gray-500 mt-2">Currently active</p>
+                <p className="text-sm m-3 text-gray-500 mt-2">
+                  Currently active
+                </p>
               </div>
               <div className="card-panel-light">
-                <p className="text-xs uppercase tracking-[0.24em] text-gray-500">
+                <p className="text-xs m-3 uppercase tracking-[0.24em] text-gray-500">
                   Pending Members
                 </p>
-                <p className="mt-3 text-2xl font-semibold text-amber-700">
+                <p className="mt-3 m-3 text-2xl font-semibold text-amber-700">
                   {stats.pendingMembers}
                 </p>
-                <p className="text-sm text-gray-500 mt-2">Awaiting approval</p>
+                <p className="text-sm m-3 text-gray-500 mt-2">
+                  Awaiting approval
+                </p>
               </div>
               <div className="card-panel-light">
-                <p className="text-xs uppercase tracking-[0.24em] text-gray-500">
+                <p className="text-xs m-3 uppercase tracking-[0.24em] text-gray-500">
                   Inactive Members
                 </p>
-                <p className="mt-3 text-2xl font-semibold text-red-700">
+                <p className="mt-3 text-2xl m-3 font-semibold text-red-700">
                   {stats.inactiveMembers}
                 </p>
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="text-sm m-3 text-gray-500 mt-2">
                   Temporarily inactive
                 </p>
               </div>
               <div className="card-panel-light">
-                <p className="text-xs uppercase tracking-[0.24em] text-gray-500">
+                <p className="text-xs m-3 uppercase tracking-[0.24em] text-gray-500">
                   Exited Members
                 </p>
-                <p className="mt-3 text-2xl font-semibold text-primary-700">
+                <p className="mt-3 m-3 text-2xl font-semibold text-primary-700">
                   {stats.exitedMembers}
                 </p>
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="text-sm m-3 text-gray-500 mt-2">
                   Left the cooperative
                 </p>
               </div>
@@ -386,7 +392,7 @@ export default function DashboardPage() {
       <div className="card-panel mb-6 bg-primary-50 border-primary-100">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
-            <div className="rounded-full bg-primary-100 px-3 py-1 text-sm font-semibold text-primary-800">
+            <div className="rounded-full m-3 bg-primary-100 px-3 py-1 text-sm font-semibold text-primary-800">
               Balance Overview
             </div>
             <button
@@ -397,13 +403,13 @@ export default function DashboardPage() {
               {showBalances ? "👁️" : "👁️‍🗨️"}
             </button>
           </div>
-          <p className="text-sm text-primary-700/80 mt-1">
+          <p className="text-sm m-3 text-primary-700/80 mt-1">
             {isAdmin || isCommittee
               ? "Your savings balance plus a cooperative summary for all members."
               : "Your personal savings balance and contribution details."}
           </p>
           {balanceLoading && (
-            <div className="text-sm text-primary-700/80">
+            <div className="text-sm m-3 text-primary-700/80">
               Loading balances...
             </div>
           )}
@@ -425,20 +431,20 @@ export default function DashboardPage() {
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <div className="card-panel-light">
-                <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                   Your Total Savings
                 </p>
-                <p className="mt-3 text-2xl font-semibold text-gray-900">
+                <p className="mt-3 m-3 text-2xl font-semibold text-gray-900">
                   {hasMemberBalance
                     ? maskIfNeeded(formatNaira(memberBalance!.total_savings))
                     : "N/A"}
                 </p>
               </div>
               <div className="card-panel-light">
-                <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                   Your Available Balance
                 </p>
-                <p className="mt-3 text-2xl font-semibold text-gray-900">
+                <p className="mt-3 m-3 text-2xl font-semibold text-gray-900">
                   {hasMemberBalance
                     ? maskIfNeeded(
                         formatNaira(memberBalance!.available_balance),
@@ -447,10 +453,10 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div className="card-panel-light">
-                <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                   Approved Contribution
                 </p>
-                <p className="mt-3 text-2xl font-semibold text-gray-900">
+                <p className="mt-3 m-3 text-2xl font-semibold text-gray-900">
                   {myProfile?.approved_monthly_contribution !== undefined
                     ? maskIfNeeded(
                         formatNaira(myProfile.approved_monthly_contribution),
@@ -459,10 +465,10 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div className="card-panel-light">
-                <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                   Committed Savings
                 </p>
-                <p className="mt-3 text-2xl font-semibold text-gray-900">
+                <p className="mt-3 m-3 text-2xl font-semibold text-gray-900">
                   {hasMemberBalance
                     ? maskIfNeeded(
                         formatNaira(memberBalance!.suretyship_committed),
@@ -475,10 +481,10 @@ export default function DashboardPage() {
               {hasMemberBalance &&
                 Number(memberBalance!.special_savings || 0) > 0 && (
                   <div className="card-panel-light">
-                    <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                    <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                       🔒 Special Fixed Savings
                     </p>
-                    <p className="mt-3 text-2xl font-semibold text-purple-700">
+                    <p className="mt-3 m-3 text-2xl font-semibold text-purple-700">
                       {maskIfNeeded(
                         formatNaira(memberBalance!.special_savings || 0),
                       )}
@@ -490,22 +496,21 @@ export default function DashboardPage() {
               {isAdmin && coopSummary && (
                 <>
                   <div className="card-panel-light">
-                    <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                    <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                       Cooperative Total Savings
                     </p>
-                    <p className="mt-3 text-2xl font-semibold text-gray-900">
+                    <p className="mt-3 m-3 text-2xl font-semibold text-gray-900">
                       {maskIfNeeded(formatNaira(coopSummary.total_savings))}
                     </p>
                   </div>
                   <div className="card-panel-light">
-                    <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                    <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                       Total Available Across Members
                     </p>
-                    <p className="mt-3 text-2xl font-semibold text-gray-900">
+                    <p className="mt-3 m-3 text-2xl font-semibold text-gray-900">
                       {maskIfNeeded(formatNaira(coopSummary.total_available))}
                     </p>
                   </div>
-                  {/* Total Special Savings (cooperative) – use type assertion */}
                   {(coopSummary as any).total_special_savings &&
                     Number((coopSummary as any).total_special_savings) > 0 && (
                       <div className="card-panel-light">
@@ -530,8 +535,10 @@ export default function DashboardPage() {
         <div className="card-panel mb-6 bg-primary-50 border-primary-100">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold">Your personal dashboard</h2>
-              <p className="text-sm text-gray-500 mt-2">
+              <h2 className="text-lg font-semibold m-3">
+                Your personal dashboard
+              </h2>
+              <p className="text-sm text-gray-500 mt-2 m-3">
                 This page highlights your account access and membership status.
                 For full cooperative reports, contact an administrator.
               </p>
@@ -541,13 +548,13 @@ export default function DashboardPage() {
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="card-panel-light">
               <p className="text-sm text-gray-500">Profile</p>
-              <p className="mt-2 text-lg font-semibold">
+              <p className="mt-2 text-lg m-3 font-semibold">
                 View and update your details anytime.
               </p>
             </div>
             <div className="card-panel-light">
               <p className="text-sm text-gray-500">Savings</p>
-              <p className="mt-2 text-lg font-semibold">
+              <p className="mt-2 m-3 text-lg font-semibold">
                 Track your contribution records in the savings section.
               </p>
             </div>
@@ -560,17 +567,17 @@ export default function DashboardPage() {
         <div className="card-panel mb-6 bg-red-50 border border-red-200">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-red-800">
+              <h2 className="text-lg m-3 font-semibold text-red-800">
                 Pilot Reset
               </h2>
-              <p className="text-sm text-red-600 mt-1">
+              <p className="text-sm m-3 text-red-600 mt-1">
                 Remove all test data and start fresh with only the admin
                 account.
               </p>
             </div>
             <button
               onClick={() => setShowResetModal(true)}
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm font-medium"
+              className="bg-red-600 m-3 text-white px-4 py-2 rounded hover:bg-red-700 text-sm font-medium"
             >
               🔄 Reset All Data (Pilot)
             </button>

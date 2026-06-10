@@ -263,29 +263,33 @@ export default function MySavingsPage() {
       {/* Personal summary cards – responsive grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <div className="card-panel bg-gradient-to-br from-primary-50 to-white">
-          <p className="text-sm text-gray-500">Total Savings</p>
-          <p className="text-2xl font-semibold mt-1">
+          <p className="text-sm m-3 text-gray-500">Total Savings</p>
+          <p className="text-2xl m-3 font-semibold mt-1">
             {summary.savingsBalance}
           </p>
         </div>
         <div className="card-panel bg-gradient-to-br from-emerald-50 to-white">
-          <p className="text-sm text-gray-500">Available Balance</p>
-          <p className="text-2xl font-semibold mt-1">
+          <p className="text-sm m-3 text-gray-500">Available Balance</p>
+          <p className="text-2xl m-3 font-semibold mt-1">
             {summary.availableBalance}
           </p>
         </div>
         <div className="card-panel bg-gradient-to-br from-sky-50 to-white">
-          <p className="text-sm text-gray-500">Approved Monthly Contribution</p>
-          <p className="text-2xl font-semibold mt-1">{summary.contribution}</p>
+          <p className="text-sm m-3 text-gray-500">
+            Approved Monthly Contribution
+          </p>
+          <p className="text-2xl m-3 font-semibold mt-1">
+            {summary.contribution}
+          </p>
         </div>
         <div className="card-panel bg-gradient-to-br from-amber-50 to-white">
-          <p className="text-sm text-gray-500">Loan Eligible</p>
-          <p className="text-2xl font-semibold mt-1">
+          <p className="text-sm m-3 text-gray-500">Loan Eligible</p>
+          <p className="text-2xl m-3 font-semibold mt-1">
             {summary.loanEligibility}
           </p>
         </div>
         <div className="card-panel flex flex-col items-start">
-          <p className="text-sm text-gray-500">Request Change</p>
+          <p className="text-sm m-3 text-gray-500">Request Change</p>
           <button
             onClick={() => setShowRequestModal(true)}
             className="btn-secondary btn-sm mt-2 w-full"
@@ -298,21 +302,21 @@ export default function MySavingsPage() {
       {/* Suretyship Commitment, Reserved for Investment, and Special Savings (if any) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="card-panel bg-gradient-to-br from-purple-50 to-white">
-          <p className="text-sm text-gray-500">Suretyship Commitment</p>
-          <p className="text-2xl font-semibold mt-1">
+          <p className="text-sm text-gray-500 m-3">Suretyship Commitment</p>
+          <p className="text-2xl m-3 font-semibold mt-1">
             {summary.suretyCommitted}
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs m-3 text-gray-400 mt-1">
             Total amount you have guaranteed for others
           </p>
         </div>
 
         <div className="card-panel bg-gradient-to-br from-blue-50 to-white">
-          <p className="text-sm text-gray-500">Reserved for Investment</p>
-          <p className="text-2xl font-semibold mt-1">
+          <p className="text-sm text-gray-500 m-3">Reserved for Investment</p>
+          <p className="text-2xl font-semibold mt-1 m-3">
             {summary.reservedForInvestment}
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-400 mt-1 m-3">
             25% of (total savings − special savings) – not available for loans
             or surety
           </p>
@@ -320,11 +324,13 @@ export default function MySavingsPage() {
 
         {Number(balance?.special_savings || 0) > 0 && (
           <div className="card-panel bg-gradient-to-br from-indigo-50 to-white">
-            <p className="text-sm text-gray-500">🔒 Special Fixed Savings</p>
-            <p className="text-2xl font-semibold mt-1 text-indigo-700">
+            <p className="text-sm m-3 text-gray-500">
+              🔒 Special Fixed Savings
+            </p>
+            <p className="text-2xl m-3 font-semibold mt-1 text-indigo-700">
               {summary.specialSavings}
             </p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs m-3 text-gray-400 mt-1">
               Locked savings – not available for loans
             </p>
           </div>
@@ -336,24 +342,26 @@ export default function MySavingsPage() {
         <div className="card-panel">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold">Cooperative Balances</h2>
-              <p className="text-sm text-gray-500">
+              <h2 className="text-lg font-semibold m-3">
+                Cooperative Balances
+              </h2>
+              <p className="text-sm text-gray-500 m-3">
                 General totals for all members.
               </p>
             </div>
             {summaryLoadError && (
-              <p className="text-sm text-danger-700">
+              <p className="text-sm text-danger-700 m-3">
                 Unable to load cooperative summary.
               </p>
             )}
           </div>
           {summaryLoading ? (
-            <div className="mt-4 text-gray-500">Loading...</div>
+            <div className="mt-4 m-3 text-gray-500">Loading...</div>
           ) : (
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="card-panel-light">
-                <p className="text-xs text-gray-500">Total Savings</p>
-                <p className="text-xl font-semibold">
+                <p className="text-xs text-gray-500 m-3">Total Savings</p>
+                <p className="text-xl font-semibold m-3">
                   {cooperativeSummary
                     ? formatCurrency(
                         cooperativeSummary.cooperative.total_savings,
@@ -362,8 +370,8 @@ export default function MySavingsPage() {
                 </p>
               </div>
               <div className="card-panel-light">
-                <p className="text-xs text-gray-500">Total Commitments</p>
-                <p className="text-xl font-semibold">
+                <p className="text-xs text-gray-500 m-3">Total Commitments</p>
+                <p className="text-xl font-semibold m-3">
                   {cooperativeSummary
                     ? formatCurrency(
                         cooperativeSummary.cooperative.total_committed,
@@ -372,8 +380,8 @@ export default function MySavingsPage() {
                 </p>
               </div>
               <div className="card-panel-light">
-                <p className="text-xs text-gray-500">Total Available</p>
-                <p className="text-xl font-semibold">
+                <p className="text-xs text-gray-500 m-3">Total Available</p>
+                <p className="text-xl font-semibold m-3">
                   {cooperativeSummary
                     ? formatCurrency(
                         cooperativeSummary.cooperative.total_available,
@@ -382,8 +390,8 @@ export default function MySavingsPage() {
                 </p>
               </div>
               <div className="card-panel-light">
-                <p className="text-xs text-gray-500">Members Count</p>
-                <p className="text-xl font-semibold">
+                <p className="text-xs text-gray-500 m-3">Members Count</p>
+                <p className="text-xl font-semibold m-3">
                   {cooperativeSummary?.cooperative.member_count ?? 0}
                 </p>
               </div>
