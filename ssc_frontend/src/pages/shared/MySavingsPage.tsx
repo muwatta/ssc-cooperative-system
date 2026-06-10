@@ -596,26 +596,26 @@ export default function MySavingsPage() {
 
       {/* Request Change Modal */}
       {showRequestModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-50 m-4 flex items-center justify-center bg-black/40 p-4">
           <div className="card-panel w-full max-w-md">
             <div className="flex items-center justify-between border-b border-gray-200 pb-4 mb-4">
-              <h2 className="font-semibold text-gray-900">
+              <h2 className="font-semibold m-3 text-gray-900">
                 Request Savings Change
               </h2>
               <button
                 onClick={() => setShowRequestModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 m-3 hover:text-gray-600"
               >
                 ✕
               </button>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-4 m-3">
               {requestError && (
                 <div className="bg-danger-50 border border-danger-200 text-danger-700 px-4 py-3 rounded-lg text-sm">
                   {requestError}
                 </div>
               )}
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 m-3">
                 Your current monthly contribution:{" "}
                 <strong>
                   {formatCurrency(
@@ -624,7 +624,7 @@ export default function MySavingsPage() {
                 </strong>
               </p>
               <div>
-                <label className="label">New monthly contribution (₦)</label>
+                <label className="label m-3">New monthly contribution (₦)</label>
                 <input
                   type="number"
                   step="1000"
@@ -634,7 +634,7 @@ export default function MySavingsPage() {
                   className="input"
                   placeholder="Enter new amount"
                 />
-                <p className="text-xs text-gray-400 mt-1">Minimum ₦1,000</p>
+                <p className="text-xs text-gray-400 mt-1 m-3">Minimum ₦1,000</p>
               </div>
               <div className="flex gap-3 pt-2">
                 <button
