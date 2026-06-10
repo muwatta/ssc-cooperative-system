@@ -8,7 +8,22 @@
   }
 
   body {
-    @apply bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans antialiased;
+    @apply bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white font-sans antialiased;
+  }
+
+  /* Ensure all headings and paragraphs inherit white in dark mode */
+  h1, h2, h3, h4, h5, h6, p, span, li, a, label, button, .text-gray-700, .text-gray-600, .text-gray-500, .text-gray-400 {
+    @apply dark:text-white;
+  }
+
+  /* But override specific utility classes that might be used for non‑text elements */
+  .text-gray-500, .text-gray-600, .text-gray-700, .text-gray-800, .text-gray-900 {
+    @apply dark:text-white;
+  }
+
+  /* Keep muted text light gray, not pure white, for hierarchy (optional) */
+  .text-gray-400 {
+    @apply dark:text-gray-300;
   }
 
   /* Scrollbar styling */
@@ -34,34 +49,40 @@
     @apply bg-gray-50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-700;
   }
   .input {
-    @apply bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100;
+    @apply bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white;
   }
   .btn-secondary {
-    @apply bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600;
+    @apply bg-white dark:bg-gray-700 text-gray-700 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600;
   }
   .table-container {
     @apply border-gray-200 dark:border-gray-700;
   }
   .table thead {
-    @apply bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400;
+    @apply bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-300;
   }
   .table td {
     @apply border-t border-gray-100 dark:border-gray-700;
   }
   .badge-primary {
-    @apply bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-200;
+    @apply bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-white;
   }
   .badge-gray {
-    @apply bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300;
+    @apply bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-white;
   }
   .badge-success {
-    @apply bg-success-50 dark:bg-success-700 text-success-700 dark:text-gray-100;
+    @apply bg-success-50 dark:bg-success-700 text-success-700 dark:text-white;
   }
   .badge-warning {
-    @apply bg-warning-50 dark:bg-warning-700 text-warning-700 dark:text-gray-100;
+    @apply bg-warning-50 dark:bg-warning-700 text-warning-700 dark:text-white;
   }
   .badge-danger {
-    @apply bg-danger-50 dark:bg-danger-700 text-danger-700 dark:text-gray-100;
+    @apply bg-danger-50 dark:bg-danger-700 text-danger-700 dark:text-white;
+  }
+  .label {
+    @apply text-gray-700 dark:text-white;
+  }
+  .page-title, .page-subtitle {
+    @apply dark:text-white;
   }
 }
 
@@ -99,7 +120,7 @@
     @apply border-danger-500 focus:ring-danger-500 focus:border-danger-500;
   }
   .label {
-    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+    @apply block text-sm font-medium mb-1;
   }
   .field-error {
     @apply text-xs text-danger-500 mt-1;
@@ -123,25 +144,6 @@
   }
   .card-panel-light {
     @apply rounded-3xl border transition-all duration-300 ease-out;
-  }
-
-  /* Compact utilities for denser mobile layouts */
-  .compact {
-    @apply p-2 text-sm;
-  }
-  .compact-card {
-    @apply p-2 rounded-lg;
-  }
-  .card-row {
-    @apply flex items-center justify-between gap-3;
-  }
-  .compact-row {
-    @apply flex items-center gap-3 flex-wrap;
-  }
-  @screen sm {
-    .compact-row-sm {
-      @apply flex-row;
-    }
   }
 
   /* Badges */
@@ -174,7 +176,7 @@
     @apply text-xl sm:text-2xl font-bold text-gray-900 dark:text-white;
   }
   .page-subtitle {
-    @apply text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1;
+    @apply text-xs sm:text-sm text-gray-500 dark:text-gray-300 mt-1;
   }
 }
 
