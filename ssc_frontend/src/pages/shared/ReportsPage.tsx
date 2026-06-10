@@ -131,15 +131,13 @@ export default function ReportsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-            Reports
-          </h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="page-title">Reports</h1>
+          <p className="page-subtitle">
             Live summary reports based on member data and savings balances.
           </p>
         </div>
         {isRefreshing && (
-          <div className="flex items-center gap-2 text-sm text-gray-400">
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
             <svg
               className="h-4 w-4 animate-spin"
               fill="none"
@@ -165,12 +163,11 @@ export default function ReportsPage() {
       </div>
 
       {/* Export Buttons Section */}
-      <div className="bg-white rounded-2xl shadow p-5">
-        <h2 className="text-base font-semibold text-gray-800 mb-3">
+      <div className="card-panel p-2">
+        <h2 className="text-base m-2 font-semibold text-gray-800 dark:text-white mb-3">
           Export Reports
         </h2>
         <div className="flex flex-wrap gap-4 items-end">
-          {/* Member Statement – now with dropdown */}
           <div className="flex-1 min-w-[220px]">
             <label className="label text-xs">Member Statement</label>
             <div className="flex gap-2">
@@ -237,11 +234,13 @@ export default function ReportsPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex h-48 items-center justify-center rounded-lg bg-white shadow">
-          <div className="text-gray-500">Loading report data...</div>
+        <div className="flex h-48 items-center justify-center rounded-lg bg-white dark:bg-gray-800 shadow">
+          <div className="text-gray-500 dark:text-gray-400">
+            Loading report data...
+          </div>
         </div>
       ) : error ? (
-        <div className="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700">
+        <div className="rounded-xl border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-700 dark:border-danger-800 dark:bg-danger-900/30 dark:text-danger-300">
           {error}
         </div>
       ) : (
@@ -249,45 +248,47 @@ export default function ReportsPage() {
           {/* Key metrics cards – 3 columns on desktop, 1 on mobile */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {/* Active Members Card */}
-            <AnimatedCard className="group relative overflow-hidden bg-white p-6 shadow-md">
-              <div className="absolute right-0 top-0 h-20 w-20 -translate-y-2 translate-x-2 rounded-full bg-primary-50 opacity-20 group-hover:scale-110 transition-transform" />
-              <p className="text-sm font-medium text-gray-500">
+            <AnimatedCard className="group relative overflow-hidden bg-white dark:bg-gray-800 p-6 shadow-md">
+              <div className="absolute right-0 top-0 h-20 w-20 -translate-y-2 translate-x-2 rounded-full bg-primary-50 dark:bg-primary-900/30 opacity-20 group-hover:scale-110 transition-transform" />
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                 Active Members
               </p>
-              <p className="mt-2 text-4xl font-bold text-gray-900">
+              <p className="mt-2 text-4xl font-bold text-gray-900 dark:text-white">
                 {activeMemberCount}
               </p>
-              <p className="mt-1 text-xs text-gray-400">Total active members</p>
+              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                Total active members
+              </p>
             </AnimatedCard>
 
-            {/* Loan-Eligible Members Card */}
-            <AnimatedCard className="group relative overflow-hidden bg-white p-6 shadow-md">
-              <div className="absolute right-0 top-0 h-20 w-20 -translate-y-2 translate-x-2 rounded-full bg-success-50 opacity-20 group-hover:scale-110 transition-transform" />
-              <p className="text-sm font-medium text-gray-500">
+            {/* Loan‑Eligible Members Card */}
+            <AnimatedCard className="group relative overflow-hidden bg-white dark:bg-gray-800 p-6 shadow-md">
+              <div className="absolute right-0 top-0 h-20 w-20 -translate-y-2 translate-x-2 rounded-full bg-success-50 dark:bg-success-900/30 opacity-20 group-hover:scale-110 transition-transform" />
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                 Loan‑Eligible Members
               </p>
-              <p className="mt-2 text-4xl font-bold text-gray-900">
+              <p className="mt-2 text-4xl font-bold text-gray-900 dark:text-white">
                 {summary.eligibleCount}
               </p>
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
                 Have 6+ consecutive savings months
               </p>
             </AnimatedCard>
 
             {/* Total Savings Pool Card */}
-            <AnimatedCard className="group relative overflow-hidden bg-gradient-to-br from-primary-50 to-primary-100 p-6 shadow-md">
-              <div className="absolute right-0 top-0 h-24 w-24 -translate-y-2 translate-x-2 rounded-full bg-primary-200 opacity-30 group-hover:scale-110 transition-transform" />
-              <p className="text-sm font-medium text-primary-800">
+            <AnimatedCard className="group relative overflow-hidden bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/40 dark:to-gray-800 p-6 shadow-md">
+              <div className="absolute right-0 top-0 h-24 w-24 -translate-y-2 translate-x-2 rounded-full bg-primary-200 dark:bg-primary-800/50 opacity-30 group-hover:scale-110 transition-transform" />
+              <p className="text-sm font-medium text-primary-800 dark:text-primary-200">
                 Total Savings Pool
               </p>
-              <p className="mt-2 text-4xl font-bold text-primary-900">
+              <p className="mt-2 text-4xl font-bold text-primary-900 dark:text-white">
                 {poolLoading
                   ? "Loading..."
                   : totalSavingsPool !== null
                     ? formatNaira(totalSavingsPool)
                     : "₦0.00"}
               </p>
-              <p className="mt-1 text-xs text-primary-700">
+              <p className="mt-1 text-xs text-primary-700 dark:text-primary-300">
                 Actual money saved across all members
               </p>
             </AnimatedCard>
@@ -295,8 +296,8 @@ export default function ReportsPage() {
 
           {/* Distribution Cards – 2 columns */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <AnimatedCard className="rounded-2xl bg-white p-6 shadow-md">
-              <h2 className="text-base font-semibold text-gray-800">
+            <AnimatedCard className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-md">
+              <h2 className="text-base font-semibold text-gray-800 dark:text-white">
                 Membership Status
               </h2>
               <div className="mt-4 space-y-3">
@@ -305,16 +306,18 @@ export default function ReportsPage() {
                     key={status}
                     className="flex items-center justify-between"
                   >
-                    <span className="capitalize text-gray-600">{status}</span>
-                    <span className="text-lg font-semibold text-gray-900">
+                    <span className="capitalize text-gray-600 dark:text-gray-300">
+                      {status}
+                    </span>
+                    <span className="text-lg font-semibold text-gray-900 dark:text-white">
                       {count}
                     </span>
                   </div>
                 ))}
               </div>
             </AnimatedCard>
-            <AnimatedCard className="rounded-2xl bg-white p-6 shadow-md">
-              <h2 className="text-base font-semibold text-gray-800">
+            <AnimatedCard className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-md">
+              <h2 className="text-base font-semibold text-gray-800 dark:text-white">
                 Branch Distribution
               </h2>
               <div className="mt-4 space-y-3">
@@ -323,8 +326,10 @@ export default function ReportsPage() {
                     key={branch}
                     className="flex items-center justify-between"
                   >
-                    <span className="capitalize text-gray-600">{branch}</span>
-                    <span className="text-lg font-semibold text-gray-900">
+                    <span className="capitalize text-gray-600 dark:text-gray-300">
+                      {branch}
+                    </span>
+                    <span className="text-lg font-semibold text-gray-900 dark:text-white">
                       {count}
                     </span>
                   </div>
@@ -334,15 +339,15 @@ export default function ReportsPage() {
           </div>
 
           {/* Member Table with Search */}
-          <div className="rounded-2xl bg-white shadow-md">
-            <div className="border-b border-gray-100 p-5">
+          <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-md">
+            <div className="border-b border-gray-100 dark:border-gray-700 p-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-base font-semibold text-gray-800">
+                <h2 className="text-base font-semibold text-gray-800 dark:text-white">
                   Active Members List
                 </h2>
                 <div className="relative">
                   <svg
-                    className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                    className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -370,7 +375,7 @@ export default function ReportsPage() {
             <div className="hidden table-container sm:block">
               <table className="table">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     <th className="px-5 py-3">File No.</th>
                     <th className="px-5 py-3">Name</th>
                     <th className="px-5 py-3">Status</th>
@@ -380,12 +385,12 @@ export default function ReportsPage() {
                     <th className="px-5 py-3">Loan Eligible</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                   {filteredMembers.length === 0 ? (
                     <tr>
                       <td
                         colSpan={7}
-                        className="px-5 py-12 text-center text-gray-400"
+                        className="px-5 py-12 text-center text-gray-400 dark:text-gray-500"
                       >
                         No members found
                       </td>
@@ -394,29 +399,29 @@ export default function ReportsPage() {
                     filteredMembers.map((member) => (
                       <tr
                         key={member.id}
-                        className="transition-colors hover:bg-gray-50"
+                        className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50"
                       >
-                        <td className="px-5 py-3 font-mono text-sm font-medium text-primary-700">
+                        <td className="px-5 py-3 font-mono text-sm font-medium text-primary-700 dark:text-primary-400">
                           {member.file_number}
                         </td>
-                        <td className="px-5 py-3 text-sm font-medium text-gray-900">
+                        <td className="px-5 py-3 text-sm font-medium text-gray-900 dark:text-white">
                           {member.full_name}
                         </td>
-                        <td className="px-5 py-3 text-sm capitalize text-gray-700">
+                        <td className="px-5 py-3 text-sm capitalize text-gray-700 dark:text-gray-300">
                           {member.membership_status}
                         </td>
-                        <td className="px-5 py-3 text-sm capitalize text-gray-700">
+                        <td className="px-5 py-3 text-sm capitalize text-gray-700 dark:text-gray-300">
                           {member.school_branch}
                         </td>
-                        <td className="px-5 py-3 text-sm text-gray-700">
+                        <td className="px-5 py-3 text-sm text-gray-700 dark:text-gray-300">
                           {formatNaira(member.approved_monthly_contribution)}
                         </td>
                         <td className="px-5 py-3 text-sm">
                           <span
                             className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                               member.consecutive_savings_months >= 6
-                                ? "bg-success-100 text-success-800"
-                                : "bg-warning-100 text-warning-800"
+                                ? "bg-success-100 text-success-800 dark:bg-success-900/50 dark:text-success-300"
+                                : "bg-warning-100 text-warning-800 dark:bg-warning-900/50 dark:text-warning-300"
                             }`}
                           >
                             {member.consecutive_savings_months}/6
@@ -426,8 +431,8 @@ export default function ReportsPage() {
                           <span
                             className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                               member.is_loan_eligible
-                                ? "bg-primary-100 text-primary-800"
-                                : "bg-gray-100 text-gray-600"
+                                ? "bg-primary-100 text-primary-800 dark:bg-primary-900/50 dark:text-primary-300"
+                                : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
                             }`}
                           >
                             {member.is_loan_eligible ? "Yes" : "No"}
@@ -443,29 +448,29 @@ export default function ReportsPage() {
             {/* Mobile Card Layout (visible only on small screens) */}
             <div className="space-y-3 p-4 sm:hidden">
               {filteredMembers.length === 0 ? (
-                <div className="py-12 text-center text-gray-400">
+                <div className="py-12 text-center text-gray-400 dark:text-gray-500">
                   No members found
                 </div>
               ) : (
                 filteredMembers.map((member) => (
                   <div
                     key={member.id}
-                    className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm"
+                    className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm"
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="font-mono text-sm font-semibold text-primary-700">
+                        <p className="font-mono text-sm font-semibold text-primary-700 dark:text-primary-400">
                           {member.file_number}
                         </p>
-                        <p className="mt-1 font-medium text-gray-900">
+                        <p className="mt-1 font-medium text-gray-900 dark:text-white">
                           {member.full_name}
                         </p>
                       </div>
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
                           member.membership_status === "active"
-                            ? "bg-success-100 text-success-800"
-                            : "bg-gray-100 text-gray-600"
+                            ? "bg-success-100 text-success-800 dark:bg-success-900/50 dark:text-success-300"
+                            : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
                         }`}
                       >
                         {member.membership_status}
@@ -473,36 +478,44 @@ export default function ReportsPage() {
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                       <div>
-                        <span className="text-gray-500">Branch:</span>
-                        <p className="capitalize text-gray-700">
+                        <span className="text-gray-500 dark:text-gray-400">
+                          Branch:
+                        </span>
+                        <p className="capitalize text-gray-700 dark:text-gray-300">
                           {member.school_branch}
                         </p>
                       </div>
                       <div>
-                        <span className="text-gray-500">Contribution:</span>
-                        <p className="font-medium">
+                        <span className="text-gray-500 dark:text-gray-400">
+                          Contribution:
+                        </span>
+                        <p className="font-medium text-gray-900 dark:text-white">
                           {formatNaira(member.approved_monthly_contribution)}
                         </p>
                       </div>
                       <div>
-                        <span className="text-gray-500">Savings Months:</span>
+                        <span className="text-gray-500 dark:text-gray-400">
+                          Savings Months:
+                        </span>
                         <p
                           className={
                             member.consecutive_savings_months >= 6
-                              ? "text-success-700 font-medium"
-                              : "text-warning-700"
+                              ? "text-success-700 dark:text-success-400 font-medium"
+                              : "text-warning-700 dark:text-warning-400"
                           }
                         >
                           {member.consecutive_savings_months}/6
                         </p>
                       </div>
                       <div>
-                        <span className="text-gray-500">Loan Eligible:</span>
+                        <span className="text-gray-500 dark:text-gray-400">
+                          Loan Eligible:
+                        </span>
                         <p
                           className={
                             member.is_loan_eligible
-                              ? "text-primary-700 font-medium"
-                              : "text-gray-400"
+                              ? "text-primary-700 dark:text-primary-400 font-medium"
+                              : "text-gray-400 dark:text-gray-500"
                           }
                         >
                           {member.is_loan_eligible ? "Yes" : "No"}

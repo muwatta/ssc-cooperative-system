@@ -80,47 +80,65 @@ export default function StaffIDRegistryPage() {
   };
 
   return (
-    <div className="card p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold">Staff ID Registry</h1>
-        <p className="text-sm text-gray-500">
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div>
+        <h1 className="page-title">Staff ID Registry</h1>
+        <p className="page-subtitle">
           Add and manage Staff IDs that can be used to register in the system.
         </p>
       </div>
 
+      {/* Alert message */}
       {serverMessage && (
         <div
-          className={`mb-6 rounded-lg px-4 py-3 text-sm ${isError ? "bg-danger-50 text-danger-700 border border-danger-200" : "bg-success-50 text-success-700 border border-success-200"}`}
+          className={`rounded-xl border px-4 py-3 text-sm ${
+            isError
+              ? "bg-danger-50 border-danger-200 text-danger-700 dark:bg-danger-900/30 dark:border-danger-800 dark:text-danger-300"
+              : "bg-success-50 border-green-200 text-success-700 dark:bg-success-900/30 dark:border-success-800 dark:text-success-300"
+          }`}
         >
           {serverMessage}
         </div>
       )}
 
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="mb-6 grid gap-4 md:grid-cols-[1fr_auto]"
-      >
-        <input
-          {...register("staff_id", { required: "Staff ID is required" })}
-          className="input"
-          placeholder="S43-0002"
-        />
-        <button type="submit" disabled={isSubmitting} className="btn-primary">
-          {isSubmitting ? "Adding..." : "Add Staff ID"}
-        </button>
-      </form>
+      {/* Add Staff ID Form */}
+      <div className="card-panel">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="flex flex-col gap-4 sm:flex-row"
+        >
+          <div className="flex-1">
+            <input
+              {...register("staff_id", { required: "Staff ID is required" })}
+              className="input"
+              placeholder="S43-0002"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="btn-primary whitespace-nowrap"
+          >
+            {isSubmitting ? "Adding..." : "Add Staff ID"}
+          </button>
+        </form>
+      </div>
 
+      {/* Staff ID List Table */}
       {loading ? (
-        <div className="text-gray-600">Loading registry...</div>
+        <div className="text-gray-600 dark:text-gray-400">
+          Loading registry...
+        </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="table-container">
+          <table className="table">
             <thead>
-              <tr className="bg-gray-50 text-sm text-gray-500">
-                <th className="px-4 py-3">Staff ID</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Created At</th>
-                <th className="px-4 py-3">Actions</th>
+              <tr>
+                <th>Staff ID</th>
+                <th>Status</th>
+                <th>Created At</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -128,35 +146,33 @@ export default function StaffIDRegistryPage() {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-4 py-6 text-center text-gray-500"
+                    className="text-center text-gray-500 dark:text-gray-400"
                   >
                     No Staff IDs registered yet.
                   </td>
                 </tr>
               ) : (
                 entries.map((entry) => (
-                  <tr key={entry.id} className="border-t hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {entry.staff_id}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
+                  <tr key={entry.id}>
+                    <td className="font-medium">{entry.staff_id}</td>
+                    <td>
                       <span
-                        className={`badge ${entry.is_active ? "badge-success" : "badge-gray"}`}
+                        className={`badge ${
+                          entry.is_active ? "badge-success" : "badge-gray"
+                        }`}
                       >
                         {entry.is_active ? "Active" : "Inactive"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      {new Date(entry.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td>{new Date(entry.created_at).toLocaleDateString()}</td>
+                    <td>
                       <button
                         onClick={() => toggleActive(entry.id, entry.is_active)}
                         disabled={togglingId === entry.id}
-                        className={`text-xs px-3 py-1 rounded-md font-medium transition-all ${
+                        className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
                           entry.is_active
-                            ? "bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
-                            : "bg-primary-50 text-primary-700 hover:bg-primary-100 disabled:opacity-50"
+                            ? "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 disabled:opacity-50"
+                            : "bg-primary-50 text-primary-700 hover:bg-primary-100 dark:bg-primary-900/50 dark:text-primary-300 dark:hover:bg-primary-800 disabled:opacity-50"
                         }`}
                       >
                         {togglingId === entry.id

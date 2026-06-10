@@ -131,7 +131,6 @@ export function AnimatedCard(props: HTMLMotionProps<"div">) {
   );
 }
 
-// Page Header
 export function PageHeader({
   title,
   subtitle,
@@ -181,7 +180,6 @@ export function PageHeader({
   );
 }
 
-// Compact, responsive date badge showing Gregorian and Hijri dates
 export function DateBadge() {
   const { data: currentDate } = useCurrentDate();
 
@@ -202,32 +200,29 @@ export function DateBadge() {
       })
     : "…";
 
-  // ✅ Use only the display string – it already contains day, month, year, and "AH"
   const hijriFull = currentDate?.hijri?.display || "…";
-
   const mobileCompact = `${gregorianMobile} · ${hijriFull}`;
 
   return (
     <div className="max-w-full min-w-0">
-      <div className="rounded-2xl border border-gray-200 bg-white px-3 py-2 shadow-sm text-right min-w-0">
+      <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 shadow-sm text-right min-w-0">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <p className="truncate text-sm font-semibold text-gray-900">
+          <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
             <span className="hidden sm:inline">{gregorianDesktop}</span>
             <span className="inline sm:hidden">{mobileCompact}</span>
           </p>
-          <span className="rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary-700 hidden sm:inline">
+          <span className="rounded-full bg-primary-100 dark:bg-primary-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary-700 dark:text-primary-300 hidden sm:inline">
             Today
           </span>
         </div>
       </div>
-      <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-gray-500 sm:hidden">
+      <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400 sm:hidden">
         Today
       </p>
     </div>
   );
 }
 
-// Stat Card
 export function StatCard({
   label,
   value,
