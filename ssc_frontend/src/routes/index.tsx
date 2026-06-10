@@ -1,332 +1,112 @@
-import { lazy, Suspense } from "react";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { RequireAuth, RequireRole, GuestOnly } from "./guards";
 
 import AppLayout from "@/components/layout/AppLayout";
-import { PageLoader } from "@/components/common";
 
-const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
-const SetPasswordPage = lazy(() => import("@/pages/auth/SetPasswordPage"));
-const UnauthorizedPage = lazy(() => import("@/pages/auth/UnauthorizedPage"));
+// Auth pages
+import LoginPage from "@/pages/auth/LoginPage";
+import SetPasswordPage from "@/pages/auth/SetPasswordPage";
+import UnauthorizedPage from "@/pages/auth/UnauthorizedPage";
 
-const DashboardPage = lazy(() => import("@/pages/shared/DashboardPage"));
-const MyProfilePage = lazy(() => import("@/pages/shared/MyProfilePage"));
-const MySavingsPage = lazy(() => import("@/pages/shared/MySavingsPage"));
+// Shared pages
+import DashboardPage from "@/pages/shared/DashboardPage";
+import MyProfilePage from "@/pages/shared/MyProfilePage";
+import MySavingsPage from "@/pages/shared/MySavingsPage";
+import ReportsPage from "@/pages/shared/ReportsPage";
+import ChangePasswordPage from "@/pages/shared/ChangePasswordPage";
 
-const MembersListPage = lazy(() => import("@/pages/admin/MembersListPage"));
-const MemberDetailPage = lazy(() => import("@/pages/admin/MemberDetailPage"));
-const AddMemberPage = lazy(() => import("@/pages/admin/AddMemberPage"));
-const CreateUserPage = lazy(() => import("@/pages/admin/CreateUserPage"));
-const StaffIDRegistryPage = lazy(
-  () => import("@/pages/admin/StaffIDRegistryPage"),
-);
-const PostSavingsPage = lazy(() => import("@/pages/admin/PostSavingsPage"));
-const PostDuesPage = lazy(() => import("@/pages/admin/PostDuesPage"));
-const LoanSettingsPage = lazy(() => import("@/pages/admin/LoanSettingsPage"));
-const LegacyImportPage = lazy(() => import("@/pages/admin/LegacyImportPage"));
-const ReconciliationPage = lazy(
-  () => import("@/pages/admin/ReconciliationPage"),
-);
-const PostSpecialSavingsPage = lazy(
-  () => import("@/pages/admin/PostSpecialSavingsPage"),
-);
-const AuditReportPage = lazy(() => import("@/pages/admin/AuditReportPage"));
-const LoanQueuePage = lazy(() => import("@/pages/committee/LoanQueuePage"));
-const ApplyLoanPage = lazy(() => import("@/pages/staff/ApplyLoanPage"));
-const MyLoansPage = lazy(() => import("@/pages/staff/MyLoansPage"));
-const LoanDetailPage = lazy(() => import("@/pages/staff/LoanDetailPage"));
-const LoanSuccessPage = lazy(() => import("@/pages/staff/LoanSuccessPage"));
-const ReportsPage = lazy(() => import("@/pages/shared/ReportsPage"));
-const SavingsChangeRequestsPage = lazy(
-  () => import("@/pages/admin/SavingsChangeRequestsPage"),
-);
+// Admin pages
+import MembersListPage from "@/pages/admin/MembersListPage";
+import MemberDetailPage from "@/pages/admin/MemberDetailPage";
+import AddMemberPage from "@/pages/admin/AddMemberPage";
+import CreateUserPage from "@/pages/admin/CreateUserPage";
+import StaffIDRegistryPage from "@/pages/admin/StaffIDRegistryPage";
+import PostSavingsPage from "@/pages/admin/PostSavingsPage";
+import PostDuesPage from "@/pages/admin/PostDuesPage";
+import LoanSettingsPage from "@/pages/admin/LoanSettingsPage";
+import LegacyImportPage from "@/pages/admin/LegacyImportPage";
+import ReconciliationPage from "@/pages/admin/ReconciliationPage";
+import PostSpecialSavingsPage from "@/pages/admin/PostSpecialSavingsPage";
+import AuditReportPage from "@/pages/admin/AuditReportPage";
+import SavingsChangeRequestsPage from "@/pages/admin/SavingsChangeRequestsPage";
 
-const ComingSoonPage = lazy(() => import("@/pages/shared/ComingSoonPage"));
-const ChangePasswordPage = lazy(
-  () => import("@/pages/shared/ChangePasswordPage"),
-);
+// Committee pages
+import LoanQueuePage from "@/pages/committee/LoanQueuePage";
 
-const router = createBrowserRouter([
-  {
-    element: <GuestOnly />,
-    children: [
-      {
-        path: "/login",
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <LoginPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: "/set-password",
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <SetPasswordPage />
-          </Suspense>
-        ),
-      },
-    ],
-  },
+// Staff pages
+import ApplyLoanPage from "@/pages/staff/ApplyLoanPage";
+import MyLoansPage from "@/pages/staff/MyLoansPage";
+import LoanDetailPage from "@/pages/staff/LoanDetailPage";
+import LoanSuccessPage from "@/pages/staff/LoanSuccessPage";
 
-  {
-    element: <RequireAuth />,
-    children: [
-      {
-        element: <AppLayout />,
-        children: [
-          {
-            index: true,
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <DashboardPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: "/dashboard",
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <DashboardPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: "/profile",
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <MyProfilePage />
-              </Suspense>
-            ),
-          },
-          {
-            path: "/my-savings",
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <MySavingsPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: "/my-loans",
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <MyLoansPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: "/loans/apply",
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <ApplyLoanPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: "/loans/success",
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <LoanSuccessPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: "/loans/:id",
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <LoanDetailPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: "/change-password",
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <ChangePasswordPage />
-              </Suspense>
-            ),
-          },
+// Other
+import ComingSoonPage from "@/pages/shared/ComingSoonPage";
 
-          // Admin only
-          {
-            element: <RequireRole roles={["admin"]} />,
-            children: [
-              {
-                path: "/members",
-                element: (
-                  <Suspense fallback={<PageLoader />}>
-                    <MembersListPage />
-                  </Suspense>
-                ),
-              },
-              {
-                path: "/members/import",
-                element: (
-                  <Suspense fallback={<PageLoader />}>
-                    <LegacyImportPage />
-                  </Suspense>
-                ),
-              },
-              {
-                path: "/members/add",
-                element: (
-                  <Suspense fallback={<PageLoader />}>
-                    <AddMemberPage />
-                  </Suspense>
-                ),
-              },
-              {
-                path: "/members/:id",
-                element: (
-                  <Suspense fallback={<PageLoader />}>
-                    <MemberDetailPage />
-                  </Suspense>
-                ),
-              },
-              {
-                path: "/users/create",
-                element: (
-                  <Suspense fallback={<PageLoader />}>
-                    <CreateUserPage />
-                  </Suspense>
-                ),
-              },
-              {
-                path: "/staff-ids",
-                element: (
-                  <Suspense fallback={<PageLoader />}>
-                    <StaffIDRegistryPage />
-                  </Suspense>
-                ),
-              },
-              {
-                path: "/loan-settings",
-                element: (
-                  <Suspense fallback={<PageLoader />}>
-                    <LoanSettingsPage />
-                  </Suspense>
-                ),
-              },
-              {
-                path: "/savings/post",
-                element: (
-                  <Suspense fallback={<PageLoader />}>
-                    <PostSavingsPage />
-                  </Suspense>
-                ),
-              },
-              {
-                path: "/savings/dues",
-                element: (
-                  <Suspense fallback={<PageLoader />}>
-                    <PostDuesPage />
-                  </Suspense>
-                ),
-              },
-              {
-                path: "/special-savings",
-                element: (
-                  <Suspense fallback={<PageLoader />}>
-                    <PostSpecialSavingsPage />
-                  </Suspense>
-                ),
-              },
-                            {
-                path: "/reconciliation",
-                element: (
-                  <Suspense fallback={<PageLoader />}>
-                    <ReconciliationPage />
-                  </Suspense>
-                ),
-              },
-              {
-                path: "/audit-report",
-                element: (
-                  <Suspense fallback={<PageLoader />}>
-                    <AuditReportPage />
-                  </Suspense>
-                ),
-              },
-            ],
-          },
+function AppRoutes() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Guest only */}
+        <Route element={<GuestOnly />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/set-password" element={<SetPasswordPage />} />
+        </Route>
 
-          // Admin + Committee
-          {
-            element: <RequireRole roles={["admin", "committee"]} />,
-            children: [
-              {
-                path: "/loans/queue",
-                element: (
-                  <Suspense fallback={<PageLoader />}>
-                    <LoanQueuePage />
-                  </Suspense>
-                ),
-              },
-              {
-                path: "/reports",
-                element: (
-                  <Suspense fallback={<PageLoader />}>
-                    <ReportsPage />
-                  </Suspense>
-                ),
-              },
-              {
-                path: "/savings/change-requests",
-                element: (
-                  <Suspense fallback={<PageLoader />}>
-                    <SavingsChangeRequestsPage />
-                  </Suspense>
-                ),
-              },
-            ],
-          },
+        {/* Authenticated routes */}
+        <Route element={<RequireAuth />}>
+          <Route element={<AppLayout />}>
+            <Route index element={<DashboardPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/profile" element={<MyProfilePage />} />
+            <Route path="/my-savings" element={<MySavingsPage />} />
+            <Route path="/my-loans" element={<MyLoansPage />} />
+            <Route path="/loans/apply" element={<ApplyLoanPage />} />
+            <Route path="/loans/success" element={<LoanSuccessPage />} />
+            <Route path="/loans/:id" element={<LoanDetailPage />} />
+            <Route path="/change-password" element={<ChangePasswordPage />} />
 
-          // Head of School
-          {
-            element: <RequireRole roles={["head_of_school"]} />,
-            children: [
-              {
-                path: "/loan-approvals",
-                element: (
-                  <Suspense fallback={<PageLoader />}>
-                    <ComingSoonPage />
-                  </Suspense>
-                ),
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
+            {/* Admin only */}
+            <Route element={<RequireRole roles={["admin"]} />}>
+              <Route path="/members" element={<MembersListPage />} />
+              <Route path="/members/import" element={<LegacyImportPage />} />
+              <Route path="/members/add" element={<AddMemberPage />} />
+              <Route path="/members/:id" element={<MemberDetailPage />} />
+              <Route path="/users/create" element={<CreateUserPage />} />
+              <Route path="/staff-ids" element={<StaffIDRegistryPage />} />
+              <Route path="/loan-settings" element={<LoanSettingsPage />} />
+              <Route path="/savings/post" element={<PostSavingsPage />} />
+              <Route path="/savings/dues" element={<PostDuesPage />} />
+              <Route
+                path="/special-savings"
+                element={<PostSpecialSavingsPage />}
+              />
+              <Route path="/reconciliation" element={<ReconciliationPage />} />
+              <Route path="/audit-report" element={<AuditReportPage />} />
+            </Route>
 
-  {
-    path: "/unauthorized",
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <UnauthorizedPage />
-      </Suspense>
-    ),
-  },
-  {
-    path: "/",
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <LoginPage />
-      </Suspense>
-    ),
-  },
-  {
-    path: "*",
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <UnauthorizedPage />
-      </Suspense>
-    ),
-  },
-]);
+            {/* Admin + Committee */}
+            <Route element={<RequireRole roles={["admin", "committee"]} />}>
+              <Route path="/loans/queue" element={<LoanQueuePage />} />
+              <Route path="/reports" element={<ReportsPage />} />
+              <Route
+                path="/savings/change-requests"
+                element={<SavingsChangeRequestsPage />}
+              />
+            </Route>
 
-export default function AppRouter() {
-  return <RouterProvider router={router} />;
+            {/* Head of School */}
+            <Route element={<RequireRole roles={["head_of_school"]} />}>
+              <Route path="/loan-approvals" element={<ComingSoonPage />} />
+            </Route>
+          </Route>
+        </Route>
+
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<UnauthorizedPage />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
+
+export default AppRoutes;
