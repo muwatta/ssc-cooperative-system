@@ -21,22 +21,21 @@ class SavingsLedgerSerializer(serializers.ModelSerializer):
 
 
 class MemberBalanceSerializer(serializers.ModelSerializer):
-    available_balance  = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
-    file_number        = serializers.CharField(source="member.file_number", read_only=True)
-    full_name          = serializers.CharField(source="member.full_name", read_only=True)
+    available_balance = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
+    reserved_for_investment = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
+    file_number = serializers.CharField(source="member.file_number", read_only=True)
+    full_name   = serializers.CharField(source="member.full_name", read_only=True)
 
     class Meta:
-        model  = MemberBalance
+        model = MemberBalance
         fields = [
             "member", "file_number", "full_name",
             "total_savings", "suretyship_committed", "special_savings",
-            "available_balance", "updated_at",
+            "available_balance", "reserved_for_investment", "updated_at",  # added here
         ]
         read_only_fields = fields
 
-
 class PostSavingsSerializer(serializers.Serializer):
-    """Admin posts monthly savings for one or more members — SRS S3"""
     member      = serializers.IntegerField(required=False, help_text="MemberProfile pk")
     member_ids  = serializers.ListField(
         child=serializers.IntegerField(),
