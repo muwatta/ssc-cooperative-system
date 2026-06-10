@@ -55,13 +55,13 @@
     @apply bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300;
   }
   .badge-success {
-    @apply bg-success-50 dark:bg-success-900/50 text-success-700 dark:text-success-300;
+    @apply bg-success-50 dark:bg-success-700 text-success-700 dark:text-success-100;
   }
   .badge-warning {
-    @apply bg-warning-50 dark:bg-warning-900/50 text-warning-700 dark:text-warning-300;
+    @apply bg-warning-50 dark:bg-warning-700 text-warning-700 dark:text-warning-100;
   }
   .badge-danger {
-    @apply bg-danger-50 dark:bg-danger-900/50 text-danger-700 dark:text-danger-300;
+    @apply bg-danger-50 dark:bg-danger-700 text-danger-700 dark:text-danger-100;
   }
 }
 
