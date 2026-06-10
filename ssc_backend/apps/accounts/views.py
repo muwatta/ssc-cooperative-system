@@ -120,7 +120,6 @@ class CreateUserView(generics.CreateAPIView):
     def perform_create(self, serializer):
         serializer.save()
 
-
 class MemberListCreateView(generics.ListCreateAPIView):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["membership_status", "school_branch"]
@@ -129,7 +128,7 @@ class MemberListCreateView(generics.ListCreateAPIView):
     ordering = ["file_number"]
 
     def get_queryset(self):
-        return MemberProfile.objects.select_related("user").all()        
+        return MemberProfile.objects.select_related("user").all() 
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -146,10 +145,7 @@ class MemberListCreateView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         profile = serializer.save()
         response_serializer = MemberProfileSerializer(profile)
-        # Invalidate dashboard cache because member count / total savings changed
-        invalidate_dashboard_cache()
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
-
 
 class MemberDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = MemberProfileSerializer
@@ -157,16 +153,13 @@ class MemberDetailView(generics.RetrieveUpdateAPIView):
     def get_queryset(self):
         user = self.request.user
         if user.role in ("admin", "committee", "head_of_school"):
-            return MemberProfile.objects.select_related("user").prefetch_related(
-                'memberbalance'
-            ).all()
-        return MemberProfile.objects.filter(user=user).select_related('user').prefetch_related('memberbalance')
+            return MemberProfile.objects.select_related("user").all()
+        return MemberProfile.objects.filter(user=user).select_related('user')
 
     def get_permissions(self):
         if self.request.method in ("PUT", "PATCH"):
             return [IsProfileOwnerOrAdmin()]
         return [IsAuthenticated()]
-
 
 class MemberSummaryListView(generics.ListAPIView):
     serializer_class = MemberProfileSummarySerializer

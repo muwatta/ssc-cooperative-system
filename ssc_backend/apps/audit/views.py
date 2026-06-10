@@ -10,18 +10,18 @@ from .models import AuditLog
 from .serializers import AuditLogSerializer
 from django.http import HttpResponse
 import csv, io
-class AuditLogListView(generics.ListAPIView):
 
+
+class AuditLogListView(generics.ListAPIView):
     serializer_class = AuditLogSerializer
     permission_classes = [IsAdminOrCommittee]
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
+    filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     filterset_fields = ["user", "action", "object_type"]
     search_fields = ["description", "object_name", "user__username"]
     ordering = ["-created_at"]
 
 
 class ObjectAuditLogView(APIView):
-
     permission_classes = [IsAuthenticated]
 
     def get(self, request, object_type, object_id):
@@ -40,23 +40,20 @@ class ObjectAuditLogView(APIView):
 
     def paginate_queryset(self, queryset):
         from rest_framework.pagination import PageNumberPagination
-
         paginator = PageNumberPagination()
         paginator.page_size = 20
         return paginator.paginate_queryset(queryset, self.request)
 
     def get_paginated_response(self, data):
         from rest_framework.pagination import PageNumberPagination
-
         paginator = PageNumberPagination()
         return paginator.get_paginated_response(data)
 
 
 class UserAuditLogView(generics.ListAPIView):
-
     serializer_class = AuditLogSerializer
     permission_classes = [IsAdminOrCommittee]
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ["action", "object_type"]
     ordering = ["-created_at"]
 
@@ -69,8 +66,8 @@ class AuditReportView(ListAPIView):
     serializer_class = AuditLogSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     filterset_fields = ['action', 'object_type', 'object_id']
-    search_fields = ['object_type', 'object_id']
-    ordering = ['-timestamp']
+    search_fields = ['description', 'object_name', 'user__username']  
+    ordering = ['-created_at']  
 
     def get_queryset(self):
         qs = AuditLog.objects.all()
@@ -78,9 +75,9 @@ class AuditReportView(ListAPIView):
         date_to = self.request.query_params.get('date_to')
         user_id = self.request.query_params.get('user_id')
         if date_from:
-            qs = qs.filter(timestamp__gte=date_from)
+            qs = qs.filter(created_at__gte=date_from)  
         if date_to:
-            qs = qs.filter(timestamp__lte=date_to)
+            qs = qs.filter(created_at__lte=date_to)
         if user_id:
             qs = qs.filter(user_id=user_id)
         return qs
@@ -92,9 +89,15 @@ class AuditReportView(ListAPIView):
             writer = csv.writer(buffer)
             writer.writerow(['ID', 'User', 'Action', 'Object Type', 'Object ID', 'Description', 'Timestamp'])
             for log in queryset:
-                writer.writerow([log.id, log.user.full_name if log.user else 'System', log.action,
-                                 log.object_type, log.object_id, log.description,
-                                 log.timestamp.isoformat()])
+                writer.writerow([
+                    log.id,
+                    log.user.full_name if log.user else 'System',
+                    log.action,
+                    log.object_type,
+                    log.object_id,
+                    log.description,
+                    log.created_at.isoformat() if log.created_at else '' 
+                ])
             response = HttpResponse(buffer.getvalue(), content_type='text/csv')
             response['Content-Disposition'] = 'attachment; filename="audit-report.csv"'
             return response
