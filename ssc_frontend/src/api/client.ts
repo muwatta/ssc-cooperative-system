@@ -7,7 +7,8 @@ import axios, {
 const BASE_URL = import.meta.env.DEV
   ? "/api/v1"
   : (import.meta.env.VITE_API_BASE_URL ??
-    "https://ssc-cooperative-system.onrender.com/api/v1");      
+    "https://ssc-cooperative-system.onrender.com/api/v1");  
+        
 const ACCESS_KEY = "ssc_access";
 const REFRESH_KEY = "ssc_refresh";
 

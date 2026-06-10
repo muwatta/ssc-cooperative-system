@@ -9,7 +9,9 @@ import AppRouter from "@/routes";
 import "@/index.css";
 import { startKeepAlive } from "./utils/keepAlive";
 
-startKeepAlive();
+if (import.meta.env.PROD) {
+  startKeepAlive();
+}
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
