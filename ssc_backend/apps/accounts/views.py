@@ -9,7 +9,7 @@ from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from django.core.cache import cache              # <-- added for cache invalidation
+from django.core.cache import cache             
 
 from django.http import JsonResponse
 from rest_framework.views import APIView
@@ -36,7 +36,6 @@ from apps.audit.utils import log_action, get_client_ip
 from .services import import_legacy_members
 from .email_service import send_bulk_invitations
 
-# Helper to clear dashboard cache (same key as in loans/views.py and savings/views.py)
 def invalidate_dashboard_cache():
     cache.delete("dashboard_summary_admin_stats")
 
@@ -279,7 +278,6 @@ class ApproveMemberView(APIView):
             object_id=profile.id,
             object_name=profile.full_name,
         )
-        # Invalidate dashboard cache because active members count changed
         invalidate_dashboard_cache()
 
         return Response(
@@ -302,7 +300,6 @@ class DeactivateMemberView(APIView):
             profile.save(update_fields=["membership_status", "updated_at"])
             profile.user.is_active = False
             profile.user.save(update_fields=["is_active"])
-        # Invalidate dashboard cache because member status changed
         invalidate_dashboard_cache()
         return Response({"message": f"{profile.file_number} deactivated."}, status=status.HTTP_200_OK)
 
@@ -357,7 +354,6 @@ class LegacyImportView(APIView):
             resp['Content-Disposition'] = 'attachment; filename="import-errors.csv"'
             return resp
 
-        # Invalidate cache after legacy import (members added/changed)
         invalidate_dashboard_cache()
         return Response(summary)
 
@@ -417,7 +413,6 @@ class ChangeMemberRoleView(APIView):
             object_id=profile.user.id,
             object_name=profile.full_name,
         )
-        # Invalidate dashboard cache because role affects dashboard visibility
         invalidate_dashboard_cache()
 
         return Response({
@@ -465,7 +460,6 @@ class ToggleSpecialSaverView(APIView):
 
         member.is_special_saver = not member.is_special_saver
         member.save(update_fields=["is_special_saver", "updated_at"])
-        # Invalidate dashboard cache because special savings totals may change
         invalidate_dashboard_cache()
         return Response({
             "member_id": member.id,
