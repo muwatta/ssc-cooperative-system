@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { RequireAuth, RequireRole, GuestOnly } from "./guards";
-
 import AppLayout from "@/components/layout/AppLayout";
 
 // Auth pages
@@ -42,7 +41,7 @@ import LoanSuccessPage from "@/pages/staff/LoanSuccessPage";
 // Other
 import ComingSoonPage from "@/pages/shared/ComingSoonPage";
 
-function AppRoutes() {
+export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
@@ -108,5 +107,3 @@ function AppRoutes() {
     </BrowserRouter>
   );
 }
-
-export default AppRoutes;
