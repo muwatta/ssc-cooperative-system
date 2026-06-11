@@ -5,6 +5,7 @@ import api from "@/api/client";
 import { membersApi, savingsApi } from "@/api/services";
 import type { MemberProfile, SavingsSummary } from "@/types";
 
+// Normal StatCard (used in At a Glance, Membership Summary, Balance Overview)
 function StatCard({
   label,
   value,
@@ -30,8 +31,40 @@ function StatCard({
       <p className="text-[11px] font-semibold uppercase tracking-[0.2em] opacity-70">
         {label}
       </p>
-      <p className="text-2xl font-bold mt-2">{value}</p>
+      <p className="text-1xl font-bold mt-2">{value}</p>
       {sub && <p className="text-xs mt-1 opacity-60">{sub}</p>}
+    </div>
+  );
+}
+
+// Compact StatCard (used in the 4‑column leadership grid)
+function CompactStatCard({
+  label,
+  value,
+  sub,
+  color = "primary",
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+  color?: "primary" | "success" | "warning" | "danger";
+}) {
+  const colorMap = {
+    primary: "bg-primary-50 text-primary-700 border-primary-100",
+    success: "bg-success-50 text-success-700 border-green-100",
+    warning: "bg-warning-50 text-warning-700 border-yellow-100",
+    danger: "bg-danger-50 text-danger-700 border-red-100",
+  };
+
+  return (
+    <div
+      className={`card p-1 border ${colorMap[color]} min-w-0 overflow-hidden transition-all`}
+    >
+      <p className="text-[9px] font-semibold uppercase tracking-[0.2em] opacity-70 truncate">
+        {label}
+      </p>
+      <p className="text-sm font-bold mt-0.5 truncate">{value}</p>
+      {sub && <p className="text-[9px] mt-0.5 opacity-60 truncate">{sub}</p>}
     </div>
   );
 }
@@ -169,15 +202,15 @@ export default function DashboardPage() {
       <div className="mb-6">
         <h1 className="page-title">Dashboard</h1>
         <p className="page-subtitle">
-          Welcome back,{" "}
+          👋 Welcome back,{" "}
           <span className="font-medium text-gray-700">{displayName}</span>
         </p>
       </div>
 
       {/* Loan & Approval snapshot (leadership only) */}
       {isLeadership && dashSummary && (
-        <div className="card-panel mb-6 bg-white border border-gray-200">
-          <h2 className="text-lg font-semibold mb-3 mt-2 ml-2">At a Glance</h2>
+        <div className="card-panel mb-6 bg-white border p-2 border-gray-200">
+          <h2 className="text-lg font-semibold text-center">At a Glance</h2>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <StatCard
               label="Pending Admin Approval"
@@ -213,14 +246,14 @@ export default function DashboardPage() {
       {/* Upcoming Repayments (leadership) */}
       {isLeadership && dashSummary?.upcoming_repayments?.length > 0 && (
         <div className="card-panel mb-6 bg-white border border-gray-200">
-          <h2 className="text-lg font-semibold m-3">
+          <h2 className="text-lg font-semibold text-center mt-1">
             Upcoming Repayments (next month)
           </h2>
           <div className="text-sm space-y-1 max-h-48 overflow-y-auto m-3">
             {dashSummary.upcoming_repayments.map((r: any) => (
               <div
                 key={r.loan_id}
-                className="flex justify-between py-1 border-b border-gray-100"
+                className="flex justify-between py-1 border-b border-red-100"
               >
                 <span>
                   {r.applicant} (Loan #{r.loan_id})
@@ -234,32 +267,31 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Leadership profile section */}
+      {/* Leadership profile section – uses CompactStatCard for 4‑column layout */}
       {isLeadership && (
         <div className="card-panel mb-6 bg-primary-50 border-primary-100">
-          <div className="flex items-center justify-between mb-3">
-            <div />
-            <span className="badge badge-primary">Leadership</span>
+          <div className="flex items-center justify-center">
+            <span className="badge badge-primary m-2">Leadership</span>
           </div>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-            <StatCard
+          <div className="grid gap-2 p-2 grid-cols-4 min-w-0">
+            <CompactStatCard
               label="Your Role"
               value={user ? user.role.replace(/_/g, " ").toUpperCase() : "N/A"}
               sub="Access level assigned by Admin"
             />
-            <StatCard
+            <CompactStatCard
               label="Full Name"
               value={displayName}
               sub="Your registered name"
               color="primary"
             />
-            <StatCard
+            <CompactStatCard
               label="Staff ID"
               value={user?.staff_id ?? "—"}
               sub="Your login identity"
               color="success"
             />
-            <StatCard
+            <CompactStatCard
               label="Member File"
               value={user?.file_number ?? "Not assigned"}
               sub="SSC membership record"
@@ -305,8 +337,8 @@ export default function DashboardPage() {
 
       {/* Membership Summary */}
       {isLeadership && (
-        <div className="card-panel mb-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="card-panel p-2 text-sm:flex-row sm:items-center sm:justify-between mb-6">
+          <div className="flex flex-col gap-2">
             <div>
               <h2 className="text-lg font-semibold m-3">Membership Summary</h2>
               <p className="text-sm text-gray-500 m-2">
@@ -327,12 +359,12 @@ export default function DashboardPage() {
           )}
 
           {stats && !loading && !error && (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-4 grid gap-3 grid-cols-3">
               <div className="card-panel-light">
                 <p className="text-xs m-3 uppercase tracking-[0.24em] text-gray-500">
                   Total Members
                 </p>
-                <p className="mt-3 text-2xl m-3 font-semibold text-gray-900">
+                <p className="mt-3 text-1xl m-3 font-semibold text-gray-900">
                   {stats.totalMembers}
                 </p>
                 <p className="text-sm m-3 text-gray-500 mt-2">
@@ -343,7 +375,7 @@ export default function DashboardPage() {
                 <p className="text-xs m-3 uppercase tracking-[0.24em] text-gray-500">
                   Active Members
                 </p>
-                <p className="mt-3 m-3 text-2xl font-semibold text-green-700">
+                <p className="mt-3 m-3 text-1xl font-semibold text-green-700">
                   {stats.activeMembers}
                 </p>
                 <p className="text-sm m-3 text-gray-500 mt-2">
@@ -354,7 +386,7 @@ export default function DashboardPage() {
                 <p className="text-xs m-3 uppercase tracking-[0.24em] text-gray-500">
                   Pending Members
                 </p>
-                <p className="mt-3 m-3 text-2xl font-semibold text-amber-700">
+                <p className="mt-3 m-3 text-1xl font-semibold text-amber-700">
                   {stats.pendingMembers}
                 </p>
                 <p className="text-sm m-3 text-gray-500 mt-2">
@@ -365,7 +397,7 @@ export default function DashboardPage() {
                 <p className="text-xs m-3 uppercase tracking-[0.24em] text-gray-500">
                   Inactive Members
                 </p>
-                <p className="mt-3 text-2xl m-3 font-semibold text-red-700">
+                <p className="mt-3 text-1xl m-3 font-semibold text-red-700">
                   {stats.inactiveMembers}
                 </p>
                 <p className="text-sm m-3 text-gray-500 mt-2">
@@ -376,7 +408,7 @@ export default function DashboardPage() {
                 <p className="text-xs m-3 uppercase tracking-[0.24em] text-gray-500">
                   Exited Members
                 </p>
-                <p className="mt-3 m-3 text-2xl font-semibold text-primary-700">
+                <p className="mt-3 m-3 text-1xl font-semibold text-primary-700">
                   {stats.exitedMembers}
                 </p>
                 <p className="text-sm m-3 text-gray-500 mt-2">
@@ -429,12 +461,12 @@ export default function DashboardPage() {
               </div>
             ) : null}
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 grid-cols-3 p-2">
               <div className="card-panel-light">
                 <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                   Your Total Savings
                 </p>
-                <p className="mt-3 m-3 text-2xl font-semibold text-gray-900">
+                <p className="mt-3 m-3 text-1xl font-semibold text-gray-900">
                   {hasMemberBalance
                     ? maskIfNeeded(formatNaira(memberBalance!.total_savings))
                     : "N/A"}
@@ -444,7 +476,7 @@ export default function DashboardPage() {
                 <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                   Your Available Balance
                 </p>
-                <p className="mt-3 m-3 text-2xl font-semibold text-gray-900">
+                <p className="mt-3 m-3 text-1xl font-semibold text-gray-900">
                   {hasMemberBalance
                     ? maskIfNeeded(
                         formatNaira(memberBalance!.available_balance),
@@ -456,7 +488,7 @@ export default function DashboardPage() {
                 <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                   Approved Contribution
                 </p>
-                <p className="mt-3 m-3 text-2xl font-semibold text-gray-900">
+                <p className="mt-3 m-3 text-1xl font-semibold text-gray-900">
                   {myProfile?.approved_monthly_contribution !== undefined
                     ? maskIfNeeded(
                         formatNaira(myProfile.approved_monthly_contribution),
@@ -468,7 +500,7 @@ export default function DashboardPage() {
                 <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                   Committed Savings
                 </p>
-                <p className="mt-3 m-3 text-2xl font-semibold text-gray-900">
+                <p className="mt-3 m-3 text-1xl font-semibold text-gray-900">
                   {hasMemberBalance
                     ? maskIfNeeded(
                         formatNaira(memberBalance!.suretyship_committed),
@@ -484,7 +516,7 @@ export default function DashboardPage() {
                     <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                       🔒 Special Fixed Savings
                     </p>
-                    <p className="mt-3 m-3 text-2xl font-semibold text-purple-700">
+                    <p className="mt-3 m-3 text-1xl font-semibold text-purple-700">
                       {maskIfNeeded(
                         formatNaira(memberBalance!.special_savings || 0),
                       )}
@@ -499,7 +531,7 @@ export default function DashboardPage() {
                     <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                       Cooperative Total Savings
                     </p>
-                    <p className="mt-3 m-3 text-2xl font-semibold text-gray-900">
+                    <p className="mt-3 m-3 text-1xl font-semibold text-gray-900">
                       {maskIfNeeded(formatNaira(coopSummary.total_savings))}
                     </p>
                   </div>
@@ -507,7 +539,7 @@ export default function DashboardPage() {
                     <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                       Total Available Across Members
                     </p>
-                    <p className="mt-3 m-3 text-2xl font-semibold text-gray-900">
+                    <p className="mt-3 m-3 text-1xl font-semibold text-gray-900">
                       {maskIfNeeded(formatNaira(coopSummary.total_available))}
                     </p>
                   </div>
@@ -517,7 +549,7 @@ export default function DashboardPage() {
                         <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
                           🔒 Total Special Savings (Locked)
                         </p>
-                        <p className="mt-3 text-2xl font-semibold text-purple-700">
+                        <p className="mt-3 text-1xl font-semibold text-purple-700">
                           {formatNaira(
                             (coopSummary as any).total_special_savings,
                           )}
@@ -545,7 +577,7 @@ export default function DashboardPage() {
             </div>
             <span className="badge badge-gray">Staff view</span>
           </div>
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="mt-6 grid grid-cols-4 gap-4">
             <div className="card-panel-light">
               <p className="text-sm text-gray-500">Profile</p>
               <p className="mt-2 text-lg m-3 font-semibold">
