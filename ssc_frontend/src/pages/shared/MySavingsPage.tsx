@@ -263,7 +263,7 @@ export default function MySavingsPage() {
       )}
 
       {/* Personal summary cards – responsive grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 ">
         {/* Total Savings */}
         <div className="card-panel bg-gradient-to-br from-primary-50 to-white dark:from-primary-900/30 dark:to-gray-900">
           <p className="text-sm m-3 text-gray-500 dark:text-gray-400">
@@ -305,7 +305,7 @@ export default function MySavingsPage() {
         </div>
 
         {/* Request Change */}
-        <div className="card-panel dark:bg-gray-900 flex flex-col items-start">
+        <div className="card-panel dark:bg-gray-900 flex flex-col items-start p-2">
           <p className="text-sm m-3 text-gray-500 dark:text-gray-400">
             Request Change
           </p>
@@ -318,8 +318,8 @@ export default function MySavingsPage() {
         </div>
       </div>
 
-      {/* Suretyship Commitment, Reserved for Investment, and Special Savings (if any) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Suretyship Commitment, Reserved for Investment, and Special Savings */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {/* Suretyship Commitment */}
         <div className="card-panel bg-gradient-to-br from-purple-50 to-white dark:from-purple-900/30 dark:to-gray-900">
           <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
@@ -386,7 +386,7 @@ export default function MySavingsPage() {
               Loading...
             </div>
           ) : (
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-1">
               <div className="card-panel-light">
                 <p className="text-xs text-gray-500 dark:text-gray-400 m-3">
                   Total Savings
@@ -439,7 +439,7 @@ export default function MySavingsPage() {
       {/* Member details */}
       {!profileMissing && profile && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="card-panel-light">
               <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
                 Membership Status
@@ -480,7 +480,7 @@ export default function MySavingsPage() {
 
             {/* Filter bar */}
             <div className="card-panel-light mb-6 p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="label">Hijri Month</label>
                   <select
