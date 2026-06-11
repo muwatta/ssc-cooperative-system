@@ -280,7 +280,7 @@ export default function MyProfilePage() {
       )}
 
       {/* Identity & Status Cards (now using card-panel-light) */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-2">
         <div className="card-panel-light border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/30 dark:to-gray-800 p-5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
@@ -424,7 +424,7 @@ export default function MyProfilePage() {
               School Details
             </h2>
           </div>
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-2">
             <div>
               <label className="label">School Branch</label>
               <select {...register("school_branch")} className="input">
@@ -499,7 +499,7 @@ export default function MyProfilePage() {
               Addresses
             </h2>
           </div>
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-2">
             <div>
               <label className="label">Residential Address *</label>
               <textarea
@@ -537,7 +537,7 @@ export default function MyProfilePage() {
               Next of Kin
             </h2>
           </div>
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-2">
             <div>
               <label className="label">Full Name *</label>
               <input
