@@ -17,6 +17,9 @@ ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STRING.split(",")]
 if ENVIRONMENT == "production":
     ALLOWED_HOSTS += ["*.railway.app", "*.onrender.com", "*.vercel.app"]
 
+# Admin URL (keep this secret!)
+ADMIN_URL = "ssc-coop-admin-secret/"
+
 # APPLICATIONS
 DJANGO_APPS = [
     "django.contrib.admin",
@@ -47,12 +50,11 @@ LOCAL_APPS = [
     "apps.notifications",
     "apps.audit",
     "apps.reports",
-    
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
-# MIDDLEWARE
+# MIDDLEWARE (order is critical)
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -61,12 +63,13 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    'django_otp.middleware.OTPMiddleware',   
-    "apps.core.middleware.AdminSessionTimeoutMiddleware",    
+    "apps.core.middleware.AdminSessionTimeoutMiddleware",  
+    'django_otp.middleware.OTPMiddleware',                
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+# Admin session idle timeout (minutes)
 ADMIN_SESSION_TIMEOUT_MINUTES = 15
 
 ROOT_URLCONF = "config.urls"
@@ -147,6 +150,7 @@ REST_FRAMEWORK = {
 }
 REST_FRAMEWORK["EXCEPTION_HANDLER"] = "apps.core.exceptions.custom_exception_handler"
 
+# JWT
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(
         minutes=config("ACCESS_TOKEN_LIFETIME_MINUTES", default=480, cast=int)

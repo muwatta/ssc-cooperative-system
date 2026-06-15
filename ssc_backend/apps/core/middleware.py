@@ -9,7 +9,6 @@ class AdminSessionTimeoutMiddleware:
 
     def __call__(self, request):
         if request.path.startswith(settings.ADMIN_URL) and request.user.is_authenticated:
-            # enforce timeout for admin users (role = admin)
             if getattr(request.user, 'role', None) == 'admin':
                 last_activity = request.session.get('admin_last_activity')
                 now = datetime.now()
