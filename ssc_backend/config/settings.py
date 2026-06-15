@@ -34,6 +34,8 @@ THIRD_PARTY_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_filters",
+    'django_otp',
+    'django_otp.plugins.otp_totp',
 ]
 
 LOCAL_APPS = [
@@ -45,6 +47,7 @@ LOCAL_APPS = [
     "apps.notifications",
     "apps.audit",
     "apps.reports",
+    
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -58,9 +61,13 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    'django_otp.middleware.OTPMiddleware',   
+    "apps.core.middleware.AdminSessionTimeoutMiddleware",    
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+ADMIN_SESSION_TIMEOUT_MINUTES = 15
 
 ROOT_URLCONF = "config.urls"
 
@@ -139,7 +146,7 @@ REST_FRAMEWORK = {
     },
 }
 REST_FRAMEWORK["EXCEPTION_HANDLER"] = "apps.core.exceptions.custom_exception_handler"
-# JWT access token as per SRS spec
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(
         minutes=config("ACCESS_TOKEN_LIFETIME_MINUTES", default=480, cast=int)
