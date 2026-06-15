@@ -377,7 +377,7 @@ export default function MembersListPage() {
                       {member.membership_status}
                     </span>
                   </div>
-                  <div className="space-y-0.5 text-[10px] text-gray-600 dark:text-gray-400">
+                  <div className="space-y-1.5 text-[10px] text-gray-600 dark:text-gray-400">
                     <div>
                       <span className="font-semibold text-gray-700 dark:text-gray-300">
                         Staff ID:
