@@ -125,6 +125,14 @@ export default function DashboardPage() {
     refetchInterval: false,
   });
 
+  // Financial Snapshot (admin only)
+  const { data: financialSnapshot, isLoading: snapshotLoading } = useQuery({
+    queryKey: ["financial-snapshot"],
+    queryFn: () => api.get("/reports/financial-snapshot/").then((r) => r.data),
+    enabled: isAdmin,
+    staleTime: 1000 * 60 * 5,
+  });
+
   const balanceQuery = useQuery<SavingsSummary>({
     queryKey: ["dashboard", "balances"],
     queryFn: async () => {
@@ -562,6 +570,73 @@ export default function DashboardPage() {
           </>
         )}
       </div>
+
+      {/* Financial Snapshot – Admin only */}
+      {isAdmin && financialSnapshot && financialSnapshot.length > 0 && (
+        <div className="card-panel mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+              📊 Financial Snapshot
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Active members only
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="table w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300">
+                  <th className="px-3 py-2 text-left">File</th>
+                  <th className="px-3 py-2 text-left">Name</th>
+                  <th className="px-3 py-2 text-right">Total Savings</th>
+                  <th className="px-3 py-2 text-right">Available</th>
+                  <th className="px-3 py-2 text-right">Outstanding</th>
+                  <th className="px-3 py-2 text-right">Special</th>
+                </tr>
+              </thead>
+              <tbody>
+                {snapshotLoading ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-4 text-gray-500">
+                      Loading snapshot…
+                    </td>
+                  </tr>
+                ) : (
+                  financialSnapshot.map((member: any) => (
+                    <tr
+                      key={member.file_number}
+                      className="border-t border-gray-100 dark:border-gray-700"
+                    >
+                      <td className="px-3 py-2 font-mono text-primary-700 dark:text-primary-400">
+                        {member.file_number}
+                      </td>
+                      <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">
+                        {member.full_name}
+                      </td>
+                      <td className="px-3 py-2 text-right font-medium text-gray-900 dark:text-white">
+                        {formatNaira(member.total_savings)}
+                      </td>
+                      <td className="px-3 py-2 text-right font-medium text-emerald-700 dark:text-emerald-400">
+                        {formatNaira(member.available_balance)}
+                      </td>
+                      <td className="px-3 py-2 text-right font-medium text-danger-700 dark:text-danger-400">
+                        {member.outstanding_loan !== "0.00"
+                          ? formatNaira(member.outstanding_loan)
+                          : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-right font-medium text-purple-700 dark:text-purple-400">
+                        {member.special_savings !== "0.00"
+                          ? formatNaira(member.special_savings)
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {!isAdmin && !isCommittee && !isHOS && (
         <div className="card-panel mb-6 bg-primary-50 border-primary-100">
