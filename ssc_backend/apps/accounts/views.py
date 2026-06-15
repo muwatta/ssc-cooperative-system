@@ -1,3 +1,4 @@
+from .models import Role
 from rest_framework import generics, status, filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -11,6 +12,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.cache import cache
 from django.contrib.auth import update_session_auth_hash
+from rest_framework.throttling import UserRateThrottle
 
 from .throttles import LoginRateThrottle, InviteRateThrottle, ImportRateThrottle, PasswordChangeRateThrottle
 
@@ -37,17 +39,10 @@ from .permissions import (
 )
 from apps.audit.utils import log_action, get_client_ip
 from .services import import_legacy_members
-from .email_service import send_bulk_invitations
+from .tasks import send_bulk_invitations_async
 
 def invalidate_dashboard_cache():
     cache.delete("dashboard_summary_admin_stats")
-
-
-# Helper to sanitize CSV cells (prevents formula injection)
-def sanitize_csv_cell(value):
-    if isinstance(value, str) and value.startswith(('=', '+', '-', '@')):
-        return "'" + value
-    return value
 
 
 class SSCTokenObtainPairView(TokenObtainPairView):
@@ -86,6 +81,18 @@ class SetInitialPasswordView(APIView):
         serializer = SetInitialPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+
+        # Log the action with IP
+        log_action(
+            user=user,
+            action="SET_INITIAL_PASSWORD",
+            description=f"User set initial password",
+            object_type="User",
+            object_id=user.id,
+            object_name=user.staff_id,
+            request_ip=get_client_ip(request),
+        )
+
         return Response(
             {"message": f"Password set successfully for {user.staff_id}. You may now login."},
             status=status.HTTP_200_OK
@@ -94,6 +101,7 @@ class SetInitialPasswordView(APIView):
 
 # STAFF ID REGISTRY — Admin only
 class StaffIDRegistryListCreateView(generics.ListCreateAPIView):
+    throttle_classes = [UserRateThrottle]  
     queryset = StaffIDRegistry.objects.all().order_by("staff_id")
     serializer_class = StaffIDRegistrySerializer
     permission_classes = [IsAdmin]
@@ -101,24 +109,64 @@ class StaffIDRegistryListCreateView(generics.ListCreateAPIView):
     search_fields = ["staff_id"]
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        instance = serializer.save(created_by=self.request.user)
+        log_action(
+            user=self.request.user,
+            action="CREATE_STAFF_ID",
+            description=f"Created Staff ID {instance.staff_id}",
+            object_type="StaffIDRegistry",
+            object_id=instance.id,
+            object_name=instance.staff_id,
+            request_ip=get_client_ip(self.request),
+        )
 
 
 class StaffIDRegistryDetailView(generics.RetrieveUpdateDestroyAPIView):
+    throttle_classes = [UserRateThrottle]  
     queryset = StaffIDRegistry.objects.all()
     serializer_class = StaffIDRegistrySerializer
     permission_classes = [IsAdmin]
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        log_action(
+            user=self.request.user,
+            action="UPDATE_STAFF_ID",
+            description=f"Updated Staff ID {instance.staff_id}",
+            object_type="StaffIDRegistry",
+            object_id=instance.id,
+            object_name=instance.staff_id,
+            request_ip=get_client_ip(self.request),
+        )
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         if User.objects.filter(staff_id=instance.staff_id).exists():
             instance.is_active = False
             instance.save(update_fields=["is_active"])
+            log_action(
+                user=request.user,
+                action="DEACTIVATE_STAFF_ID",
+                description=f"Deactivated Staff ID {instance.staff_id} (account exists)",
+                object_type="StaffIDRegistry",
+                object_id=instance.id,
+                object_name=instance.staff_id,
+                request_ip=get_client_ip(request),
+            )
             return Response(
                 {"message": "Staff ID deactivated (account exists, cannot delete)."},
                 status=status.HTTP_200_OK
             )
         instance.delete()
+        log_action(
+            user=request.user,
+            action="DELETE_STAFF_ID",
+            description=f"Deleted Staff ID {instance.staff_id}",
+            object_type="StaffIDRegistry",
+            object_id=instance.id,
+            object_name=instance.staff_id,
+            request_ip=get_client_ip(request),
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -134,6 +182,7 @@ class CreateUserView(generics.CreateAPIView):
 
 
 class MemberListCreateView(generics.ListCreateAPIView):
+    throttle_classes = [UserRateThrottle] 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["membership_status", "school_branch"]
     search_fields = ["file_number", "full_name", "user__staff_id"]
@@ -174,6 +223,7 @@ class MemberDetailView(generics.RetrieveUpdateAPIView):
 
 
 class MemberSummaryListView(generics.ListAPIView):
+    throttle_classes = [UserRateThrottle] 
     serializer_class = MemberProfileSummarySerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter]
@@ -293,6 +343,7 @@ class ApproveMemberView(APIView):
             object_type="MemberProfile",
             object_id=profile.id,
             object_name=profile.full_name,
+            request_ip=get_client_ip(request),
         )
         invalidate_dashboard_cache()
 
@@ -360,12 +411,10 @@ class LegacyImportView(APIView):
         if not csv_file:
             return Response({"error": "CSV file is required (field name: file)."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # File size limit (5MB)
         MAX_FILE_SIZE = 5 * 1024 * 1024
         if csv_file.size > MAX_FILE_SIZE:
             return Response({"error": "File too large (max 5MB)."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Pass sanitization flag to service
         summary = import_legacy_members(
             csv_file,
             dry_run=dry_run,
@@ -375,7 +424,7 @@ class LegacyImportView(APIView):
             start_seq=start_seq,
             send_invitations=send_invitations,
             frontend_url=frontend_url,
-            sanitize_cells=True,  # enable formula injection protection
+            sanitize_cells=True,
         )
 
         if download_errors and summary.get('errors'):
@@ -389,7 +438,6 @@ class LegacyImportView(APIView):
             resp['Content-Disposition'] = 'attachment; filename="import-errors.csv"'
             return resp
 
-        # Log import action (even if dry run)
         log_action(
             user=request.user,
             action="LEGACY_IMPORT",
@@ -418,20 +466,21 @@ class SendInvitationsView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        summary = send_bulk_invitations(user_ids, frontend_url=frontend_url)
+        # Use async task
+        send_bulk_invitations_async.delay(user_ids, frontend_url)
 
         log_action(
             user=request.user,
             action="SEND_INVITATIONS",
-            description=f"Sent invitations to users: {user_ids}",
+            description=f"Queued invitations to users: {user_ids}",
             object_type="Invitation",
             object_id=0,
             object_name="Bulk Invitation",
-            new_values={"user_ids": user_ids, "summary": summary},
+            new_values={"user_ids": user_ids},
             request_ip=get_client_ip(request),
         )
 
-        return Response(summary)
+        return Response({"message": "Invitations are being sent in the background."})
 
 
 class ChangeMemberRoleView(APIView):
@@ -454,11 +503,10 @@ class ChangeMemberRoleView(APIView):
             )
 
         new_role = request.data.get("role", "").strip()
-        valid_roles = ("staff", "committee", "head_of_school", "admin")
-
-        if new_role not in valid_roles:
+        # using Role.values from model (TextChoices)
+        if new_role not in Role.values:
             return Response(
-                {"error": f"Invalid role. Must be one of: {', '.join(valid_roles)}"},
+                {"error": f"Invalid role. Must be one of: {', '.join(Role.values)}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -509,8 +557,6 @@ class ChangePasswordView(APIView):
 
         user.set_password(new)
         user.save()
-
-        # Keep the user logged in after password change
         update_session_auth_hash(request, user)
 
         log_action(
