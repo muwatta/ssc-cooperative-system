@@ -173,7 +173,7 @@ class SubmitLoanSerializer(serializers.Serializer):
                 )
             })
 
-        # 4. Surety gap logic (75% self‑surety + external sureties up to 85% each)
+        # 4. Surety gap logic (75% self‑surety + external sureties same)
         config = get_loan_configuration()
         from apps.savings.services import get_or_create_balance
         balance = get_or_create_balance(profile)
