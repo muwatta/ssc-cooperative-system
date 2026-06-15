@@ -12,7 +12,7 @@ export default function MyLoansPage() {
   const [activeTab, setActiveTab] = useState<"loans" | "sureties">("loans");
   const [expandedLoan, setExpandedLoan] = useState<number | null>(null);
 
-  // Cache loans for 3 minutes – rarely change during a session
+  // Cache loans for 3 minutes
   const { data: loansData, isLoading: loansLoading } = useQuery({
     queryKey: ["my-loans"],
     queryFn: () => loansApi.mine().then((r) => r.data),
@@ -26,7 +26,7 @@ export default function MyLoansPage() {
     staleTime: 1000 * 60 * 3,
   });
 
-  // Sort newest first (by application date or by id as fallback)
+  // Sort newest first
   const loans = useMemo(() => {
     const raw = loansData?.results ?? [];
     return [...raw].sort((a, b) => {
@@ -241,8 +241,9 @@ export default function MyLoansPage() {
           </button>
         </div>
 
-        {/* Loans Tab */}
+        {/* Loans Tab (unchanged) */}
         {activeTab === "loans" && (
+          // ... same as original ...
           <div>
             {loansLoading && loans.length === 0 ? (
               <div className="flex justify-center rounded-2xl bg-white p-12 shadow-sm dark:bg-gray-800">
@@ -352,7 +353,6 @@ export default function MyLoansPage() {
                   </div>
                 ))}
 
-                {/* Summary Footer */}
                 <div className="mt-4 rounded-xl bg-gray-50 p-4 dark:bg-gray-800/50">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">
@@ -376,7 +376,7 @@ export default function MyLoansPage() {
           </div>
         )}
 
-        {/* Sureties Tab */}
+        {/* Sureties Tab (enhanced) */}
         {activeTab === "sureties" && (
           <div>
             {suretiesLoading && sureties.length === 0 ? (
@@ -391,7 +391,7 @@ export default function MyLoansPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {sureties.map((surety: Surety) => (
+                {sureties.map((surety: any) => (
                   <div
                     key={surety.id}
                     className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-800"
@@ -417,29 +417,76 @@ export default function MyLoansPage() {
                       </div>
                     </div>
 
-                    <div className="mt-3 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500 dark:text-gray-400">
-                          Amount Guaranteed
-                        </span>
-                        <span className="font-semibold text-gray-900 dark:text-white">
-                          {formatNaira(surety.amount_guaranteed)}
-                        </span>
+                    {/* Borrower details (only if available and pending) */}
+                    {(surety.borrower_name || surety.borrower_phone) && (
+                      <div className="mt-3 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-700/50">
+                        <p className="font-semibold dark:text-white">
+                          Borrower: {surety.borrower_name || "—"}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Phone: {surety.borrower_phone || "—"}
+                        </p>
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">
+                              Loan amount:
+                            </span>{" "}
+                            <span className="font-semibold dark:text-white">
+                              {formatNaira(surety.loan_amount || 0)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">
+                              Self‑surety (borrower):
+                            </span>{" "}
+                            <span className="font-semibold dark:text-white">
+                              {formatNaira(surety.self_surety_amount || 0)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">
+                              Monthly repayment:
+                            </span>{" "}
+                            <span className="font-semibold dark:text-white">
+                              {formatNaira(surety.repayment_monthly || 0)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">
+                              Duration:
+                            </span>{" "}
+                            <span className="font-semibold dark:text-white">
+                              {surety.repayment_duration || 0} months
+                            </span>
+                          </div>
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          Purpose: {surety.loan_purpose || "—"}
+                        </p>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500 dark:text-gray-400">
-                          Remaining Liability
-                        </span>
-                        <span
-                          className={`font-semibold ${
-                            parseFloat(surety.current_liability) > 0
-                              ? "text-amber-600 dark:text-amber-400"
-                              : "text-gray-400 dark:text-gray-500"
-                          }`}
-                        >
-                          {formatNaira(surety.current_liability)}
-                        </span>
-                      </div>
+                    )}
+
+                    <div className="mt-3 flex justify-between">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        Amount Guaranteed
+                      </span>
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        {formatNaira(surety.amount_guaranteed)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        Remaining Liability
+                      </span>
+                      <span
+                        className={`font-semibold ${
+                          parseFloat(surety.current_liability) > 0
+                            ? "text-amber-600 dark:text-amber-400"
+                            : "text-gray-400 dark:text-gray-500"
+                        }`}
+                      >
+                        {formatNaira(surety.current_liability)}
+                      </span>
                     </div>
 
                     {surety.status === "pending" && (
@@ -461,7 +508,6 @@ export default function MyLoansPage() {
                   </div>
                 ))}
 
-                {/* Summary Footer */}
                 <div className="mt-4 rounded-xl bg-gray-50 p-4 dark:bg-gray-800/50">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">
@@ -477,7 +523,7 @@ export default function MyLoansPage() {
                     </span>
                     <span className="font-semibold text-amber-600 dark:text-amber-400">
                       {
-                        sureties.filter((s: Surety) => s.status === "pending")
+                        sureties.filter((s: any) => s.status === "pending")
                           .length
                       }
                     </span>
@@ -488,7 +534,6 @@ export default function MyLoansPage() {
           </div>
         )}
 
-        {/* Footer */}
         <div className="mt-8 text-center text-xs text-gray-400 dark:text-gray-500">
           <p>🏦 SSC Cooperative — Islamic (Hijri) Calendar based system</p>
         </div>

@@ -1,4 +1,3 @@
-"""SSC Cooperative — Sureties Serializers"""
 
 from rest_framework import serializers
 from .models import SuretyRecord
@@ -38,3 +37,25 @@ class AddSuretiesSerializer(serializers.Serializer):
             if not check["eligible"]:
                 raise serializers.ValidationError(check["reasons"])
         return value
+
+
+class SuretyRecordSerializer(serializers.ModelSerializer):
+    borrower_name = serializers.CharField(source='loan.applicant.full_name', read_only=True)
+    borrower_phone = serializers.CharField(source='loan.applicant.phone_primary', read_only=True)
+    loan_amount = serializers.DecimalField(source='loan.amount_applied', max_digits=12, decimal_places=2, read_only=True)
+    self_surety_amount = serializers.SerializerMethodField()
+    repayment_monthly = serializers.DecimalField(source='loan.proposed_monthly_repayment', max_digits=12, decimal_places=2, read_only=True)
+    repayment_duration = serializers.IntegerField(source='loan.proposed_duration_months', read_only=True)
+    loan_purpose = serializers.CharField(source='loan.purpose', read_only=True)
+
+    class Meta:
+        model = SuretyRecord
+        fields = [
+            'id', 'loan', 'surety', 'amount_guaranteed', 'current_liability', 'status',
+            'borrower_name', 'borrower_phone', 'loan_amount', 'self_surety_amount',
+            'repayment_monthly', 'repayment_duration', 'loan_purpose'
+        ]
+
+    def get_self_surety_amount(self, obj):
+        loan_amount = obj.loan.amount_approved or obj.loan.amount_applied
+        return loan_amount * Decimal('0.75')

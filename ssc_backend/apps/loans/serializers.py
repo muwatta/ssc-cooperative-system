@@ -1,20 +1,18 @@
-"""SSC Cooperative — Loans Serializers"""
-
 from rest_framework import serializers
 from decimal import Decimal
 from .models import LoanApplication, LoanRepaymentLedger, LoanStatus, LoanConfiguration, LoanDraft
-from .services import calculate_max_borrowable, check_loan_eligibility, get_loan_configuration
+from .services import check_loan_eligibility, get_loan_configuration
 from apps.sureties.serializers import SuretyRecordSerializer
-from apps.accounts.models import MemberProfile 
+from apps.accounts.models import MemberProfile
 
 
 class LoanApplicationSerializer(serializers.ModelSerializer):
     sureties = SuretyRecordSerializer(many=True, read_only=True)
     applicant_file_number = serializers.CharField(source="applicant.file_number", read_only=True)
-    applicant_name        = serializers.CharField(source="applicant.full_name", read_only=True)
+    applicant_name = serializers.CharField(source="applicant.full_name", read_only=True)
 
     class Meta:
-        model  = LoanApplication
+        model = LoanApplication
         fields = [
             "id", "applicant", "applicant_file_number", "applicant_name", "sureties",
             "home_address", "phone_numbers", "school_branch", "designation",
@@ -40,18 +38,18 @@ class LoanApplicationSerializer(serializers.ModelSerializer):
 
 
 class SubmitLoanSerializer(serializers.Serializer):
-    amount_applied             = serializers.DecimalField(max_digits=12, decimal_places=2)
-    purpose                    = serializers.CharField()
-    monthly_salary             = serializers.DecimalField(max_digits=12, decimal_places=2)
-    home_address               = serializers.CharField()
-    phone_numbers              = serializers.CharField(max_length=100)
+    amount_applied = serializers.DecimalField(max_digits=12, decimal_places=2)
+    purpose = serializers.CharField()
+    monthly_salary = serializers.DecimalField(max_digits=12, decimal_places=2)
+    home_address = serializers.CharField()
+    phone_numbers = serializers.CharField(max_length=100)
     proposed_monthly_repayment = serializers.DecimalField(max_digits=12, decimal_places=2)
-    proposed_duration_months   = serializers.IntegerField(min_value=1, max_value=12)
-    date_of_last_loan          = serializers.DateField(required=False, allow_null=True)
-    amount_outstanding_prev    = serializers.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
-    repayment_start_hijri_month = serializers.IntegerField(min_value=1, max_value=12, required=False, default=1)
-    repayment_start_hijri_year  = serializers.IntegerField(min_value=1400, required=False, default=1446)
-    
+    proposed_duration_months = serializers.IntegerField(min_value=1, max_value=12)
+    date_of_last_loan = serializers.DateField(required=False, allow_null=True)
+    amount_outstanding_prev = serializers.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+
+    # repayment_start fields removed – backend determines them
+
     class SuretyItemSerializer(serializers.Serializer):
         member_id = serializers.IntegerField()
         amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
@@ -107,35 +105,33 @@ class SubmitLoanSerializer(serializers.Serializer):
                 f"Maximum {config.max_sureties} external sureties allowed."
             )
 
+        # Prevent duplicate sureties
         seen = set()
-        errors = []
         for item in value:
             member_id = item.get("member_id")
-            amount = item.get("amount")
-            if member_id is None or amount is None:
-                raise serializers.ValidationError("Each surety must include member_id and amount.")
+            if member_id in seen:
+                raise serializers.ValidationError("Duplicate surety selected.")
+            seen.add(member_id)
 
-            try:
-                member = MemberProfile.objects.get(pk=member_id)
-            except MemberProfile.DoesNotExist:
+        # Batch fetch to avoid N+1 queries
+        member_ids = [item["member_id"] for item in value]
+        members = {
+            m.pk: m for m in MemberProfile.objects.filter(pk__in=member_ids)
+        }
+
+        errors = []
+        for item in value:
+            member_id = item["member_id"]
+            amount = item["amount"]
+
+            member = members.get(member_id)
+            if not member:
                 raise serializers.ValidationError(f"Surety member {member_id} not found.")
 
             if member.pk == profile.pk:
                 raise serializers.ValidationError("Cannot add yourself as an external surety.")
 
-            if member.pk in seen:
-                raise serializers.ValidationError("Duplicate surety selected.")
-            seen.add(member.pk)
-
-            try:
-                amount_decimal = Decimal(str(amount))
-            except Exception:
-                raise serializers.ValidationError("Surety amount must be a valid number.")
-
-            if amount_decimal <= Decimal("0.00"):
-                raise serializers.ValidationError("Surety amount must be greater than zero.")
-
-            eligibility = check_surety_eligibility(member, amount_decimal)
+            eligibility = check_surety_eligibility(member, amount)
             if not eligibility["eligible"]:
                 errors.extend([f"{member.file_number}: {reason}" for reason in eligibility["reasons"]])
 
@@ -154,15 +150,14 @@ class SubmitLoanSerializer(serializers.Serializer):
         except MemberProfile.DoesNotExist:
             raise serializers.ValidationError("No member profile found.")
 
-        # 1. Basic eligibility
+        # 1. Basic eligibility (includes the new multi‑self‑surety logic)
         eligibility = check_loan_eligibility(profile)
         if not eligibility["eligible"]:
             raise serializers.ValidationError({"eligibility": eligibility["reasons"]})
 
-        # 2. Absolute borrowable
         amount_applied = attrs["amount_applied"]
 
-        # 3. Repayment cross‑check (amount ÷ duration)
+        # 2. Repayment cross‑check (amount ÷ duration)
         duration = attrs["proposed_duration_months"]
         monthly = attrs["proposed_monthly_repayment"]
         expected = (amount_applied / duration).quantize(Decimal("0.01"))
@@ -173,7 +168,7 @@ class SubmitLoanSerializer(serializers.Serializer):
                 )
             })
 
-        # 4. Surety gap logic (75% self‑surety + external sureties same)
+        # 3. Surety gap logic (75% self‑surety + external sureties)
         config = get_loan_configuration()
         from apps.savings.services import get_or_create_balance
         balance = get_or_create_balance(profile)
@@ -195,9 +190,9 @@ class SubmitLoanSerializer(serializers.Serializer):
                     )
                 })
         else:
-            # If amount is within self-surety max, sureties should be empty or omitted
+            # If amount is within self‑surety max, sureties must be empty
             sureties = attrs.get("sureties", [])
-            if sureties and len(sureties) > 0:
+            if sureties:
                 raise serializers.ValidationError({
                     "sureties": "External sureties are not required for this amount."
                 })
@@ -207,13 +202,20 @@ class SubmitLoanSerializer(serializers.Serializer):
 
 
 class CommitteeDecisionSerializer(serializers.Serializer):
-    decision       = serializers.ChoiceField(choices=["approve", "reject"])
+    decision = serializers.ChoiceField(choices=["approve", "reject"])
     amount_approved = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
-    note           = serializers.CharField(allow_blank=True, default="")
+    note = serializers.CharField(allow_blank=True, default="")
+
+    def validate_amount_approved(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Approved amount must be positive.")
+        return value
 
     def validate(self, attrs):
         if attrs["decision"] == "approve" and not attrs.get("amount_approved"):
             raise serializers.ValidationError({"amount_approved": "Required when approving."})
+
+       
         return attrs
 
 
@@ -222,19 +224,30 @@ class AdminFinalApprovalSerializer(serializers.Serializer):
 
 
 class PostRepaymentSerializer(serializers.Serializer):
-    amount      = serializers.DecimalField(max_digits=12, decimal_places=2)
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     hijri_month = serializers.IntegerField(min_value=1, max_value=12)
-    hijri_year  = serializers.IntegerField(min_value=1400)
+    hijri_year = serializers.IntegerField(min_value=1400)
 
     def validate_amount(self, value):
         if value <= 0:
             raise serializers.ValidationError("Amount must be positive.")
         return value
 
+    def validate(self, attrs):
+        loan = self.context.get("loan")
+        if not loan:
+            raise serializers.ValidationError("Loan object missing from context.")
+
+        if attrs["amount"] > loan.outstanding_balance:
+            raise serializers.ValidationError(
+                "Repayment amount cannot exceed the outstanding balance."
+            )
+        return attrs
+
 
 class LoanRepaymentLedgerSerializer(serializers.ModelSerializer):
     class Meta:
-        model  = LoanRepaymentLedger
+        model = LoanRepaymentLedger
         fields = [
             "id", "loan", "hijri_month", "hijri_year", "hijri_display",
             "amount", "balance_before", "balance_after",
@@ -244,20 +257,24 @@ class LoanRepaymentLedgerSerializer(serializers.ModelSerializer):
 
 
 class LoanEligibilitySerializer(serializers.Serializer):
-    eligible                   = serializers.BooleanField()
-    reasons                    = serializers.ListField(child=serializers.CharField())
-    is_new_member              = serializers.BooleanField()
-    max_borrowable             = serializers.DecimalField(max_digits=14, decimal_places=2)
-    consecutive_months         = serializers.IntegerField()
+    eligible = serializers.BooleanField()
+    reasons = serializers.ListField(child=serializers.CharField())
+    is_new_member = serializers.BooleanField()
+    max_borrowable = serializers.DecimalField(max_digits=14, decimal_places=2)
+    consecutive_months = serializers.IntegerField()
     required_consecutive_months = serializers.IntegerField()
-    max_repayment_months      = serializers.IntegerField()
-    loan_amount_ratio          = serializers.DecimalField(max_digits=4, decimal_places=2)
-    max_sureties               = serializers.IntegerField()
-    min_loan_amount            = serializers.DecimalField(max_digits=12, decimal_places=2)
-    max_loan_amount            = serializers.DecimalField(max_digits=14, decimal_places=2)
-    require_no_active_loan     = serializers.BooleanField()
+    max_repayment_months = serializers.IntegerField()
+    loan_amount_ratio = serializers.DecimalField(max_digits=4, decimal_places=2)
+    max_sureties = serializers.IntegerField()
+    min_loan_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    max_loan_amount = serializers.DecimalField(max_digits=14, decimal_places=2)
+    require_no_active_loan = serializers.BooleanField()
     require_no_surety_liabilities = serializers.BooleanField()
     self_surety_max = serializers.DecimalField(max_digits=14, decimal_places=2)
+
+    # Financial grade additions (optional but helpful)
+    current_available_balance = serializers.DecimalField(max_digits=14, decimal_places=2, required=False)
+    current_committed_surety = serializers.DecimalField(max_digits=14, decimal_places=2, required=False)
 
 
 class LoanSettingsSerializer(serializers.ModelSerializer):
