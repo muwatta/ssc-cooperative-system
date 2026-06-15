@@ -574,11 +574,11 @@ export default function DashboardPage() {
       {/* Financial Snapshot – Admin only */}
       {isAdmin && financialSnapshot && financialSnapshot.length > 0 && (
         <div className="card-panel mb-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between m-4">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
               📊 Financial Snapshot
             </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-xs m-4 text-gray-500 dark:text-gray-400">
               Active members only
             </p>
           </div>
