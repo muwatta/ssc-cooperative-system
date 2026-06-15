@@ -11,10 +11,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
-from django.core.cache import cache          # <-- added for cache invalidation
+from django.core.cache import cache
+from rest_framework.throttling import UserRateThrottle
 
 from apps.accounts.models import MemberProfile, MembershipStatus
 from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee, IsAdminOrCommitteeOrHOS
+from apps.audit.utils import log_action, get_client_ip
 from utils.hijri import hijri_month_display
 from .models import LedgerEntryType, SavingsLedger, MemberBalance, SavingsChangeRequest, TermlyDuesCycle
 from .serializers import (
@@ -28,7 +30,6 @@ from .services import (
     apply_savings_change, get_or_create_balance, post_special_savings_entry,
 )
 
-# Helper to clear dashboard cache (same key as in loans/views.py)
 def invalidate_dashboard_cache():
     cache.delete("dashboard_summary_admin_stats")
 
@@ -53,8 +54,18 @@ class PostSavingsView(APIView):
                     posted_by=request.user,
                 )
             )
-        # Invalidate dashboard cache because total savings changed
         invalidate_dashboard_cache()
+
+        for entry in entries:
+            log_action(
+                user=request.user,
+                action="POST_SAVINGS",
+                description=f"Posted ordinary savings of ₦{d['amount']} to {entry.member.full_name}",
+                object_type="SavingsLedger",
+                object_id=entry.id,
+                object_name=entry.member.full_name,
+                request_ip=get_client_ip(request),
+            )
 
         if len(entries) == 1:
             return Response(SavingsLedgerSerializer(entries[0]).data, status=status.HTTP_201_CREATED)
@@ -62,6 +73,7 @@ class PostSavingsView(APIView):
 
 
 class MemberLedgerView(generics.ListAPIView):
+    throttle_classes = [UserRateThrottle]
     serializer_class = SavingsLedgerSerializer
     filter_backends  = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["hijri_year", "hijri_month", "entry_type"]
@@ -192,6 +204,7 @@ class MyLedgerView(generics.ListAPIView):
 
 
 class SavingsChangeRequestListCreateView(generics.ListCreateAPIView):
+    throttle_classes = [UserRateThrottle]
     serializer_class = SavingsChangeRequestSerializer
     filter_backends  = [DjangoFilterBackend]
     filterset_fields = ["status"]
@@ -248,8 +261,18 @@ class ApproveSavingsChangeView(APIView):
             hijri_month=d["effective_hijri_month"],
             hijri_year=d["effective_hijri_year"],
         )
-        # Invalidate dashboard cache because savings totals may change
         invalidate_dashboard_cache()
+
+        log_action(
+            user=request.user,
+            action="APPROVE_SAVINGS_CHANGE",
+            description=f"Approved savings change for {change_req.member.full_name} from ₦{change_req.current_amount} to ₦{change_req.requested_amount}",
+            object_type="SavingsChangeRequest",
+            object_id=change_req.id,
+            object_name=change_req.member.full_name,
+            request_ip=get_client_ip(request),
+        )
+
         return Response(SavingsChangeRequestSerializer(result).data)
 
 
@@ -263,6 +286,17 @@ class RejectSavingsChangeView(APIView):
             return Response({"error": "Request not found or not pending."}, status=status.HTTP_404_NOT_FOUND)
         change_req.status = "rejected"
         change_req.save(update_fields=["status"])
+
+        log_action(
+            user=request.user,
+            action="REJECT_SAVINGS_CHANGE",
+            description=f"Rejected savings change for {change_req.member.full_name}",
+            object_type="SavingsChangeRequest",
+            object_id=change_req.id,
+            object_name=change_req.member.full_name,
+            request_ip=get_client_ip(request),
+        )
+
         return Response(SavingsChangeRequestSerializer(change_req).data)
 
 
@@ -307,6 +341,16 @@ class DuesCycleListCreateView(generics.ListCreateAPIView):
             members = MemberProfile.objects.filter(pk__in=d["member_ids"])
             cycle.target_members.set(members)
 
+        log_action(
+            user=request.user,
+            action="CREATE_DUES_CYCLE",
+            description=f"Created dues cycle '{cycle.name}' of ₦{cycle.amount}",
+            object_type="TermlyDuesCycle",
+            object_id=cycle.id,
+            object_name=cycle.name,
+            request_ip=get_client_ip(request),
+        )
+
         return Response(TermlyDuesCycleSerializer(cycle).data, status=status.HTTP_201_CREATED)
 
 
@@ -321,8 +365,18 @@ class PostDuesCycleView(APIView):
 
         try:
             result = post_termly_dues(cycle=cycle, posted_by=request.user)
-            # Invalidate dashboard cache because savings balances changed
             invalidate_dashboard_cache()
+
+            log_action(
+                user=request.user,
+                action="POST_DUES",
+                description=f"Posted dues cycle '{cycle.name}' of ₦{cycle.amount} to {len(result['successes'])} members",
+                object_type="TermlyDuesCycle",
+                object_id=cycle.id,
+                object_name=cycle.name,
+                new_values={"successes": len(result["successes"]), "failures": len(result["failures"])},
+                request_ip=get_client_ip(request),
+            )
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -600,7 +654,6 @@ class BulkSavingsReportView(APIView):
         return response
 
 
-# SINGLE CORRECT BatchMonthlyDeductionView (removed duplicate)
 class BatchMonthlyDeductionView(APIView):
     permission_classes = [IsAdmin]
 
@@ -664,8 +717,18 @@ class BatchMonthlyDeductionView(APIView):
                             hijri_year=hijri_year,
                             posted_by=posted_by,
                         )
-            # Invalidate dashboard cache after bulk operations
             invalidate_dashboard_cache()
+
+            log_action(
+                user=request.user,
+                action="BATCH_DEDUCTION",
+                description=f"Processed monthly deductions for {len(results)} members (contribution + loan repayment)",
+                object_type="BatchOperation",
+                object_id=0,
+                object_name="BatchMonthlyDeduction",
+                new_values={"total_members": len(results)},
+                request_ip=get_client_ip(request),
+            )
 
         return Response({
             "preview": preview,
@@ -707,6 +770,16 @@ class FullWithdrawalView(APIView):
                 details=f"Full withdrawal — member deactivated",
             )
             invalidate_dashboard_cache()
+
+            log_action(
+                user=request.user,
+                action="FULL_WITHDRAWAL",
+                description=f"Full withdrawal of ₦{balance.available_balance} for {member.full_name} (deactivated)",
+                object_type="SavingsLedger",
+                object_id=entry.id,
+                object_name=member.full_name,
+                request_ip=get_client_ip(request),
+            )
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -739,7 +812,7 @@ class MoveToSpecialView(APIView):
 
         from utils.hijri import current_hijri
         h_month, h_year = current_hijri()
-        SavingsLedger.objects.create(
+        entry = SavingsLedger.objects.create(
             member=member,
             hijri_month=h_month,
             hijri_year=h_year,
@@ -754,6 +827,17 @@ class MoveToSpecialView(APIView):
             verified_by_role=request.user.role,
         )
         invalidate_dashboard_cache()
+
+        log_action(
+            user=request.user,
+            action="MOVE_TO_SPECIAL",
+            description=f"Moved ₦{amount} to special savings for {member.full_name}",
+            object_type="SavingsLedger",
+            object_id=entry.id,
+            object_name=member.full_name,
+            request_ip=get_client_ip(request),
+        )
+
         return Response({"message": f"₦{amount} moved to special savings.", "special_savings": str(balance.special_savings)})
 
 
@@ -794,7 +878,7 @@ class WithdrawSpecialView(APIView):
         from utils.hijri import hijri_month_display
         h_month = int(hijri_month)
         h_year = int(hijri_year)
-        SavingsLedger.objects.create(
+        entry = SavingsLedger.objects.create(
             member=member,
             hijri_month=h_month,
             hijri_year=h_year,
@@ -809,6 +893,17 @@ class WithdrawSpecialView(APIView):
             verified_by_role=request.user.role,
         )
         invalidate_dashboard_cache()
+
+        log_action(
+            user=request.user,
+            action="WITHDRAW_SPECIAL",
+            description=f"Withdrew ₦{amount} from special savings for {member.full_name}",
+            object_type="SavingsLedger",
+            object_id=entry.id,
+            object_name=member.full_name,
+            request_ip=get_client_ip(request),
+        )
+
         return Response({
             "message": f"₦{amount} withdrawn from special savings.",
             "special_savings": str(balance.special_savings),
@@ -883,6 +978,16 @@ class PostSpecialSavingsView(APIView):
                 details=details,
             )
             invalidate_dashboard_cache()
+
+            log_action(
+                user=request.user,
+                action="POST_SPECIAL_SAVINGS",
+                description=f"Locked ₦{amount} into special savings for {member.full_name}",
+                object_type="SavingsLedger",
+                object_id=entry.id,
+                object_name=member.full_name,
+                request_ip=get_client_ip(request),
+            )
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -894,5 +999,3 @@ class PostSpecialSavingsView(APIView):
             "total_savings": str(balance.total_savings),
             "available_balance": str(balance.available_balance),
         }, status=status.HTTP_201_CREATED)
-    
-

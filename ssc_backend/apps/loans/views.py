@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from django.core.cache import cache
+from rest_framework.throttling import UserRateThrottle
 
 from django.db.models import Sum
 
@@ -18,6 +19,7 @@ from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee, IsAdminOrComm
 from apps.accounts.models import MemberProfile
 from apps.savings.services import get_or_create_balance
 from apps.savings.models import SavingsLedger, MemberBalance
+from apps.audit.utils import log_action, get_client_ip
 from .models import LoanApplication, LoanRepaymentLedger, LoanStatus, LoanDraft
 from .serializers import (
     LoanApplicationSerializer, LoanDraftSerializer, SubmitLoanSerializer,
@@ -92,6 +94,7 @@ class LoanSettingsView(APIView):
 
 
 class LoanApplicationListView(generics.ListAPIView):
+    throttle_classes = [UserRateThrottle]
     serializer_class = LoanApplicationSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["status"]
@@ -105,6 +108,7 @@ class LoanApplicationListView(generics.ListAPIView):
 
 
 class MyLoanListView(generics.ListAPIView):
+    throttle_classes = [UserRateThrottle]
     serializer_class = LoanApplicationSerializer
     permission_classes = [IsAuthenticated]
 
@@ -139,6 +143,16 @@ class SubmitLoanView(APIView):
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+        log_action(
+            user=request.user,
+            action="SUBMIT_LOAN",
+            description=f"Submitted loan application for ₦{loan.amount_applied}",
+            object_type="LoanApplication",
+            object_id=loan.id,
+            object_name=loan.applicant.full_name,
+            request_ip=get_client_ip(request),
+        )
+
         return Response(LoanApplicationSerializer(loan).data, status=status.HTTP_201_CREATED)
 
 
@@ -164,9 +178,21 @@ class CommitteeDecisionView(APIView):
         try:
             if d["decision"] == "approve":
                 loan = committee_approve_loan(loan, request.user, d["amount_approved"], d.get("note", ""))
+                action_desc = f"Committee approved loan #{loan.id} for ₦{loan.amount_approved}"
             else:
                 loan = committee_reject_loan(loan, request.user, d.get("note", ""))
+                action_desc = f"Committee rejected loan #{loan.id}"
             invalidate_dashboard_cache()
+
+            log_action(
+                user=request.user,
+                action="COMMITTEE_DECISION",
+                description=action_desc,
+                object_type="LoanApplication",
+                object_id=loan.id,
+                object_name=loan.applicant.full_name,
+                request_ip=get_client_ip(request),
+            )
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -195,6 +221,16 @@ class AdminFinalApprovalView(APIView):
         try:
             loan = admin_final_approve_loan(loan, request.user, d.get("note", ""))
             invalidate_dashboard_cache()
+
+            log_action(
+                user=request.user,
+                action="FINAL_APPROVAL",
+                description=f"Admin final approval for loan #{loan.id} for ₦{loan.amount_approved}",
+                object_type="LoanApplication",
+                object_id=loan.id,
+                object_name=loan.applicant.full_name,
+                request_ip=get_client_ip(request),
+            )
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -230,6 +266,17 @@ class HOSApprovalView(APIView):
         loan.hos_approved_by = request.user
         loan.hos_approved_at = timezone.now()
         loan.save(update_fields=["hos_approved_by", "hos_approved_at"])
+
+        log_action(
+            user=request.user,
+            action="HOS_APPROVAL",
+            description=f"Head of School approved loan #{loan.id}",
+            object_type="LoanApplication",
+            object_id=loan.id,
+            object_name=loan.applicant.full_name,
+            request_ip=get_client_ip(request),
+        )
+
         return Response(LoanApplicationSerializer(loan).data)
 
 
@@ -255,6 +302,16 @@ class PostRepaymentView(APIView):
                 posted_by=request.user,
             )
             invalidate_dashboard_cache()
+
+            log_action(
+                user=request.user,
+                action="POST_REPAYMENT",
+                description=f"Posted repayment of ₦{d['amount']} on loan #{loan.id}",
+                object_type="LoanRepaymentLedger",
+                object_id=repayment.id,
+                object_name=loan.applicant.full_name,
+                request_ip=get_client_ip(request),
+            )
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -401,6 +458,16 @@ class HandleDefaultView(APIView):
         try:
             result = handle_default_or_exit(loan)
             invalidate_dashboard_cache()
+
+            log_action(
+                user=request.user,
+                action="DEFAULT_LOAN",
+                description=f"Marked loan #{loan.id} as defaulted; balance transferred to sureties",
+                object_type="LoanApplication",
+                object_id=loan.id,
+                object_name=loan.applicant.full_name,
+                request_ip=get_client_ip(request),
+            )
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"message": "Loan defaulted. Balance transferred to sureties.", "detail": result})
