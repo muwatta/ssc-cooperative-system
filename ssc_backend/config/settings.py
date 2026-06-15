@@ -14,7 +14,6 @@ ENVIRONMENT = config("ENVIRONMENT", default="development")
 ALLOWED_HOSTS_STRING = config("ALLOWED_HOSTS", default="localhost,127.0.0.1")
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STRING.split(",")]
 
-# In production on Render, allow the service host automatically
 if ENVIRONMENT == "production":
     ALLOWED_HOSTS += ["*.railway.app", "*.onrender.com", "*.vercel.app"]
 
@@ -26,7 +25,7 @@ DJANGO_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    'django_extensions',
+    "django_extensions",
 ]
 
 THIRD_PARTY_APPS = [
@@ -45,7 +44,7 @@ LOCAL_APPS = [
     "apps.investments",
     "apps.notifications",
     "apps.audit",
-    'apps.reports',
+    "apps.reports",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -53,8 +52,8 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 # MIDDLEWARE
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",  
-    "corsheaders.middleware.CorsMiddleware",     
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -92,7 +91,6 @@ DATABASES = {
     )
 }
 
-# Override the test database name so it doesn't conflict with the corrupted one
 DATABASES["default"]["TEST"] = {
     "NAME": "test_ssc_cooperative",
 }
@@ -126,9 +124,22 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": (
         "rest_framework.renderers.JSONRenderer",
     ),
+    # THROTTLING (rate limiting)
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "100/day",
+        "user": "1000/day",
+        "login": "5/minute",
+        "invite": "20/hour",
+        "import": "10/hour",
+        "password_change": "3/minute",
+    },
 }
-
-# JWT — 8-hour access token as per SRS spec
+REST_FRAMEWORK["EXCEPTION_HANDLER"] = "apps.core.exceptions.custom_exception_handler"
+# JWT access token as per SRS spec
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(
         minutes=config("ACCESS_TOKEN_LIFETIME_MINUTES", default=480, cast=int)
@@ -156,7 +167,7 @@ CORS_ALLOW_CREDENTIALS = True
 
 # INTERNATIONALISATION
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "Africa/Lagos"   # Nigeria timezone — important for Gregorian timestamps
+TIME_ZONE = "Africa/Lagos"
 USE_I18N = True
 USE_TZ = True
 
@@ -169,7 +180,6 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # PRODUCTION SECURITY HARDENING
-
 if ENVIRONMENT == "production":
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -181,7 +191,6 @@ if ENVIRONMENT == "production":
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_SSL_REDIRECT = True
-
 
 # CELERY — Async task queue
 CELERY_BROKER_URL = config(
@@ -196,5 +205,5 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
-CELERY_TASK_ALWAYS_EAGER = config("CELERY_TASK_ALWAYS_EAGER", default=False, cast=bool)  # For testing
+CELERY_TASK_ALWAYS_EAGER = config("CELERY_TASK_ALWAYS_EAGER", default=False, cast=bool)
 CELERY_TASK_EAGER_PROPAGATES = True

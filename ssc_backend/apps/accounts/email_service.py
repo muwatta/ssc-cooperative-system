@@ -1,8 +1,3 @@
-"""
-Email service for SSC Cooperative — handles invitations and notifications.
-Supports console backend for development and SMTP for production.
-"""
-
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils.html import strip_tags
@@ -11,17 +6,6 @@ import os
 
 
 def send_password_invitation(user, invitation, frontend_url: str = None) -> bool:
-    """
-    Send password-reset invitation email to a user.
-
-    Args:
-        user: User object
-        invitation: Invitation object with token
-        frontend_url: Base frontend URL (defaults to env var FRONTEND_URL)
-
-    Returns:
-        True if email was sent successfully, False otherwise
-    """
 
     if frontend_url is None:
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
@@ -77,10 +61,6 @@ def send_password_invitation(user, invitation, frontend_url: str = None) -> bool
 
 
 def send_bulk_invitations(user_ids: List[int], frontend_url: str = None) -> Dict[str, Any]:
-    """
-    Send invitations to a list of user IDs.
-    Returns a summary of sent, failed, and error details.
-    """
     from .models import User, Invitation
 
     sent_count = 0

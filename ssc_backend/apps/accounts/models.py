@@ -117,7 +117,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
 
     is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)   # Django admin access
+    is_staff = models.BooleanField(default=False)
     is_first_login = models.BooleanField(
         default=True,
         help_text="Forces password creation on first access"
@@ -139,7 +139,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.staff_id} ({self.role})"
 
-    # Role helpers — use these everywhere instead of raw string checks
+    # Role helpers — convenience properties for common role checks in views and templates
 
     @property
     def is_admin(self):
@@ -159,22 +159,18 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def can_post_savings(self):
-        """Only Admin can post savings (SRS S3)"""
         return self.role == Role.ADMIN
 
     @property
     def can_approve_loan(self):
-        """Committee and Admin can review/approve loans (SRS Section 3)"""
         return self.role in (Role.ADMIN, Role.COMMITTEE)
 
     @property
     def can_give_final_loan_approval(self):
-        """Only Head of School gives final sign-off (SRS L10)"""
         return self.role == Role.HEAD_OF_SCHOOL
 
     @property
     def ssc_file_number(self):
-        """Convenience accessor — returns file number or None if profile not created yet"""
         try:
             return self.member_profile.file_number
         except MemberProfile.DoesNotExist:
@@ -183,11 +179,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 def generate_file_number():
-    """
-    Returns the next SSC file number.
-    Finds the highest existing number and increments by 1.
-    Thread-safe: wrapped in select_for_update in the view layer.
-    """
+    
     from django.db.models import Max
     result = MemberProfile.objects.aggregate(max_num=Max("_file_sequence"))
     last_num = result["max_num"] or 0
@@ -196,17 +188,12 @@ def generate_file_number():
 
 
 # member profile
-
 class MemberProfile(models.Model):
-    """
-    Complete member record — mirrors the physical SSC Membership Form exactly.
-    SRS Section 2.4 fields all accounted for.
-    """
 
-    # Identit
+    # Identity
     user = models.OneToOneField(
         User,
-        on_delete=models.PROTECT,       # never accidentally delete a member
+        on_delete=models.PROTECT,
         related_name="member_profile"
     )
     file_number = models.CharField(
@@ -303,11 +290,6 @@ class MemberProfile(models.Model):
 
     @property
     def is_loan_eligible(self):
-        """
-        SRS Section 5.1 — All 4 conditions must pass.
-        Actual check also queries savings and loans — done in the view/serializer layer.
-        This property covers only what's on the profile itself.
-        """
         from apps.loans.services import get_loan_configuration
 
         config = get_loan_configuration()
@@ -318,15 +300,10 @@ class MemberProfile(models.Model):
 
     @property
     def is_surety_eligible(self):
-        """SRS Section 6.2 — same tenure requirement as loan eligibility"""
         return self.is_loan_eligible
 
 
 class Invitation(models.Model):
-    """
-    Track password-reset invitation emails sent to users.
-    Contains a secure token that expires after a set period.
-    """
 
     user = models.ForeignKey(
         User,
@@ -365,7 +342,6 @@ class Invitation(models.Model):
 
     @classmethod
     def create_for_user(cls, user, expires_in_days=7):
-        """Generate a new invitation token for a user."""
         token = secrets.token_urlsafe(48)
         expires_at = timezone.now() + timedelta(days=expires_in_days)
         invitation = cls.objects.create(
@@ -377,7 +353,6 @@ class Invitation(models.Model):
 
     @classmethod
     def get_by_token(cls, token):
-        """Retrieve and validate an invitation by token."""
         try:
             inv = cls.objects.get(token=token)
             if inv.email_expires_at < timezone.now():
@@ -389,12 +364,10 @@ class Invitation(models.Model):
             return None
 
     def mark_opened(self):
-        """Mark invitation as opened when user clicks the link."""
         self.clicked_at = timezone.now()
         self.status = "opened"
         self.save(update_fields=["clicked_at", "status"])
 
     def mark_completed(self):
-        """Mark invitation as completed after user sets password."""
         self.status = "completed"
         self.save(update_fields=["status"])

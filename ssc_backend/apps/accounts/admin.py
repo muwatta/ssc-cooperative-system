@@ -57,12 +57,11 @@ class MemberProfileAdmin(admin.ModelAdmin):
     ordering = ["file_number"]
     readonly_fields = ["file_number", "_file_sequence", "created_at", "updated_at"]
 
-    # Ensure the field appears on the edit form
     fieldsets = (
         (None, {
             'fields': (
                 'user', 'file_number', 'full_name', 'membership_status',
-                'is_new_member', 'is_special_saver',  # ← added
+                'is_new_member', 'is_special_saver',
                 'school_branch', 'designation', 'approved_monthly_contribution',
                 'consecutive_savings_months', 'phone_primary',
             )
@@ -81,7 +80,6 @@ class MemberProfileAdmin(admin.ModelAdmin):
         self.message_user(request, f"Marked {updated} member(s) as new.")
     mark_as_new.short_description = "Mark selected members as NEW"
 
-    # … keep the custom URL and legacy methods unchanged …
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [

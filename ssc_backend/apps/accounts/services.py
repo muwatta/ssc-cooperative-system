@@ -27,12 +27,7 @@ def import_legacy_members(
     send_invitations: bool = False,
     frontend_url: Optional[str] = None,
 ):
-    """
-    Import legacy members from a CSV file-like object.
-    CSV must have columns matching MemberProfile fields where possible.
-
-    Returns: dict summary with counts and errors
-    """
+    
     reader = csv.DictReader(file_obj)
     created = 0
     skipped = 0
@@ -175,13 +170,12 @@ def import_legacy_members(
         # Optionally send onboarding invitations for created users
         if send_invitations and created_user_ids and not dry_run:
             try:
-                # import here to avoid circular imports at module import time
+                # import to avoid circular imports at module import time
                 from .email_service import send_bulk_invitations
 
                 invite_summary = send_bulk_invitations(created_user_ids, frontend_url=frontend_url)
                 result["invitation_summary"] = invite_summary
             except Exception as e:
-                # Do not fail the import because invitation sending failed; include error info
                 result.setdefault("invitation_summary", {})
                 result["invitation_summary"]["error"] = str(e)
 

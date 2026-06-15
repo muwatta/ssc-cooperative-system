@@ -1,7 +1,3 @@
-"""
-Celery tasks for async account operations: invitations, exports, etc.
-"""
-
 from celery import shared_task
 from django.utils import timezone
 import io
@@ -13,10 +9,7 @@ from .email_service import send_password_invitation
 
 @shared_task(bind=True, max_retries=3)
 def send_bulk_invitations_async(self, user_ids: list, frontend_url: str = None):
-    """
-    Asynchronously send password invitation emails to multiple users.
-    More suitable than the synchronous version for large batches.
-    """
+    
     if not frontend_url:
         frontend_url = "http://localhost:5173"
     
@@ -50,15 +43,12 @@ def send_bulk_invitations_async(self, user_ids: list, frontend_url: str = None):
         }
 
     except Exception as exc:
-        # Retry up to 3 times with exponential backoff
         raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
 
 
 @shared_task(bind=True, max_retries=3)
 def generate_loan_repayment_schedule_pdf(self, loan_id: int):
-    """
-    Asynchronously generate a PDF of loan repayment schedule.
-    """
+    
     try:
         from apps.loans.models import LoanApplication, LoanRepaymentLedger
         from reportlab.lib.pagesizes import letter

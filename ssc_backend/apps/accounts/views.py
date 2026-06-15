@@ -9,7 +9,10 @@ from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from django.core.cache import cache             
+from django.core.cache import cache
+from django.contrib.auth import update_session_auth_hash
+
+from .throttles import LoginRateThrottle, InviteRateThrottle, ImportRateThrottle, PasswordChangeRateThrottle
 
 from django.http import JsonResponse
 from rest_framework.views import APIView
@@ -40,7 +43,15 @@ def invalidate_dashboard_cache():
     cache.delete("dashboard_summary_admin_stats")
 
 
+# Helper to sanitize CSV cells (prevents formula injection)
+def sanitize_csv_cell(value):
+    if isinstance(value, str) and value.startswith(('=', '+', '-', '@')):
+        return "'" + value
+    return value
+
+
 class SSCTokenObtainPairView(TokenObtainPairView):
+    throttle_classes = [LoginRateThrottle]
     serializer_class = SSCTokenObtainPairSerializer
 
 
@@ -115,9 +126,12 @@ class StaffIDRegistryDetailView(generics.RetrieveUpdateDestroyAPIView):
 class CreateUserView(generics.CreateAPIView):
     serializer_class = CreateUserSerializer
     permission_classes = [IsAdmin]
-
+    throttle_classes = [InviteRateThrottle]
+    
+    @transaction.atomic
     def perform_create(self, serializer):
         serializer.save()
+
 
 class MemberListCreateView(generics.ListCreateAPIView):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -127,7 +141,7 @@ class MemberListCreateView(generics.ListCreateAPIView):
     ordering = ["file_number"]
 
     def get_queryset(self):
-        return MemberProfile.objects.select_related("user").all() 
+        return MemberProfile.objects.select_related("user").all()
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -139,6 +153,7 @@ class MemberListCreateView(generics.ListCreateAPIView):
             return [IsAdmin()]
         return [IsAdminOrCommitteeOrHOS()]
 
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
         serializer = CreateMemberSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -146,8 +161,10 @@ class MemberListCreateView(generics.ListCreateAPIView):
         response_serializer = MemberProfileSerializer(profile)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
+
 class MemberDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = MemberProfileSerializer
+    permission_classes = [IsAuthenticated, IsProfileOwnerOrAdmin]
 
     def get_queryset(self):
         user = self.request.user
@@ -155,10 +172,6 @@ class MemberDetailView(generics.RetrieveUpdateAPIView):
             return MemberProfile.objects.select_related("user").all()
         return MemberProfile.objects.filter(user=user).select_related('user')
 
-    def get_permissions(self):
-        if self.request.method in ("PUT", "PATCH"):
-            return [IsProfileOwnerOrAdmin()]
-        return [IsAuthenticated()]
 
 class MemberSummaryListView(generics.ListAPIView):
     serializer_class = MemberProfileSummarySerializer
@@ -194,6 +207,7 @@ class MyProfileView(APIView):
         serializer = MemberProfileSerializer(profile)
         return Response(serializer.data)
 
+    @transaction.atomic
     def post(self, request):
         if self.get_object() is not None:
             return Response(
@@ -218,6 +232,7 @@ class MyProfileView(APIView):
 
         return Response(MemberProfileSerializer(profile).data, status=status.HTTP_201_CREATED)
 
+    @transaction.atomic
     def patch(self, request):
         profile = self.get_object()
         if profile is None:
@@ -240,6 +255,7 @@ class MyProfileView(APIView):
 class ApproveMemberView(APIView):
     permission_classes = [IsAdmin]
 
+    @transaction.atomic
     def post(self, request, pk):
         try:
             profile = MemberProfile.objects.get(pk=pk, membership_status="pending")
@@ -289,6 +305,7 @@ class ApproveMemberView(APIView):
 class DeactivateMemberView(APIView):
     permission_classes = [IsAdmin]
 
+    @transaction.atomic
     def post(self, request, pk):
         try:
             profile = MemberProfile.objects.select_related("user").get(pk=pk)
@@ -300,12 +317,23 @@ class DeactivateMemberView(APIView):
             profile.save(update_fields=["membership_status", "updated_at"])
             profile.user.is_active = False
             profile.user.save(update_fields=["is_active"])
+
+        log_action(
+            user=request.user,
+            action="DEACTIVATE_MEMBER",
+            description=f"Deactivated member {profile.file_number} ({profile.full_name})",
+            object_type="MemberProfile",
+            object_id=profile.id,
+            object_name=profile.full_name,
+            request_ip=get_client_ip(request),
+        )
         invalidate_dashboard_cache()
         return Response({"message": f"{profile.file_number} deactivated."}, status=status.HTTP_200_OK)
 
 
 class LegacyImportView(APIView):
     permission_classes = [IsAdmin]
+    throttle_classes = [ImportRateThrottle]
 
     def post(self, request):
         csv_file = request.FILES.get('file')
@@ -332,6 +360,12 @@ class LegacyImportView(APIView):
         if not csv_file:
             return Response({"error": "CSV file is required (field name: file)."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # File size limit (5MB)
+        MAX_FILE_SIZE = 5 * 1024 * 1024
+        if csv_file.size > MAX_FILE_SIZE:
+            return Response({"error": "File too large (max 5MB)."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Pass sanitization flag to service
         summary = import_legacy_members(
             csv_file,
             dry_run=dry_run,
@@ -341,6 +375,7 @@ class LegacyImportView(APIView):
             start_seq=start_seq,
             send_invitations=send_invitations,
             frontend_url=frontend_url,
+            sanitize_cells=True,  # enable formula injection protection
         )
 
         if download_errors and summary.get('errors'):
@@ -354,12 +389,25 @@ class LegacyImportView(APIView):
             resp['Content-Disposition'] = 'attachment; filename="import-errors.csv"'
             return resp
 
+        # Log import action (even if dry run)
+        log_action(
+            user=request.user,
+            action="LEGACY_IMPORT",
+            description=f"Imported members from CSV (dry_run={dry_run})",
+            object_type="BulkImport",
+            object_id=0,
+            object_name="Legacy Import",
+            new_values={"file": csv_file.name, "dry_run": dry_run, "summary": summary},
+            request_ip=get_client_ip(request),
+        )
+
         invalidate_dashboard_cache()
         return Response(summary)
 
 
 class SendInvitationsView(APIView):
     permission_classes = [IsAdmin]
+    throttle_classes = [InviteRateThrottle]
 
     def post(self, request):
         user_ids = request.data.get('user_ids', [])
@@ -371,12 +419,25 @@ class SendInvitationsView(APIView):
             )
 
         summary = send_bulk_invitations(user_ids, frontend_url=frontend_url)
+
+        log_action(
+            user=request.user,
+            action="SEND_INVITATIONS",
+            description=f"Sent invitations to users: {user_ids}",
+            object_type="Invitation",
+            object_id=0,
+            object_name="Bulk Invitation",
+            new_values={"user_ids": user_ids, "summary": summary},
+            request_ip=get_client_ip(request),
+        )
+
         return Response(summary)
 
 
 class ChangeMemberRoleView(APIView):
     permission_classes = [IsAdmin]
 
+    @transaction.atomic
     def post(self, request, pk):
         try:
             profile = MemberProfile.objects.select_related("user").get(pk=pk)
@@ -412,6 +473,7 @@ class ChangeMemberRoleView(APIView):
             object_type="User",
             object_id=profile.user.id,
             object_name=profile.full_name,
+            request_ip=get_client_ip(request),
         )
         invalidate_dashboard_cache()
 
@@ -426,6 +488,7 @@ class ChangeMemberRoleView(APIView):
 
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
+    throttle_classes = [PasswordChangeRateThrottle]
 
     def post(self, request):
         user = request.user
@@ -446,12 +509,27 @@ class ChangePasswordView(APIView):
 
         user.set_password(new)
         user.save()
+
+        # Keep the user logged in after password change
+        update_session_auth_hash(request, user)
+
+        log_action(
+            user=request.user,
+            action="CHANGE_PASSWORD",
+            description="User changed password",
+            object_type="User",
+            object_id=user.id,
+            object_name=user.get_full_name() or user.staff_id,
+            request_ip=get_client_ip(request),
+        )
+
         return Response({"message": "Password changed successfully."})
 
 
 class ToggleSpecialSaverView(APIView):
     permission_classes = [IsAdmin]
 
+    @transaction.atomic
     def post(self, request, member_id):
         try:
             member = MemberProfile.objects.get(pk=member_id)
@@ -460,6 +538,16 @@ class ToggleSpecialSaverView(APIView):
 
         member.is_special_saver = not member.is_special_saver
         member.save(update_fields=["is_special_saver", "updated_at"])
+
+        log_action(
+            user=request.user,
+            action="TOGGLE_SPECIAL_SAVER",
+            description=f"Toggled special saver status for {member.full_name} to {member.is_special_saver}",
+            object_type="MemberProfile",
+            object_id=member.id,
+            object_name=member.full_name,
+            request_ip=get_client_ip(request),
+        )
         invalidate_dashboard_cache()
         return Response({
             "member_id": member.id,
