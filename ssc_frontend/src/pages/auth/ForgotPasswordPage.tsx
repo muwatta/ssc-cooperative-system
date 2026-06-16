@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -13,14 +15,11 @@ export default function ForgotPasswordPage() {
     setMessage("");
 
     try {
-      const response = await fetch(
-        "http://localhost:8000/api/v1/accounts/password-reset/",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        },
-      );
+      const response = await fetch("/api/v1/accounts/password-reset/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
 
       const data = await response.json();
 
@@ -31,7 +30,7 @@ export default function ForgotPasswordPage() {
       }
     } catch (err) {
       console.error(err);
-      setError("Network error. Make sure Django is running on port 8000.");
+      setError("Network error. Please try again later.");
     } finally {
       setLoading(false);
     }

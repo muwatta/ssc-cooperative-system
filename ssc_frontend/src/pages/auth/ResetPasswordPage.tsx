@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+
 export default function ResetPasswordPage() {
   const { uid, token } = useParams();
   const navigate = useNavigate();
@@ -26,15 +28,12 @@ export default function ResetPasswordPage() {
     setMessage("");
 
     try {
-      const response = await fetch(
-        "http://localhost:8000/api/v1/accounts/password-reset/confirm/",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ uid, token, new_password: newPassword }),
-        },
-      );
-
+      const response = await fetch("/api/v1/accounts/password-reset/confirm/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid, token, new_password: newPassword }),
+      });
+      
       const data = await response.json();
 
       if (response.ok) {
