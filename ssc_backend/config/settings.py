@@ -207,6 +207,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # PRODUCTION SECURITY HARDENING
 if ENVIRONMENT == "production":
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
