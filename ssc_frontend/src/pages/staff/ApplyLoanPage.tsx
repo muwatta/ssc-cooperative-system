@@ -11,7 +11,7 @@ import {
   formatNaira,
   PageLoader,
 } from "@/components/common";
-import { HIJRI_MONTHS as HM, MemberSummary } from "@/types";
+import { HIJRI_MONTHS as HM } from "@/types";
 
 interface SuretyFormItem {
   member_id: number;
@@ -38,7 +38,212 @@ interface SuretyEligibilityResponse {
   reasons: string[];
 }
 
-// ... (SuretyRow component unchanged, but it doesn't use salary/purpose)
+// ─── SuretyRow Component ────────────────────────────────
+
+function SuretyRow({
+  index,
+  register,
+  setValue,
+  watch,
+  remove,
+  errors,
+  needsExternalSureties,
+  eligibility,
+  isCheckingEligibility,
+  eligibilityError,
+  remainingGap,
+}: {
+  index: number;
+  register: any;
+  setValue: any;
+  watch: any;
+  remove: (index: number) => void;
+  errors: any;
+  needsExternalSureties: boolean;
+  eligibility?: SuretyEligibilityResponse;
+  isCheckingEligibility?: boolean;
+  eligibilityError?: unknown;
+  remainingGap: number;
+}) {
+  const searchTerm = watch(`sureties.${index}.member_label`) || "";
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+  const selectedId = watch(`sureties.${index}.member_id`) || 0;
+  const amountValue = Number(watch(`sureties.${index}.amount`)) || 0;
+  const [showDropdown, setShowDropdown] = useState(false);
+  const { data: results } = useQuery<any[]>({
+    queryKey: ["member-search", index, debouncedSearch],
+    queryFn: () =>
+      membersApi.summary(debouncedSearch).then((r) => r.data.results),
+    enabled: debouncedSearch.length > 2,
+  });
+
+  return (
+    <AnimatedCard className="relative border-gray-200 bg-white p-4">
+      <div className="grid gap-3 md:grid-cols-12">
+        <div className="md:col-span-6">
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Surety Member
+          </label>
+          <div className="relative">
+            <input
+              {...register(`sureties.${index}.member_label`, {
+                required: "Search and select a member",
+                onChange: () => {
+                  setValue(`sureties.${index}.member_id`, 0);
+                  setShowDropdown(true);
+                },
+                onFocus: () => setShowDropdown(true),
+              })}
+              className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                errors?.sureties?.[index]?.member_label
+                  ? "border-red-300 focus:ring-red-500"
+                  : "border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+              }`}
+              placeholder="Search by file number or name..."
+              autoComplete="off"
+            />
+            <input
+              type="hidden"
+              {...register(`sureties.${index}.member_id`, {
+                valueAsNumber: true,
+                validate: (value: any) =>
+                  value > 0 || "Select a valid member from the list",
+              })}
+            />
+
+            {results && results.length > 0 && showDropdown && (
+              <div className="absolute top-full left-0 right-0 z-10 mt-1 max-h-60 overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                {results.slice(0, 6).map((member) => (
+                  <button
+                    key={member.id}
+                    type="button"
+                    className="w-full px-3 py-2 text-left transition-colors hover:bg-primary-50"
+                    onClick={() => {
+                      setValue(`sureties.${index}.member_id`, member.id);
+                      setValue(
+                        `sureties.${index}.member_label`,
+                        `${member.file_number} – ${member.full_name}`,
+                      );
+                      setShowDropdown(false);
+                    }}
+                  >
+                    <span className="font-medium text-gray-900">
+                      {member.file_number}
+                    </span>
+                    <span className="ml-2 text-sm text-gray-600">
+                      {member.full_name}
+                    </span>
+                    <span className="ml-2 text-xs text-gray-400 capitalize">
+                      {member.school_branch}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {errors?.sureties?.[index]?.member_label && (
+            <p className="mt-1 text-xs text-red-600">
+              {String(errors.sureties[index].member_label.message)}
+            </p>
+          )}
+          {errors?.sureties?.[index]?.member_id && selectedId <= 0 && (
+            <p className="mt-1 text-xs text-red-600">
+              {String(errors.sureties[index].member_id.message)}
+            </p>
+          )}
+          {selectedId > 0 && amountValue > 0 && needsExternalSureties && (
+            <div className="mt-2 text-sm">
+              {eligibility ? (
+                eligibility.eligible ? (
+                  <p className="text-green-600">
+                    This member is eligible to act as a surety for this amount.
+                  </p>
+                ) : (
+                  <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700">
+                    This member can't surety up to that amount.
+                  </p>
+                )
+              ) : isCheckingEligibility ? (
+                <p className="text-blue-600">Checking surety eligibility…</p>
+              ) : eligibilityError ? (
+                <p className="text-red-600">
+                  Failed to validate surety eligibility.
+                </p>
+              ) : (
+                <p className="text-gray-500">
+                  Enter an amount to validate eligibility.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="md:col-span-4">
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Amount Guaranteed (₦)
+          </label>
+          <input
+            {...register(`sureties.${index}.amount`, {
+              required: "Enter a guarantee amount",
+              valueAsNumber: true,
+              min: 0.01,
+              max: remainingGap > 0 ? remainingGap : 0,
+            })}
+            type="number"
+            step="0.01"
+            className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+              errors?.sureties?.[index]?.amount
+                ? "border-red-300 focus:ring-red-500"
+                : "border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+            }`}
+            placeholder="0.00"
+          />
+          {remainingGap > 0 && remainingGap < 1000000 && (
+            <p className="mt-1 text-xs text-gray-500">
+              Max you can ask this surety: {formatNaira(remainingGap)}
+            </p>
+          )}
+          {errors?.sureties?.[index]?.amount && (
+            <p className="mt-1 text-xs text-red-600">
+              {String(errors.sureties[index].amount.message)}
+            </p>
+          )}
+        </div>
+
+        <div className="md:col-span-2 flex items-center justify-end gap-2">
+          {index > 0 && (
+            <button
+              type="button"
+              onClick={() => remove(index)}
+              className="inline-flex items-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500"
+            >
+              <svg
+                className="mr-1 h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+              Remove
+            </button>
+          )}
+        </div>
+      </div>
+    </AnimatedCard>
+  );
+}
+
+// ─── Main Component ──────────────────────────────────────
 
 export default function ApplyLoanPage() {
   const [error, setError] = useState("");
@@ -248,7 +453,7 @@ export default function ApplyLoanPage() {
     }
   }, [monthlyRepayment, setValue]);
 
-  // Draft logic (unchanged)
+  // Draft logic
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [lastDraftSavedAt, setLastDraftSavedAt] = useState<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -296,7 +501,6 @@ export default function ApplyLoanPage() {
           (s) => s.member_id > 0,
         );
       }
-      // monthly_salary and purpose are no longer in formValues
       saveDraftMutation.mutate(payload);
     }, 5000);
 
@@ -338,7 +542,6 @@ export default function ApplyLoanPage() {
     } else {
       payload.sureties = [];
     }
-    // monthly_salary and purpose are not in payload
 
     try {
       const response = await applyMutateAsync(payload);
