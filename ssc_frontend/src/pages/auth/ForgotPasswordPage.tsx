@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -13,7 +15,7 @@ export default function ForgotPasswordPage() {
     setMessage("");
 
     try {
-      const response = await fetch("/api/v1/accounts/password-reset/", {
+      const response = await fetch(`${API_BASE}/accounts/password-reset/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

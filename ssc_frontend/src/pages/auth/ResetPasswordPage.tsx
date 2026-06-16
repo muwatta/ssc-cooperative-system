@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+
 export default function ResetPasswordPage() {
   const { uid, token } = useParams();
   const navigate = useNavigate();
@@ -26,7 +28,7 @@ export default function ResetPasswordPage() {
     setMessage("");
 
     try {
-      const response = await fetch("/api/v1/accounts/password-reset/confirm/", {
+      const response = await fetch(`${API_BASE}/accounts/password-reset/confirm/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid, token, new_password: newPassword }),
@@ -47,6 +49,7 @@ export default function ResetPasswordPage() {
     }
   };
 
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow">
