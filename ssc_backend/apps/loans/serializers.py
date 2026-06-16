@@ -39,8 +39,8 @@ class LoanApplicationSerializer(serializers.ModelSerializer):
 
 class SubmitLoanSerializer(serializers.Serializer):
     amount_applied = serializers.DecimalField(max_digits=12, decimal_places=2)
-    purpose = serializers.CharField()
-    monthly_salary = serializers.DecimalField(max_digits=12, decimal_places=2)
+    purpose = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    monthly_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
     home_address = serializers.CharField()
     phone_numbers = serializers.CharField(max_length=100)
     proposed_monthly_repayment = serializers.DecimalField(max_digits=12, decimal_places=2)
@@ -48,7 +48,7 @@ class SubmitLoanSerializer(serializers.Serializer):
     date_of_last_loan = serializers.DateField(required=False, allow_null=True)
     amount_outstanding_prev = serializers.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
 
-    # repayment_start fields removed – backend determines them
+    # repayment_start fields removed
 
     class SuretyItemSerializer(serializers.Serializer):
         member_id = serializers.IntegerField()
