@@ -5,7 +5,7 @@ import api from "@/api/client";
 import { membersApi, savingsApi } from "@/api/services";
 import type { MemberProfile, SavingsSummary } from "@/types";
 
-// Normal StatCard (used in At a Glance, Membership Summary, Balance Overview)
+// StatCard (used in At a Glance, Membership Summary, Balance Overview)
 function StatCard({
   label,
   value,
@@ -37,7 +37,7 @@ function StatCard({
   );
 }
 
-// Compact StatCard (used in the 4‑column leadership grid)
+// CompactStatCard (used in the 4‑column leadership grid)
 function CompactStatCard({
   label,
   value,
@@ -190,6 +190,12 @@ export default function DashboardPage() {
     if (!showBalances) return "•••••";
     return value;
   };
+
+  // --- Compute max borrowable (75% of Available Balance) ---
+  const availableBalance = memberBalance?.available_balance
+    ? Number(memberBalance.available_balance)
+    : 0;
+  const maxBorrowable = availableBalance * 0.75;
 
   // Extract loan summary from new endpoint
   const pendingAdmin = dashSummary?.pending_admin ?? 0;
@@ -428,7 +434,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Balance Overview */}
+      {/* Balance Overview (UPDATED: added Max Borrowable) */}
       <div className="card-panel mb-6 bg-primary-50 border-primary-100">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
@@ -469,7 +475,8 @@ export default function DashboardPage() {
               </div>
             ) : null}
 
-            <div className="grid gap-3 grid-cols-3 p-2">
+            <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 p-2">
+              {/* 1. Total Savings */}
               <div className="card-panel-light">
                 <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                   Your Total Savings
@@ -480,6 +487,8 @@ export default function DashboardPage() {
                     : "N/A"}
                 </p>
               </div>
+
+              {/* 2. Available Balance */}
               <div className="card-panel-light">
                 <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                   Your Available Balance
@@ -491,7 +500,27 @@ export default function DashboardPage() {
                       )
                     : "N/A"}
                 </p>
+                <p className="text-xs m-3 text-gray-500 mt-1">
+                  After 25% investment reserve
+                </p>
               </div>
+
+              {/* 3. NEW: Maximum Borrowable (75%) */}
+              <div className="card-panel-light">
+                <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
+                  Max Borrowable (75%)
+                </p>
+                <p className="mt-3 m-3 text-1xl font-semibold text-primary-700">
+                  {hasMemberBalance
+                    ? maskIfNeeded(formatNaira(maxBorrowable))
+                    : "N/A"}
+                </p>
+                <p className="text-xs m-3 text-gray-500 mt-1">
+                  Self‑surety limit
+                </p>
+              </div>
+
+              {/* 4. Approved Contribution */}
               <div className="card-panel-light">
                 <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                   Approved Contribution
@@ -504,6 +533,8 @@ export default function DashboardPage() {
                     : "N/A"}
                 </p>
               </div>
+
+              {/* 5. Committed Savings */}
               <div className="card-panel-light">
                 <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
                   Committed Savings
@@ -517,7 +548,7 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              {/* Special Fixed Savings Card (member's own) */}
+              {/* 6. Special Fixed Savings (conditional) */}
               {hasMemberBalance &&
                 Number(memberBalance!.special_savings || 0) > 0 && (
                   <div className="card-panel-light">
