@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { loansApi } from "@/api/services";
@@ -8,6 +8,7 @@ import AdminApprovalPreview from "@/components/admin/AdminApprovalPreview";
 import RepaymentModal from "@/components/loans/RepaymentModal";
 import { computeEndDate } from "@/utils/loanUtils";
 import type { LoanApplication, Repayment } from "@/types";
+import "@/styles/print.css";
 
 const formatNaira = (amount: string | number | null | undefined): string => {
   if (amount === null || amount === undefined) {
@@ -45,10 +46,6 @@ export default function LoanDetailPage() {
   const loanId = id ? Number(id) : null;
 
   const [showRepayment, setShowRepayment] = useState(false);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-
-  // Admin approval preview
   const [showApprovalPreview, setShowApprovalPreview] = useState(false);
   const [approvalProcessing, setApprovalProcessing] = useState(false);
 
@@ -76,22 +73,10 @@ export default function LoanDetailPage() {
     },
   });
 
-  const repaymentsList = repayments;
-  const totalRecs = repaymentsList.length;
-  const pageCount = Math.max(1, Math.ceil(totalRecs / pageSize));
-  const pagedReps = repaymentsList.slice(
-    (page - 1) * pageSize,
-    page * pageSize,
-  );
-
-  useEffect(() => {
-    setPage(1);
-  }, [repayments, pageSize]);
-
   const [isExporting, setIsExporting] = useState(false);
 
   const exportRepayments = async (format: "csv" | "pdf") => {
-    if (!loanId || repaymentsList.length === 0) return;
+    if (!loanId || repayments.length === 0) return;
     setIsExporting(true);
     try {
       const res = await loansApi.exportRepayments(loanId, format);
@@ -116,7 +101,6 @@ export default function LoanDetailPage() {
     qc.invalidateQueries({ queryKey: ["loan", loanId] });
   };
 
-  // Admin approval / rejection handlers
   const handleAdminApprove = async (note: string) => {
     if (!loanId) return;
     setApprovalProcessing(true);
@@ -157,289 +141,449 @@ export default function LoanDetailPage() {
         )
       : 0;
 
+  // ── Print styles ──────────────────────────────────────────────
+  const printStyles = `
+    @media print {
+      .no-print { display: none !important; }
+      .print-page {
+        padding: 40px 30px;
+        font-size: 14px;
+        background: white;
+        color: black;
+        max-width: 100%;
+        margin: 0 auto;
+      }
+      .print-header {
+        text-align: center;
+        border-bottom: 3px double #000;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+      }
+      .print-header h1 {
+        font-size: 24px;
+        margin: 0;
+        letter-spacing: 2px;
+      }
+      .print-header p {
+        margin: 4px 0;
+        color: #333;
+      }
+      .print-section {
+        margin-bottom: 20px;
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 15px;
+      }
+      .print-section:last-child {
+        border-bottom: none;
+      }
+      .print-section h2 {
+        font-size: 18px;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 4px;
+        background: #f9fafb;
+        padding: 6px 10px;
+      }
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+      }
+      .detail-label {
+        font-weight: 600;
+        color: #374151;
+      }
+      .detail-value {
+        text-align: right;
+      }
+      .stamp {
+        border: 2px solid #1a56db;
+        padding: 8px 12px;
+        border-radius: 6px;
+        background: #f0f7ff;
+        display: inline-block;
+        margin: 4px 0;
+      }
+      .stamp-green {
+        border-color: #0b7e3d;
+        background: #f0fdf4;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0;
+        font-size: 13px;
+      }
+      th, td {
+        border: 1px solid #ccc;
+        padding: 6px 10px;
+        text-align: left;
+      }
+      th {
+        background: #f3f4f6;
+        font-weight: 600;
+      }
+      .signature-block {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px dashed #aaa;
+      }
+      .signature-item {
+        text-align: center;
+        min-width: 200px;
+      }
+      .signature-line {
+        border-top: 2px solid #000;
+        width: 180px;
+        margin: 30px auto 6px;
+      }
+      .footer {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 12px;
+        color: #666;
+        border-top: 1px solid #ddd;
+        padding-top: 10px;
+      }
+      .print-table-wrapper {
+        overflow-x: auto;
+      }
+    }
+  `;
+
   return (
-    <div className="max-w-3xl mx-auto p-4">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Loan #{loan.id}</h1>
-        <p className="text-gray-600">Applicant: {loan.applicant_name}</p>
-        <div className="flex flex-wrap gap-2 mt-3">
-          {(isAdmin || isCommittee) && loan.status === "active" && (
-            <button
-              onClick={() => setShowRepayment(true)}
-              className="mt-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              Post Repayment
-            </button>
-          )}
-          <button
-            onClick={() => exportRepayments("pdf")}
-            disabled={isExporting}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
-            title="Export loan repayment schedule as PDF"
-          >
-            📄 Export Schedule
-          </button>
+    <>
+      <style>{printStyles}</style>
 
-          {isAdmin && loan.status === "pending_admin" && (
-            <button
-              onClick={() => setShowApprovalPreview(true)}
-              className="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700"
-            >
-              🔍 Review & Approve
-            </button>
-          )}
+      <div className="print-page max-w-3xl mx-auto p-4">
+        {/* Print Header */}
+        <div className="print-header no-print hidden">
+          <h1>SOLACE STAFF COOPERATIVE LTD</h1>
+          <p>Loan Certificate</p>
         </div>
-      </div>
 
-      {/* Summary Cards – now 5 cards on large screens */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <AnimatedCard className="bg-gradient-to-br from-primary-50 to-white p-4 shadow-lg">
-          <p className="text-sm text-gray-600">Amount Applied</p>
-          <p className="font-bold text-lg">
-            {formatNaira(loan.amount_applied)}
-          </p>
-        </AnimatedCard>
-
-        <AnimatedCard className="bg-gradient-to-br from-amber-50 via-amber-100 to-white p-4 shadow-lg">
-          <p className="text-sm text-gray-600">Status</p>
-          <p className="font-bold text-lg">{loan.status.toUpperCase()}</p>
-        </AnimatedCard>
-
-        <AnimatedCard className="bg-gradient-to-br from-sky-50 via-sky-100 to-white p-4 shadow-lg">
-          <p className="text-sm text-gray-600">Duration</p>
-          <p className="font-bold text-lg">
-            {loan.proposed_duration_months} months
-          </p>
-        </AnimatedCard>
-
-        <AnimatedCard className="bg-gradient-to-br from-red-50 via-red-100 to-white p-4 shadow-lg">
-          <p className="text-sm text-gray-600">Outstanding</p>
-          <p className="font-bold text-lg">
-            {formatNaira(loan.outstanding_balance)}
-          </p>
-          {loan.status === "active" && (
-            <div className="mt-2">
-              <div className="h-1.5 w-full rounded-full bg-gray-200">
-                <div
-                  className="h-full rounded-full bg-primary-600 transition-all"
-                  style={{ width: `${outstandingPercent}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                {outstandingPercent}% remaining
-              </p>
-            </div>
-          )}
-        </AnimatedCard>
-
-        {/* NEW: Repayment End */}
-        <AnimatedCard className="bg-gradient-to-br from-teal-50 to-white p-4 shadow-lg">
-          <p className="text-sm text-gray-600">Repayment End</p>
-          <p className="font-bold text-lg">{computeEndDate(loan)}</p>
-          {loan.repayment_start_hijri_month && (
-            <p className="text-xs text-gray-500 mt-1">
-              From {loan.repayment_start_hijri_month}/
-              {loan.repayment_start_hijri_year}
-            </p>
-          )}
-        </AnimatedCard>
-      </div>
-
-      {/* Sureties Table */}
-      <div className="bg-white rounded-lg shadow mb-6">
-        <div className="p-4 border-b">
-          <h3 className="font-semibold">Sureties</h3>
-        </div>
-        <div className="table-container">
-          <table className="table">
-            <thead>
-              <tr>
-                <th className="p-3 text-left">Layer</th>
-                <th className="p-3 text-left">Member</th>
-                <th className="p-3 text-left">Guaranteed</th>
-                <th className="p-3 text-left">Remaining</th>
-                <th className="p-3 text-left">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loan.sureties && loan.sureties.length > 0 ? (
-                loan.sureties.map((s) => (
-                  <tr key={s.id} className="border-t">
-                    <td className="p-3">#{s.layer}</td>
-                    <td className="p-3">
-                      {s.surety_file_number} — {s.surety_name}
-                    </td>
-                    <td className="p-3">{formatNaira(s.amount_guaranteed)}</td>
-                    <td className="p-3">{formatNaira(s.current_liability)}</td>
-                    <td className="p-3">{s.status}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-gray-500">
-                    No sureties attached
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Repayments Table */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-4 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <h3 className="font-semibold">Repayment History</h3>
+        {/* ─── Header ─── */}
+        <div className="flex justify-between items-start mb-6 no-print">
+          <div>
+            <h1 className="text-2xl font-bold">Loan #{loan.id}</h1>
+            <p className="text-gray-600">Applicant: {loan.applicant_name}</p>
+          </div>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => window.print()}
-              className="bg-gray-200 px-3 py-1 rounded text-sm hover:bg-gray-300"
+              className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800"
             >
-              Print
+              🖨️ Print Certificate
             </button>
-            <button
-              onClick={() => exportRepayments("csv")}
-              disabled={isExporting || repaymentsList.length === 0}
-              className="bg-gray-200 px-3 py-1 rounded text-sm hover:bg-gray-300 disabled:opacity-50"
-            >
-              Export CSV
-            </button>
+            {(isAdmin || isCommittee) && loan.status === "active" && (
+              <button
+                onClick={() => setShowRepayment(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Post Repayment
+              </button>
+            )}
             <button
               onClick={() => exportRepayments("pdf")}
-              disabled={isExporting || repaymentsList.length === 0}
-              className="bg-gray-200 px-3 py-1 rounded text-sm hover:bg-gray-300 disabled:opacity-50"
+              disabled={isExporting}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
             >
-              Export PDF
+              📄 Export Schedule
             </button>
+            {isAdmin && loan.status === "pending_admin" && (
+              <button
+                onClick={() => setShowApprovalPreview(true)}
+                className="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700"
+              >
+                🔍 Review & Approve
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="table-container">
-          <table className="table">
-            <thead>
-              <tr>
-                <th className="p-3 text-left">Hijri Date</th>
-                <th className="p-3 text-left">Amount</th>
-                <th className="p-3 text-left">Before</th>
-                <th className="p-3 text-left">After</th>
-                <th className="p-3 text-left">Posted By</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoadingReps ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center">
-                    Loading...
-                  </td>
-                </tr>
-              ) : repaymentsList.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-gray-500">
-                    No repayments posted yet
-                  </td>
-                </tr>
-              ) : (
-                pagedReps.map((r) => (
-                  <tr key={r.id} className="border-t">
-                    <td className="p-3">{r.hijri_display}</td>
-                    <td className="p-3">{formatNaira(r.amount)}</td>
-                    <td className="p-3">{formatNaira(r.balance_before)}</td>
-                    <td className="p-3">{formatNaira(r.balance_after)}</td>
-                    <td className="p-3">{r.verified_by_name}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        {/* ─── Print-only header ─────────────────────────────── */}
+        <div className="print-only hidden print:block">
+          <div className="print-header">
+            <h1>SOLACE STAFF COOPERATIVE LTD</h1>
+            <p>Loan Certificate – #{loan.id}</p>
+            <p>Issued: {new Date().toLocaleDateString()}</p>
+          </div>
         </div>
 
-        {/* Pagination */}
-        {totalRecs > 0 && (
-          <div className="p-4 border-t flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <span className="text-sm">Show</span>
-              <select
-                value={pageSize}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                  setPageSize(parseInt(e.target.value, 10))
-                }
-                className="border rounded px-2 py-1"
-                aria-label="Number of rows per page"
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-              </select>
+        {/* ─── Summary Cards ────────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <AnimatedCard className="bg-gradient-to-br from-primary-50 to-white p-4 shadow-lg">
+            <p className="text-sm text-gray-600">Amount Applied</p>
+            <p className="font-bold text-lg">
+              {formatNaira(loan.amount_applied)}
+            </p>
+          </AnimatedCard>
+
+          <AnimatedCard className="bg-gradient-to-br from-amber-50 via-amber-100 to-white p-4 shadow-lg">
+            <p className="text-sm text-gray-600">Status</p>
+            <p className="font-bold text-lg">{loan.status.toUpperCase()}</p>
+          </AnimatedCard>
+
+          <AnimatedCard className="bg-gradient-to-br from-sky-50 via-sky-100 to-white p-4 shadow-lg">
+            <p className="text-sm text-gray-600">Duration</p>
+            <p className="font-bold text-lg">
+              {loan.proposed_duration_months} months
+            </p>
+          </AnimatedCard>
+
+          <AnimatedCard className="bg-gradient-to-br from-red-50 via-red-100 to-white p-4 shadow-lg">
+            <p className="text-sm text-gray-600">Outstanding</p>
+            <p className="font-bold text-lg">
+              {formatNaira(loan.outstanding_balance)}
+            </p>
+            {loan.status === "active" && (
+              <div className="mt-2">
+                <div className="h-1.5 w-full rounded-full bg-gray-200">
+                  <div
+                    className="h-full rounded-full bg-primary-600 transition-all"
+                    style={{ width: `${outstandingPercent}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {outstandingPercent}% remaining
+                </p>
+              </div>
+            )}
+          </AnimatedCard>
+
+          <AnimatedCard className="bg-gradient-to-br from-teal-50 to-white p-4 shadow-lg">
+            <p className="text-sm text-gray-600">Repayment End</p>
+            <p className="font-bold text-lg">{computeEndDate(loan)}</p>
+            {loan.repayment_start_hijri_month && (
+              <p className="text-xs text-gray-500 mt-1">
+                From {loan.repayment_start_hijri_month}/
+                {loan.repayment_start_hijri_year}
+              </p>
+            )}
+          </AnimatedCard>
+        </div>
+
+        {/* ─── Applicant Details (Printable) ────────────────── */}
+        <div className="print-section">
+          <h2 className="text-lg font-semibold mb-2">Applicant Information</h2>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <span className="font-medium">Name:</span> {loan.applicant_name}
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1 border rounded disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <span className="px-3 py-1">
-                Page {page} of {pageCount}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-                disabled={page === pageCount}
-                className="px-3 py-1 border rounded disabled:opacity-50"
-              >
-                Next
-              </button>
+            <div>
+              <span className="font-medium">File No.:</span>{" "}
+              {loan.applicant_file_number}
+            </div>
+            <div>
+              <span className="font-medium">Branch:</span> {loan.school_branch}
+            </div>
+            <div>
+              <span className="font-medium">Designation:</span>{" "}
+              {loan.designation}
+            </div>
+            <div className="col-span-2">
+              <span className="font-medium">Phone:</span> {loan.phone_numbers}
+            </div>
+            <div className="col-span-2">
+              <span className="font-medium">Purpose:</span> {loan.purpose}
+            </div>
+          </div>
+        </div>
+
+        {/* ─── Sureties Table ────────────────────────────────── */}
+        <div className="print-section">
+          <h2 className="text-lg font-semibold mb-2">Sureties</h2>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Layer</th>
+                  <th>Member</th>
+                  <th>Guaranteed</th>
+                  <th>Remaining</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loan.sureties && loan.sureties.length > 0 ? (
+                  loan.sureties.map((s) => (
+                    <tr key={s.id}>
+                      <td>#{s.layer}</td>
+                      <td>
+                        {s.surety_file_number} — {s.surety_name}
+                      </td>
+                      <td>{formatNaira(s.amount_guaranteed)}</td>
+                      <td>{formatNaira(s.current_liability)}</td>
+                      <td>{s.status}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="text-center text-gray-500">
+                      No sureties attached
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* ─── Approvals ────────────────────────────────────── */}
+        {(loan.committee_decision_note ||
+          loan.admin_final_approval_note ||
+          loan.status === "hos_approved") && (
+          <div className="print-section">
+            <h2 className="text-lg font-semibold mb-2">Approval Details</h2>
+            <div className="space-y-3">
+              {loan.committee_decision_note && (
+                <div className="stamp">
+                  <p>
+                    <strong>Committee Approval:</strong>{" "}
+                    {loan.committee_decision_note}
+                  </p>
+                  <p className="text-sm text-gray-600">Approved by Committee</p>
+                </div>
+              )}
+              {loan.admin_final_approval_note && (
+                <div className="stamp">
+                  <p>
+                    <strong>Admin Approval:</strong>{" "}
+                    {loan.admin_final_approval_note}
+                  </p>
+                  <p className="text-sm text-gray-600">Final Admin Sign-off</p>
+                </div>
+              )}
+              {loan.status === "hos_approved" && (
+                <div className="stamp stamp-green">
+                  <p>
+                    <strong>HOS Approval:</strong> Final Head of School sign-off
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}
-      </div>
 
-      {/* Repayment Modal – now using the reusable component */}
-      {showRepayment && loan && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full relative">
+        {/* ─── Repayment History ────────────────────────────── */}
+        <div className="print-section">
+          <h2 className="text-lg font-semibold mb-2">Repayment History</h2>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Hijri Date</th>
+                  <th>Amount</th>
+                  <th>Before</th>
+                  <th>After</th>
+                  <th>Posted By</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoadingReps ? (
+                  <tr>
+                    <td colSpan={5} className="text-center">
+                      Loading...
+                    </td>
+                  </tr>
+                ) : repayments.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center text-gray-500">
+                      No repayments yet
+                    </td>
+                  </tr>
+                ) : (
+                  repayments.map((r) => (
+                    <tr key={r.id}>
+                      <td>{r.hijri_display}</td>
+                      <td>{formatNaira(r.amount)}</td>
+                      <td>{formatNaira(r.balance_before)}</td>
+                      <td>{formatNaira(r.balance_after)}</td>
+                      <td>{r.verified_by_name}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* ─── Signatures ────────────────────────────────────── */}
+        <div className="signature-block print-section">
+          <div className="signature-item">
+            <div className="signature-line"></div>
+            <p className="text-sm font-medium">Borrower's Signature</p>
+            <p className="text-xs text-gray-500">Date: ________________</p>
+          </div>
+          <div className="signature-item">
+            <div className="signature-line"></div>
+            <p className="text-sm font-medium">Secretary / Admin</p>
+            <p className="text-xs text-gray-500">Date: ________________</p>
+          </div>
+          <div className="signature-item">
+            <div className="signature-line"></div>
+            <p className="text-sm font-medium">Head of School</p>
+            <p className="text-xs text-gray-500">Date: ________________</p>
+          </div>
+        </div>
+
+        <div className="footer">
+          <p>
+            Solace Staff Cooperative Ltd – This is a computer-generated
+            certificate
+          </p>
+          <p>Printed on: {new Date().toLocaleString()}</p>
+        </div>
+
+        {/* ─── Modals & Overlays ────────────────────────────── */}
+        {showRepayment && loan && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 no-print">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full relative">
+              <button
+                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-lg"
+                onClick={() => setShowRepayment(false)}
+              >
+                ✕
+              </button>
+              <h2 className="text-xl font-semibold mb-4">
+                Post Loan Repayment
+              </h2>
+              <RepaymentModal
+                loanId={loanId!}
+                outstanding={loan.outstanding_balance}
+                monthlyRepayment={loan.proposed_monthly_repayment}
+                defaultMonth={loan.repayment_start_hijri_month || 1}
+                defaultYear={
+                  loan.repayment_start_hijri_year || new Date().getFullYear()
+                }
+                onClose={() => {
+                  setShowRepayment(false);
+                  invalidateRepayments();
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {showApprovalPreview && (
+          <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 no-print">
             <button
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-lg"
-              onClick={() => setShowRepayment(false)}
+              className="absolute top-4 right-4 text-white text-2xl"
+              onClick={() => setShowApprovalPreview(false)}
             >
               ✕
             </button>
-            <h2 className="text-xl font-semibold mb-4">Post Loan Repayment</h2>
-            <RepaymentModal
+            <AdminApprovalPreview
               loanId={loanId!}
-              outstanding={loan.outstanding_balance}
-              monthlyRepayment={loan.proposed_monthly_repayment}
-              defaultMonth={loan.repayment_start_hijri_month || 1}
-              defaultYear={
-                loan.repayment_start_hijri_year || new Date().getFullYear()
-              }
-              onClose={() => {
-                setShowRepayment(false);
-                invalidateRepayments();
-              }}
+              onApprove={handleAdminApprove}
+              onReject={handleAdminReject}
+              isProcessing={approvalProcessing}
             />
           </div>
-        </div>
-      )}
-
-      {/* Admin Approval Preview Modal */}
-      {showApprovalPreview && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <button
-            className="absolute top-4 right-4 text-white text-2xl"
-            onClick={() => setShowApprovalPreview(false)}
-          >
-            ✕
-          </button>
-          <AdminApprovalPreview
-            loanId={loanId!}
-            onApprove={handleAdminApprove}
-            onReject={handleAdminReject}
-            isProcessing={approvalProcessing}
-          />
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }
