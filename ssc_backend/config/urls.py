@@ -72,7 +72,7 @@ urlpatterns = [
     path("api/v1/auth/login/", SSCTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/v1/auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/v1/auth/logout/", LogoutView.as_view(), name="logout"),
-    path("api/v1/accounts/", include("apps.accounts.urls")),
+    path("api/v1/accounts/", include("apps.accounts.urls")),  
     path("api/v1/savings/", include("apps.savings.urls")),
     path("api/v1/loans/", include("apps.loans.urls")),
     path("api/v1/sureties/", include("apps.sureties.urls")),
@@ -87,7 +87,4 @@ urlpatterns = [
     path("api/v1/dashboard/summary/", DashboardSummaryView.as_view(), name="dashboard-summary"),
     path("api/v1/reset-data/", ResetDataView.as_view(), name="reset-data"),
     path('api/v1/reports/', include('apps.reports.urls')),
-    path('api/v1/accounts/password-reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
-    path('api/v1/accounts/password-reset/confirm/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
-    path('api/v1/accounts/', include('apps.accounts.urls')),
 ]
