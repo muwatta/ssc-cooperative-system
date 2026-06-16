@@ -3,6 +3,8 @@ from .views import (
     ChangeMemberRoleView,
     ChangePasswordView,
     MemberCountsView,
+    PasswordResetConfirmView,
+    PasswordResetRequestView,
     SetInitialPasswordView,
     CreateUserView,
     StaffIDRegistryListCreateView,
@@ -16,6 +18,7 @@ from .views import (
     LegacyImportView,
     SendInvitationsView,
     ToggleSpecialSaverView,
+    
 )
 
 urlpatterns = [
@@ -35,4 +38,6 @@ urlpatterns = [
     path("members/<int:pk>/change-role/", ChangeMemberRoleView.as_view(), name="member-change-role"),
     path("change-password/", ChangePasswordView.as_view(), name="change-password"),
     path("toggle-special/<int:member_id>/", ToggleSpecialSaverView.as_view(), name="toggle-special"),
+     path("password-reset/", PasswordResetRequestView.as_view(), name="password-reset"),
+    path("password-reset/confirm/", PasswordResetConfirmView.as_view(), name="password-reset-confirm"),
 ]

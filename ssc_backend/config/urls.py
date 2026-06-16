@@ -7,6 +7,8 @@ from apps.accounts.views import ToggleSpecialSaverView
 from apps.core.views import CurrentDateView, DashboardSummaryView, ResetDataView
 import csv, io
 from apps.core.views import CurrentDateView, DashboardSummaryView
+from django.contrib.auth import views as auth_views
+
 
 # Report generation helpers
 def _member_csv(member_id):
@@ -85,4 +87,7 @@ urlpatterns = [
     path("api/v1/dashboard/summary/", DashboardSummaryView.as_view(), name="dashboard-summary"),
     path("api/v1/reset-data/", ResetDataView.as_view(), name="reset-data"),
     path('api/v1/reports/', include('apps.reports.urls')),
+    path('api/v1/accounts/password-reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
+    path('api/v1/accounts/password-reset/confirm/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+    path('api/v1/accounts/', include('apps.accounts.urls')),
 ]

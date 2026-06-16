@@ -1,6 +1,5 @@
 from .models import Role
 from rest_framework import generics, status, filters
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -11,13 +10,18 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.cache import cache
-from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import update_session_auth_hash, get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from rest_framework import status
+from django.contrib.auth import get_user_model
+
+from rest_framework.views import APIView
+
 from rest_framework.throttling import UserRateThrottle
 
 from .throttles import LoginRateThrottle, InviteRateThrottle, ImportRateThrottle, PasswordChangeRateThrottle
 
 from django.http import JsonResponse
-from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from django.contrib.auth.hashers import make_password
 
@@ -40,6 +44,12 @@ from .permissions import (
 from apps.audit.utils import log_action, get_client_ip
 from .services import import_legacy_members
 from .tasks import send_bulk_invitations_async
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core.mail import send_mail
+from django.conf import settings
+
+User = get_user_model()
 
 def invalidate_dashboard_cache():
     cache.delete("dashboard_summary_admin_stats")
@@ -622,3 +632,54 @@ class MemberCountsView(APIView):
             "inactive": stats["inactive"],
             "exited": stats["exited"],
         })
+    
+
+class PasswordResetRequestView(APIView):
+    permission_classes = []
+
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'Email required'}, status=400)
+
+        try:
+            profile = MemberProfile.objects.get(email_address=email)
+            user = profile.user
+        except MemberProfile.DoesNotExist:
+            return Response({'message': 'If an account exists, a reset link has been sent.'}, status=200)
+
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        reset_link = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}/"
+
+        send_mail(
+            subject='Reset Your SSC Cooperative Password',
+            message=f'Click the link to reset your password: {reset_link}',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+        return Response({'message': 'Password reset link sent to your email.'}, status=200)
+class PasswordResetConfirmView(APIView):
+    permission_classes = []
+
+    def post(self, request):
+        uid = request.data.get('uid')
+        token = request.data.get('token')
+        new_password = request.data.get('new_password')
+
+        if not all([uid, token, new_password]):
+            return Response({'error': 'uid, token, and new_password required'}, status=400)
+
+        try:
+            uid_decoded = force_str(urlsafe_base64_decode(uid))
+            user = User.objects.get(pk=uid_decoded)
+        except (TypeError, ValueError, User.DoesNotExist):
+            user = None
+
+        if user and default_token_generator.check_token(user, token):
+            user.set_password(new_password)
+            user.save()
+            return Response({'message': 'Password reset successful.'}, status=200)
+        else:
+            return Response({'error': 'Invalid or expired reset link.'}, status=400)

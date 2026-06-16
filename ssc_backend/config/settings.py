@@ -149,8 +149,23 @@ REST_FRAMEWORK = {
     },
 }
 REST_FRAMEWORK["EXCEPTION_HANDLER"] = "apps.core.exceptions.custom_exception_handler"
+RESEND_API_KEY = config("RESEND_API_KEY", default="")  # For sending emails via Resend
 
-# JWT
+
+# Email configuration
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.resend.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'resend')
+    EMAIL_HOST_PASSWORD = os.environ.get('RESEND_API_KEY')
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'SSC Cooperative <noreply@ssc.coop>')
+
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(
         minutes=config("ACCESS_TOKEN_LIFETIME_MINUTES", default=480, cast=int)

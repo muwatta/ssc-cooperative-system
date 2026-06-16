@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/context/AuthContext";
 import type { LoginRequest } from "@/types";
@@ -140,6 +140,14 @@ export default function LoginPage() {
                 "Sign in"
               )}
             </button>
+            
+
+            <Link
+              to="/forgot-password"
+              className="text-sm text-primary-600 hover:underline"
+            >
+              Forgot your password?
+            </Link>
           </form>
 
           <p className="text-center text-xs text-gray-400 mt-6">

@@ -6,6 +6,8 @@ import AppLayout from "@/components/layout/AppLayout";
 import LoginPage from "@/pages/auth/LoginPage";
 import SetPasswordPage from "@/pages/auth/SetPasswordPage";
 import UnauthorizedPage from "@/pages/auth/UnauthorizedPage";
+import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
 
 // Shared pages
 import DashboardPage from "@/pages/shared/DashboardPage";
@@ -45,13 +47,20 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Guest only */}
+        {/* Public routes – no authentication required */}
         <Route element={<GuestOnly />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/set-password" element={<SetPasswordPage />} />
         </Route>
 
-        {/* Authenticated routes */}
+        {/* Public password reset routes (no auth needed) */}
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route
+          path="/reset-password/:uid/:token"
+          element={<ResetPasswordPage />}
+        />
+
+        {/* Authenticated routes – require login */}
         <Route element={<RequireAuth />}>
           <Route element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
