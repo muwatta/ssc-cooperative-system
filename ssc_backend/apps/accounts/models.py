@@ -1,4 +1,3 @@
-
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.core.validators import RegexValidator
@@ -233,7 +232,13 @@ class MemberProfile(models.Model):
     # Contact (SRS 2.4 — Contact section)
     residential_address = models.TextField()
     permanent_home_address = models.TextField()
-    email_address = models.EmailField(blank=True, default="")
+    email_address = models.EmailField(
+    max_length=255,
+    unique=True,
+    null=False,
+    blank=False,
+    verbose_name="Email Address"
+    )
     social_media_handle = models.CharField(max_length=100, blank=True, default="")
 
     # Origin (SRS 2.4 — Origin section)

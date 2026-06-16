@@ -220,7 +220,14 @@ class MemberProfileSerializer(serializers.ModelSerializer):
             _file_sequence=file_sequence,
             **validated_data,
         )
+    
+    email_address = serializers.EmailField(required=True)
 
+    def validate_email_address(self, value):
+        qs = MemberProfile.objects.exclude(pk=self.instance.pk if self.instance else None)
+        if qs.filter(email_address=value).exists():
+            raise serializers.ValidationError("A member with this email already exists.")
+        return value
 
 class MemberProfileSummarySerializer(serializers.ModelSerializer):
     staff_id = serializers.CharField(source="user.staff_id", read_only=True)
@@ -261,7 +268,7 @@ class CreateMemberSerializer(serializers.Serializer):
     proposed_monthly_contribution = serializers.DecimalField(max_digits=12, decimal_places=2)
     residential_address = serializers.CharField()
     permanent_home_address = serializers.CharField()
-    email_address = serializers.EmailField(allow_blank=True, default="")
+    email_address = serializers.EmailField(required=True)
     social_media_handle = serializers.CharField(max_length=100, allow_blank=True, default="")
     state_of_origin = serializers.CharField(max_length=100)
     local_government_area = serializers.CharField(max_length=100)
@@ -335,3 +342,4 @@ class CreateMemberSerializer(serializers.Serializer):
         )
 
         return profile
+

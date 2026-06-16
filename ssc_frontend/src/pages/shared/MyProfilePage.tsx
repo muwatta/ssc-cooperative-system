@@ -347,12 +347,17 @@ export default function MyProfilePage() {
               <input {...register("phone_secondary")} className="input" />
             </div>
             <div>
-              <label className="label">Email Address</label>
+              <label className="label">Email Address *</label>
               <input
-                {...register("email_address")}
+                {...register("email_address", {
+                  required: "Email address is required",
+                })}
                 type="email"
-                className="input"
+                className={`input ${errors.email_address ? "input-error" : ""}`}
               />
+              {errors.email_address && (
+                <p className="field-error">{errors.email_address.message}</p>
+              )}
             </div>
             <div>
               <label className="label">Gender</label>
