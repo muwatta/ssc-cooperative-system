@@ -55,7 +55,7 @@ class LoanEligibilityView(APIView):
         max_borrow = calculate_max_borrowable(profile)
         config = get_loan_configuration()
         balance = get_or_create_balance(profile)
-        self_surety_max = (balance.available_balance * config.self_surety_ratio).quantize(Decimal("0.01"))
+        self_surety_max = (balance.total_savings * config.self_surety_ratio).quantize(Decimal("0.01"))
         h_now_month, h_now_year = current_hijri()
 
         return Response({
@@ -549,7 +549,7 @@ class AdminApprovalPreviewView(APIView):
         member = loan.applicant
         balance = get_or_create_balance(member)
         config = get_loan_configuration()
-        self_surety_max = (balance.available_balance * config.self_surety_ratio).quantize(Decimal("0.01"))
+        self_surety_max = (balance.total_savings * config.self_surety_ratio).quantize(Decimal("0.01"))
         max_borrowable = calculate_max_borrowable(member)
 
         borrower = {

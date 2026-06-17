@@ -172,7 +172,7 @@ class SubmitLoanSerializer(serializers.Serializer):
         config = get_loan_configuration()
         from apps.savings.services import get_or_create_balance
         balance = get_or_create_balance(profile)
-        self_surety_max = (balance.available_balance * config.self_surety_ratio).quantize(Decimal("0.01"))
+        self_surety_max = (balance.total_savings * config.self_surety_ratio).quantize(Decimal("0.01"))
 
         if amount_applied > self_surety_max:
             sureties = attrs.get("sureties", [])

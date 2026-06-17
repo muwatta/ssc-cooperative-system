@@ -87,7 +87,8 @@ def check_loan_eligibility(member: MemberProfile) -> dict:
 def calculate_max_borrowable(member: MemberProfile) -> Decimal:
     config = get_loan_configuration()
     balance = get_or_create_balance(member)
-    return (balance.available_balance * config.max_borrowable_ratio).quantize(Decimal("0.01"))
+    return balance.total_savings * Decimal('0.75')
+
 
 
 @transaction.atomic
@@ -113,7 +114,7 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
     if amount_applied <= 0:
         raise ValueError("Loan amount must be positive.")
 
-    self_surety_max = (balance.available_balance * config.self_surety_ratio).quantize(Decimal("0.01"))
+    self_surety_max = (balance.total_savings * config.self_surety_ratio).quantize(Decimal("0.01"))
     shortfall = amount_applied - self_surety_max
 
     if shortfall > 0:
