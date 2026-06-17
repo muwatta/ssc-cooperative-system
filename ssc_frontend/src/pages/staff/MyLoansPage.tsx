@@ -176,7 +176,12 @@ export default function MyLoansPage() {
                   Duration
                 </p>
                 <p className="mt-1 text-lg font-bold text-gray-800 dark:text-white md:text-2xl">
-                  {activeLoan.proposed_duration_months} months
+                  {typeof activeLoan.remaining_months === "number"
+                    ? `${activeLoan.remaining_months} / ${activeLoan.proposed_duration_months} months`
+                    : `${activeLoan.proposed_duration_months} months`}
+                  {activeLoan.remaining_months === 0 && (
+                    <span className="ml-2 text-sm text-green-600">✅</span>
+                  )}
                 </p>
                 <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
                   From {activeLoan.repayment_start_hijri_month || 1}/
@@ -241,9 +246,8 @@ export default function MyLoansPage() {
           </button>
         </div>
 
-        {/* Loans Tab (unchanged) */}
+        {/* Loans Tab */}
         {activeTab === "loans" && (
-          // ... same as original ...
           <div>
             {loansLoading && loans.length === 0 ? (
               <div className="flex justify-center rounded-2xl bg-white p-12 shadow-sm dark:bg-gray-800">
@@ -326,7 +330,12 @@ export default function MyLoansPage() {
                               Duration
                             </span>
                             <span className="font-medium text-gray-700 dark:text-gray-200">
-                              {loan.proposed_duration_months} months
+                              {typeof loan.remaining_months === "number"
+                                ? `${loan.remaining_months} / ${loan.proposed_duration_months} months`
+                                : `${loan.proposed_duration_months} months`}
+                              {loan.remaining_months === 0 && (
+                                <span className="ml-1 text-green-600">✅</span>
+                              )}
                             </span>
                           </div>
                           <div className="flex justify-between text-sm">
@@ -376,7 +385,7 @@ export default function MyLoansPage() {
           </div>
         )}
 
-        {/* Sureties Tab (enhanced) */}
+        {/* Sureties Tab */}
         {activeTab === "sureties" && (
           <div>
             {suretiesLoading && sureties.length === 0 ? (
@@ -417,7 +426,6 @@ export default function MyLoansPage() {
                       </div>
                     </div>
 
-                    {/* Borrower details (only if available and pending) */}
                     {(surety.borrower_name || surety.borrower_phone) && (
                       <div className="mt-3 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-700/50">
                         <p className="font-semibold dark:text-white">

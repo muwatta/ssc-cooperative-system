@@ -10,6 +10,8 @@ class LoanApplicationSerializer(serializers.ModelSerializer):
     sureties = SuretyRecordSerializer(many=True, read_only=True)
     applicant_file_number = serializers.CharField(source="applicant.file_number", read_only=True)
     applicant_name = serializers.CharField(source="applicant.full_name", read_only=True)
+    repayments_count = serializers.SerializerMethodField()
+    remaining_months = serializers.SerializerMethodField()
 
     class Meta:
         model = LoanApplication
@@ -25,7 +27,7 @@ class LoanApplicationSerializer(serializers.ModelSerializer):
             "status", "amount_approved", "outstanding_balance",
             "committee_decision_note", "admin_final_approval_note",
             "application_hijri_month", "application_hijri_year", "application_hijri_display",
-            "created_at", "updated_at",
+            "created_at", "updated_at", "repayments_count", "remaining_months",
         ]
         read_only_fields = [
             "id", "applicant", "applicant_file_number", "applicant_name", "sureties",
@@ -35,6 +37,14 @@ class LoanApplicationSerializer(serializers.ModelSerializer):
             "application_hijri_month", "application_hijri_year", "application_hijri_display",
             "created_at", "updated_at",
         ]
+    def get_repayments_count(self, obj):
+        return obj.repayments.count()
+
+    def get_remaining_months(self, obj):
+        total = obj.proposed_duration_months
+        paid = obj.repayments.count()
+        remaining = total - paid
+        return max(0, remaining)
 
 
 class SubmitLoanSerializer(serializers.Serializer):

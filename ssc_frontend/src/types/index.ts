@@ -247,6 +247,8 @@ export interface LoanApplication {
   date_of_last_loan: string | null;
   amount_outstanding_prev: string;
   amount_applied: string;
+  repayments_count?: number;
+  remaining_months?: number;
   purpose: string;
   proposed_monthly_repayment: string;
   proposed_duration_months: number;
