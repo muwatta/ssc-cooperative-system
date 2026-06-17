@@ -1,12 +1,12 @@
-from django.db import transaction
-from django.utils import timezone
 from decimal import Decimal
+from django.db import transaction, models
+from django.db.models import Sum
+from django.utils import timezone
 from apps.accounts.models import MemberProfile
 from apps.savings.services import get_or_create_balance, post_debit_entry
 from apps.savings.models import LedgerEntryType
 from apps.sureties.services import create_surety_records, lock_sureties_for_loan, release_sureties_proportionally, release_all_sureties, transfer_balance_to_sureties
-from apps.sureties.models import SuretyRecord
-from apps.sureties.models import SuretyStatus
+from apps.sureties.models import SuretyRecord, SuretyStatus
 from utils.hijri import hijri_month_display
 from .models import LoanApplication, LoanRepaymentLedger, LoanStatus, LoanConfiguration
 from apps.audit.utils import log_action
@@ -327,10 +327,16 @@ def admin_final_approve_loan(loan: LoanApplication, admin_user, note: str = "") 
 
     return loan
 
-
+@transaction.atomic
 @transaction.atomic
 def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hijri_year: int, posted_by) -> LoanRepaymentLedger:
-    # Lock loan row to prevent concurrent repayments
+    """
+    Process a repayment:
+    1. Repayments FIRST reduce external sureties' liabilities proportionally.
+    2. Only after ALL external sureties are fully cleared does the borrower's balance reduce.
+    3. Borrower still sees a decreasing outstanding balance (after sureties are free).
+    """
+    # Lock the loan to prevent race conditions
     loan = LoanApplication.objects.select_for_update().get(pk=loan.pk)
 
     if loan.status != LoanStatus.ACTIVE:
@@ -339,13 +345,44 @@ def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hij
     amount = amount.quantize(Decimal("0.01"))
     if amount <= 0:
         raise ValueError("Repayment amount must be positive.")
-    if amount > loan.outstanding_balance:
-        amount = loan.outstanding_balance
 
+    # 1. Fetch external sureties (non‑self, active/confirmed, not yet released)
+    external_sureties = list(
+        SuretyRecord.objects.select_for_update()
+        .filter(loan=loan, is_self_surety=False)
+        .exclude(status=SuretyStatus.RELEASED)
+    )
+
+    total_external_liability = sum(s.current_liability for s in external_sureties)
+
+    # 2. Determine how much of this repayment goes to external sureties
+    amount_to_sureties = min(amount, total_external_liability)
+    amount_to_borrower = amount - amount_to_sureties
+
+    # 3. Apply repayment to external sureties (proportional)
+    if total_external_liability > 0 and amount_to_sureties > 0:
+        for surety in external_sureties:
+            ratio = surety.current_liability / total_external_liability
+            reduction = amount_to_sureties * ratio
+            new_liability = max(Decimal('0.00'), surety.current_liability - reduction)
+            surety.current_liability = new_liability
+            if new_liability == Decimal('0.00'):
+                surety.status = SuretyStatus.RELEASED
+                surety.released_at = timezone.now()
+            surety.save(update_fields=['current_liability', 'status', 'released_at'])
+
+    # 4. Apply remaining amount to borrower's outstanding balance
     balance_before = loan.outstanding_balance
-    balance_after = balance_before - amount
-    hijri_disp = hijri_month_display(hijri_month, hijri_year)
+    new_balance = max(Decimal('0.00'), balance_before - amount_to_borrower)
+    loan.outstanding_balance = new_balance
 
+    if new_balance == Decimal('0.00'):
+        loan.status = LoanStatus.COMPLETED
+
+    loan.save(update_fields=['outstanding_balance', 'status', 'updated_at'])
+
+    # 5. Create repayment ledger entry (record the full amount paid)
+    hijri_disp = hijri_month_display(hijri_month, hijri_year)
     repayment = LoanRepaymentLedger.objects.create(
         loan=loan,
         hijri_month=hijri_month,
@@ -353,21 +390,14 @@ def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hij
         hijri_display=hijri_disp,
         amount=amount,
         balance_before=balance_before,
-        balance_after=balance_after,
+        balance_after=new_balance,
         posted_by=posted_by,
         verified_by_name=posted_by.staff_id,
         verified_by_role=posted_by.role,
     )
 
-    loan.outstanding_balance = balance_after
-    if balance_after == Decimal("0.00"):
-        loan.status = LoanStatus.COMPLETED
-    loan.save(update_fields=["outstanding_balance", "status", "updated_at"])
-
-    from apps.savings.services import post_savings_entry
-    from apps.savings.models import LedgerEntryType
-
-    post_savings_entry(
+    # 6. Post to savings ledger (full repayment amount)
+    post_debit_entry(
         member=loan.applicant,
         amount=amount,
         hijri_month=hijri_month,
@@ -377,10 +407,7 @@ def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hij
         details=f"Loan repayment — Loan #{loan.id}",
     )
 
-    release_sureties_proportionally(loan, amount)
-    if balance_after == Decimal("0.00"):
-        release_all_sureties(loan)
-
+    # 7. Log action
     log_action(
         user=posted_by,
         action="POST_REPAYMENT",
