@@ -453,9 +453,8 @@ export default function ApplyLoanPage() {
     }
   }, [monthlyRepayment, setValue]);
 
-  // Draft logic
+  // Draft logic – no UI indicator
   const [draftLoaded, setDraftLoaded] = useState(false);
-  const [lastDraftSavedAt, setLastDraftSavedAt] = useState<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: draftData, isLoading: draftIsLoading } = useQuery({
@@ -476,16 +475,8 @@ export default function ApplyLoanPage() {
 
   const saveDraftMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => loansApi.saveDraft(data),
-    onSuccess: () => setLastDraftSavedAt(new Date().toLocaleTimeString()),
+    // No onSuccess needed – we don't display the saved time
   });
-
-  const draftStatus = saveDraftMutation.isPending
-    ? "Saving draft…"
-    : saveDraftMutation.isError
-      ? "Draft save failed"
-      : lastDraftSavedAt
-        ? `Draft saved at ${lastDraftSavedAt}`
-        : "";
 
   const formValues = watch();
 
@@ -580,12 +571,6 @@ export default function ApplyLoanPage() {
         subtitle="Submit a new loan application for committee review"
         back={{ to: "/my-loans", label: "Back to My Loans" }}
       />
-
-      {draftStatus && (
-        <div className="mb-4 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 shadow-sm">
-          {draftStatus}
-        </div>
-      )}
 
       {/* Eligibility Card */}
       <AnimatedCard
