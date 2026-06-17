@@ -191,11 +191,11 @@ export default function DashboardPage() {
     return value;
   };
 
-  // --- Compute max borrowable (75% of Available Balance) ---
-  const availableBalance = memberBalance?.available_balance
-    ? Number(memberBalance.available_balance)
+  // ✅ FIX: Compute max borrowable (75% of Total Savings)
+  const totalSavings = memberBalance?.total_savings
+    ? Number(memberBalance.total_savings)
     : 0;
-  const maxBorrowable = availableBalance * 0.75;
+  const maxBorrowable = totalSavings * 0.75;
 
   // Extract loan summary from new endpoint
   const pendingAdmin = dashSummary?.pending_admin ?? 0;
