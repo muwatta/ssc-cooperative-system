@@ -2,14 +2,8 @@ from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse, JsonResponse
 from rest_framework_simplejwt.views import TokenRefreshView
-from apps.accounts.views import (
-    SSCTokenObtainPairView,
-    LogoutView,
-    ToggleSpecialSaverView,
-    CurrentDateView,
-    DashboardSummaryView,
-    ResetDataView,
-)
+from apps.accounts.views import SSCTokenObtainPairView, LogoutView, ToggleSpecialSaverView
+from apps.core.views import CurrentDateView, DashboardSummaryView, ResetDataView
 import csv
 import io
 from django.contrib.auth import views as auth_views
