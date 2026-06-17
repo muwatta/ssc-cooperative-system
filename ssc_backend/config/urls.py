@@ -2,15 +2,19 @@ from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse, JsonResponse
 from rest_framework_simplejwt.views import TokenRefreshView
-from apps.accounts.views import SSCTokenObtainPairView, LogoutView
-from apps.accounts.views import ToggleSpecialSaverView
-from apps.core.views import CurrentDateView, DashboardSummaryView, ResetDataView
-import csv, io
-from apps.core.views import CurrentDateView, DashboardSummaryView
+from apps.accounts.views import (
+    SSCTokenObtainPairView,
+    LogoutView,
+    ToggleSpecialSaverView,
+    CurrentDateView,
+    DashboardSummaryView,
+    ResetDataView,
+)
+import csv
+import io
 from django.contrib.auth import views as auth_views
 
-
-# Report generation helpers
+# Report generation helpers (unchanged)
 def _member_csv(member_id):
     from apps.accounts.models import MemberProfile
     from apps.savings.models import SavingsLedger
@@ -72,7 +76,7 @@ urlpatterns = [
     path("api/v1/auth/login/", SSCTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/v1/auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/v1/auth/logout/", LogoutView.as_view(), name="logout"),
-    path("api/v1/accounts/", include("apps.accounts.urls")),  
+    path("api/v1/accounts/", include("apps.accounts.urls")),
     path("api/v1/savings/", include("apps.savings.urls")),
     path("api/v1/loans/", include("apps.loans.urls")),
     path("api/v1/sureties/", include("apps.sureties.urls")),
@@ -87,5 +91,4 @@ urlpatterns = [
     path("api/v1/dashboard/summary/", DashboardSummaryView.as_view(), name="dashboard-summary"),
     path("api/v1/reset-data/", ResetDataView.as_view(), name="reset-data"),
     path('api/v1/reports/', include('apps.reports.urls')),
-    path("api/v1/dashboard/summary/", DashboardSummaryView.as_view(), name="dashboard-summary"),
 ]
