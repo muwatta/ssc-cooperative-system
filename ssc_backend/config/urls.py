@@ -8,7 +8,7 @@ import csv
 import io
 from django.contrib.auth import views as auth_views
 
-# Report generation helpers (unchanged)
+# Report generation helpers
 def _member_csv(member_id):
     from apps.accounts.models import MemberProfile
     from apps.savings.models import SavingsLedger
