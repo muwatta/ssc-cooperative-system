@@ -37,6 +37,7 @@ class LoanApplicationSerializer(serializers.ModelSerializer):
             "application_hijri_month", "application_hijri_year", "application_hijri_display",
             "created_at", "updated_at",
         ]
+
     def get_repayments_count(self, obj):
         return obj.repayments.count()
 
@@ -160,7 +161,7 @@ class SubmitLoanSerializer(serializers.Serializer):
         except MemberProfile.DoesNotExist:
             raise serializers.ValidationError("No member profile found.")
 
-        # 1. Basic eligibility (includes the new multi‑self‑surety logic)
+        # 1. Basic eligibility
         eligibility = check_loan_eligibility(profile)
         if not eligibility["eligible"]:
             raise serializers.ValidationError({"eligibility": eligibility["reasons"]})
@@ -184,29 +185,41 @@ class SubmitLoanSerializer(serializers.Serializer):
         balance = get_or_create_balance(profile)
         self_surety_max = (balance.total_savings * config.self_surety_ratio).quantize(Decimal("0.01"))
 
-        if amount_applied > self_surety_max:
-            sureties = attrs.get("sureties", [])
-            if not sureties:
-                raise serializers.ValidationError({
-                    "sureties": f"External sureties required for amount above ₦{self_surety_max}."
-                })
-            total_external = sum(Decimal(str(s["amount"])) for s in sureties)
-            shortfall = amount_applied - self_surety_max
-            if total_external < shortfall:
-                raise serializers.ValidationError({
-                    "sureties": (
-                        f"Total surety guarantees (₦{total_external}) must cover "
-                        f"the gap of ₦{shortfall}."
-                    )
-                })
-        else:
-            # If amount is within self‑surety max, sureties must be empty
-            sureties = attrs.get("sureties", [])
+        sureties = attrs.get("sureties", [])
+
+        if amount_applied <= self_surety_max:
+            # No external sureties required
             if sureties:
                 raise serializers.ValidationError({
                     "sureties": "External sureties are not required for this amount."
                 })
             attrs["sureties"] = []
+        else:
+            shortfall = (amount_applied - self_surety_max).quantize(Decimal("0.01"))
+
+            if not sureties:
+                raise serializers.ValidationError({
+                    "sureties": f"External sureties required for amount above ₦{self_surety_max}. Shortfall: ₦{shortfall}."
+                })
+
+            total_external = sum(Decimal(str(s["amount"])) for s in sureties)
+
+            # ✅ Cap: total external guarantee cannot exceed the shortfall
+            if total_external > shortfall:
+                raise serializers.ValidationError({
+                    "sureties": (
+                        f"Total external guarantee (₦{total_external}) exceeds the required "
+                        f"shortfall of ₦{shortfall}. Maximum allowed: ₦{shortfall}."
+                    )
+                })
+
+            if total_external < shortfall:
+                raise serializers.ValidationError({
+                    "sureties": (
+                        f"Total external guarantee (₦{total_external}) is less than the required "
+                        f"shortfall of ₦{shortfall}. Please add more surety coverage."
+                    )
+                })
 
         return attrs
 
@@ -224,8 +237,6 @@ class CommitteeDecisionSerializer(serializers.Serializer):
     def validate(self, attrs):
         if attrs["decision"] == "approve" and not attrs.get("amount_approved"):
             raise serializers.ValidationError({"amount_approved": "Required when approving."})
-
-       
         return attrs
 
 

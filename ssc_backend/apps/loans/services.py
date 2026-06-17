@@ -33,7 +33,7 @@ def check_loan_eligibility(member: MemberProfile) -> dict:
             loan__applicant=member,
             loan__status=LoanStatus.ACTIVE,
             is_self_surety=False,
-            status=SuretyStatus.CONFIRMED if 'SuretyStatus' in globals() else 'confirmed'
+            status=SuretyStatus.CONFIRMED
         ).exists()
         if external_surety_exists:
             reasons.append("You already have an active loan that uses external sureties. You cannot apply for another loan until it is fully repaid.")
@@ -90,7 +90,6 @@ def calculate_max_borrowable(member: MemberProfile) -> Decimal:
     return balance.total_savings * Decimal('0.75')
 
 
-
 @transaction.atomic
 def submit_loan_application(member: MemberProfile, data: dict, sureties: list = None) -> LoanApplication:
     from utils.hijri import current_hijri
@@ -109,13 +108,12 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
         raise ValueError(f"Repayment duration must be between 1 and {config.max_repayment_months} months.")
 
     amount_applied = Decimal(str(data["amount_applied"]))
-    # Enforce proper decimal scale (2 decimal places)
     amount_applied = amount_applied.quantize(Decimal("0.01"))
     if amount_applied <= 0:
         raise ValueError("Loan amount must be positive.")
 
     self_surety_max = (balance.total_savings * config.self_surety_ratio).quantize(Decimal("0.01"))
-    shortfall = amount_applied - self_surety_max
+    shortfall = (amount_applied - self_surety_max).quantize(Decimal("0.01"))
 
     if shortfall > 0:
         if not sureties:
@@ -134,6 +132,14 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
                 raise ValueError(
                     f"{surety_member.full_name} can guarantee at most ₦{max_surety} (75% of their available balance)."
                 )
+
+        # ✅ Cap: total external guarantee cannot exceed the shortfall
+        if total_external > shortfall:
+            raise ValueError(
+                f"Total external guarantee (₦{total_external}) exceeds the required shortfall of ₦{shortfall}. "
+                f"Maximum allowed: ₦{shortfall}."
+            )
+
         if total_external < shortfall:
             raise ValueError(
                 f"Total external guarantees (₦{total_external}) are less than the required shortfall of ₦{shortfall}."
@@ -148,7 +154,7 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
 
     h_month, h_year = current_hijri()
 
-    # Create loan – no need to lock because no existing loan is modified here
+    # Create loan
     loan = LoanApplication.objects.create(
         applicant=member,
         home_address=data["home_address"],
@@ -171,7 +177,7 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
         status=LoanStatus.SUBMITTED,
     )
 
-    # Auto-set repayment start (backend determined)
+    # Auto-set repayment start
     from utils.hijri import current_hijri as get_hijri_now
     now_month, now_year = get_hijri_now()
     if now_month == 12:
@@ -193,6 +199,14 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
     )
 
     if sureties:
+        # ✅ Ensure external sureties are capped to shortfall
+        # (already checked above, but re-check for safety)
+        total_external = sum(Decimal(str(s["amount"])) for s in sureties)
+        if total_external > shortfall:
+            raise ValueError(
+                f"Total external guarantee (₦{total_external}) exceeds the required shortfall of ₦{shortfall}."
+            )
+
         surety_items = []
         for idx, s in enumerate(sureties, start=2):
             surety_items.append({
@@ -218,13 +232,11 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
 
 @transaction.atomic
 def committee_approve_loan(loan: LoanApplication, approved_by, amount_approved: Decimal, note: str = "") -> LoanApplication:
-    # Lock the loan row to prevent concurrent modifications
     loan = LoanApplication.objects.select_for_update().get(pk=loan.pk)
 
     if loan.status not in (LoanStatus.SUBMITTED, LoanStatus.UNDER_REVIEW, LoanStatus.PENDING_SURETIES):
         raise ValueError("Loan is not in a reviewable state.")
 
-    # Validate approved amount
     amount_approved = amount_approved.quantize(Decimal("0.01"))
     if amount_approved <= 0:
         raise ValueError("Approved amount must be positive.")
@@ -274,7 +286,6 @@ def committee_reject_loan(loan: LoanApplication, rejected_by, note: str = "") ->
 
 @transaction.atomic
 def admin_final_approve_loan(loan: LoanApplication, admin_user, note: str = "") -> LoanApplication:
-    # Lock loan and applicant balance row
     loan = LoanApplication.objects.select_for_update().get(pk=loan.pk)
     if loan.status != LoanStatus.PENDING_ADMIN:
         raise ValueError("Loan must be pending admin approval before final approval.")
@@ -283,13 +294,11 @@ def admin_final_approve_loan(loan: LoanApplication, admin_user, note: str = "") 
     config = get_loan_configuration()
     h_month, h_year = current_hijri()
 
-    # Lock the member's balance row
     balance = get_or_create_balance(loan.applicant)
     balance = balance.__class__.objects.select_for_update().get(pk=balance.pk)
 
     self_surety_amount = (loan.amount_approved * config.self_surety_ratio).quantize(Decimal("0.01"))
 
-    
     if balance.available_balance < self_surety_amount:
         raise ValueError(
             f"Member's available balance (₦{balance.available_balance}) is less than "
@@ -299,7 +308,6 @@ def admin_final_approve_loan(loan: LoanApplication, admin_user, note: str = "") 
     balance.suretyship_committed += self_surety_amount
     balance.save(update_fields=["suretyship_committed", "updated_at"])
 
-    # This should only create a ledger entry, not reduce balance again.
     post_debit_entry(
         member=loan.applicant,
         amount=self_surety_amount,
@@ -327,7 +335,7 @@ def admin_final_approve_loan(loan: LoanApplication, admin_user, note: str = "") 
 
     return loan
 
-@transaction.atomic
+
 @transaction.atomic
 def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hijri_year: int, posted_by) -> LoanRepaymentLedger:
     """
@@ -336,7 +344,6 @@ def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hij
     2. Only after ALL external sureties are fully cleared does the borrower's balance reduce.
     3. Borrower still sees a decreasing outstanding balance (after sureties are free).
     """
-    # Lock the loan to prevent race conditions
     loan = LoanApplication.objects.select_for_update().get(pk=loan.pk)
 
     if loan.status != LoanStatus.ACTIVE:
@@ -346,7 +353,6 @@ def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hij
     if amount <= 0:
         raise ValueError("Repayment amount must be positive.")
 
-    # 1. Fetch external sureties (non‑self, active/confirmed, not yet released)
     external_sureties = list(
         SuretyRecord.objects.select_for_update()
         .filter(loan=loan, is_self_surety=False)
@@ -355,11 +361,9 @@ def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hij
 
     total_external_liability = sum(s.current_liability for s in external_sureties)
 
-    # 2. Determine how much of this repayment goes to external sureties
     amount_to_sureties = min(amount, total_external_liability)
     amount_to_borrower = amount - amount_to_sureties
 
-    # 3. Apply repayment to external sureties (proportional)
     if total_external_liability > 0 and amount_to_sureties > 0:
         for surety in external_sureties:
             ratio = surety.current_liability / total_external_liability
@@ -371,7 +375,6 @@ def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hij
                 surety.released_at = timezone.now()
             surety.save(update_fields=['current_liability', 'status', 'released_at'])
 
-    # 4. Apply remaining amount to borrower's outstanding balance
     balance_before = loan.outstanding_balance
     new_balance = max(Decimal('0.00'), balance_before - amount_to_borrower)
     loan.outstanding_balance = new_balance
@@ -381,7 +384,6 @@ def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hij
 
     loan.save(update_fields=['outstanding_balance', 'status', 'updated_at'])
 
-    # 5. Create repayment ledger entry (record the full amount paid)
     hijri_disp = hijri_month_display(hijri_month, hijri_year)
     repayment = LoanRepaymentLedger.objects.create(
         loan=loan,
@@ -396,7 +398,6 @@ def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hij
         verified_by_role=posted_by.role,
     )
 
-    # 6. Post to savings ledger (full repayment amount)
     post_debit_entry(
         member=loan.applicant,
         amount=amount,
@@ -407,7 +408,6 @@ def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hij
         details=f"Loan repayment — Loan #{loan.id}",
     )
 
-    # 7. Log action
     log_action(
         user=posted_by,
         action="POST_REPAYMENT",
@@ -422,7 +422,6 @@ def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hij
 
 @transaction.atomic
 def handle_default_or_exit(loan: LoanApplication) -> dict:
-    # Lock the loan row
     loan = LoanApplication.objects.select_for_update().get(pk=loan.pk)
 
     if loan.status not in (LoanStatus.ACTIVE,):
@@ -433,9 +432,8 @@ def handle_default_or_exit(loan: LoanApplication) -> dict:
     loan.status = LoanStatus.DEFAULTED
     loan.save(update_fields=["status", "updated_at"])
 
-    # Add audit log for default
     log_action(
-        user=None, 
+        user=None,
         action="LOAN_DEFAULT",
         description=f"Loan #{loan.id} for {loan.applicant.full_name} defaulted. Sureties enforced.",
         object_type="Loan",
