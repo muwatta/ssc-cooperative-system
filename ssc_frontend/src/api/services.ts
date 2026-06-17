@@ -39,8 +39,7 @@ export const authApi = {
 // MEMBERS
 export const membersApi = {
   counts: () =>
-    api
-      .get<{
+    api.get<{
         total: number;
         active: number;
         pending: number;
@@ -149,6 +148,17 @@ export const savingsApi = {
       `/savings/ledger/${memberId}/`,
       { params },
     ),
+
+  createDuesCycle: (data: {
+    name: string;
+    amount: string | number;
+    description?: string;
+    hijri_month: number;
+    hijri_year: number;
+    member_ids?: number[];
+  }) => api.post("/savings/dues/", data),
+  postDuesCycle: (pk: number) => api.post(`/savings/dues/${pk}/post/`),
+
   exportLedger: (
     memberId: number,
     params?: {
@@ -159,10 +169,11 @@ export const savingsApi = {
     },
     format: "csv" | "pdf" = "csv",
   ) =>
-    api.get<Blob>(`/savings/ledger/${memberId}/export/`, {
+    api.get<Blob>(`/savings/ledger/${memberId}/`, {
       params: { ...params, format },
       responseType: "blob",
     }),
+
   exportBulkReport: (
     params?: {
       member_id?: number;

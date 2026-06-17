@@ -110,13 +110,15 @@ export interface SavingsLedgerEntry {
 }
 
 export interface MemberBalance {
-  member_id: number;
+  member: number;
   file_number: string;
   full_name: string;
   total_savings: string;
   special_savings?: string | number;
   suretyship_committed: string;
   available_balance: string;
+  reserved_for_investment?: string;
+  updated_at?: string;
 }
 
 export interface SavingsSummary {

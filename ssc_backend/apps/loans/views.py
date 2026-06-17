@@ -52,7 +52,7 @@ class LoanEligibilityView(APIView):
             return Response({"error": "No member profile."}, status=status.HTTP_404_NOT_FOUND)
 
         result = check_loan_eligibility(profile)
-        max_borrow = Decimal('999999999.00')
+        max_borrow = calculate_max_borrowable(profile)
         config = get_loan_configuration()
         balance = get_or_create_balance(profile)
         self_surety_max = (balance.available_balance * config.self_surety_ratio).quantize(Decimal("0.01"))

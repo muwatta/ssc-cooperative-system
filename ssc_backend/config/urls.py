@@ -87,4 +87,5 @@ urlpatterns = [
     path("api/v1/dashboard/summary/", DashboardSummaryView.as_view(), name="dashboard-summary"),
     path("api/v1/reset-data/", ResetDataView.as_view(), name="reset-data"),
     path('api/v1/reports/', include('apps.reports.urls')),
+    path("api/v1/dashboard/summary/", DashboardSummaryView.as_view(), name="dashboard-summary"),
 ]
