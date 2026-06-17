@@ -619,16 +619,15 @@ export default function DashboardPage() {
                 <tr className="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300">
                   <th className="px-3 py-2 text-left">File</th>
                   <th className="px-3 py-2 text-left">Name</th>
-                  <th className="px-3 py-2 text-right">Total Savings</th>
-                  <th className="px-3 py-2 text-right">Available</th>
-                  <th className="px-3 py-2 text-right">Outstanding</th>
-                  <th className="px-3 py-2 text-right">Special</th>
+                  <th className="px-3 py-2 text-right">Available Balance</th>
+                  <th className="px-3 py-2 text-right">Outstanding Loans</th>
+                  <th className="px-3 py-2 text-right">Special Savings</th>
                 </tr>
               </thead>
               <tbody>
                 {snapshotLoading ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-4 text-gray-500">
+                    <td colSpan={5} className="text-center py-4 text-gray-500">
                       Loading snapshot…
                     </td>
                   </tr>
@@ -643,9 +642,6 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">
                         {member.full_name}
-                      </td>
-                      <td className="px-3 py-2 text-right font-medium text-gray-900 dark:text-white">
-                        {formatNaira(member.total_savings)}
                       </td>
                       <td className="px-3 py-2 text-right font-medium text-emerald-700 dark:text-emerald-400">
                         {formatNaira(member.available_balance)}
