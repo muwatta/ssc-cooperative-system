@@ -1,5 +1,3 @@
-"""SSC Cooperative — Sureties Service Layer"""
-
 from django.db import transaction
 from django.utils import timezone
 from decimal import Decimal
@@ -11,13 +9,12 @@ from apps.savings.models import LedgerEntryType
 from apps.loans.models import LoanStatus, LoanApplication, LoanConfiguration
 from .models import SuretyRecord, SuretyStatus
 
-MAX_EXTERNAL_SURETIES     = 5     # SRS SR3
-MAX_SURETY_ACTS_PER_YEAR  = 3     # SRS SR4
-SELF_SURETY_RATIO         = Decimal("0.75")  # SRS SR1
+MAX_EXTERNAL_SURETIES     = 5    
+MAX_SURETY_ACTS_PER_YEAR  = 3    
+SELF_SURETY_RATIO         = Decimal("0.75")
 
 
 def check_surety_eligibility(member: MemberProfile, amount: Decimal) -> dict:
-    """SRS Section 6.2 — validate a surety candidate"""
     from django.utils import timezone
     reasons = []
 
@@ -62,11 +59,6 @@ def check_surety_eligibility(member: MemberProfile, amount: Decimal) -> dict:
 
 @transaction.atomic
 def create_surety_records(loan, surety_data: list, note: Optional[str] = None) -> list:
-    """
-    Creates surety records for a loan.
-    surety_data: [{"member_id": int, "amount": Decimal, "layer": int}]
-    Layer 1 is always self-surety (borrower).
-    """
     records = []
     for item in surety_data:
         member = MemberProfile.objects.get(pk=item["member_id"])
@@ -103,7 +95,6 @@ def create_surety_records(loan, surety_data: list, note: Optional[str] = None) -
 
 @transaction.atomic
 def confirm_surety(surety_record: SuretyRecord) -> SuretyRecord:
-    """SRS SR5 — lock committed amount immediately on confirmation"""
     if surety_record.status != SuretyStatus.PENDING:
         raise ValueError("Surety record is not pending.")
 
@@ -164,22 +155,18 @@ def decline_surety(surety_record: SuretyRecord) -> SuretyRecord:
 
     return surety_record
 
-
 @transaction.atomic
 def lock_sureties_for_loan(loan):
-    """Called when HOS approves — lock all confirmed external sureties"""
     for record in SuretyRecord.objects.filter(loan=loan, status=SuretyStatus.PENDING):
+        record.current_liability = record.amount_guaranteed
+        record.save(update_fields=['current_liability'])
         try:
             confirm_surety(record)
         except ValueError:
-            pass  # Already handled during confirmation flow
-
+            pass
 
 @transaction.atomic
 def release_sureties_proportionally(loan, repayment_amount: Decimal):
-    """
-    SRS SR6 — as borrower repays, each surety's liability reduces proportionally.
-    """
     if loan.outstanding_balance <= Decimal("0.00"):
         return
 
@@ -210,7 +197,6 @@ def release_sureties_proportionally(loan, repayment_amount: Decimal):
 
 @transaction.atomic
 def release_all_sureties(loan):
-    """SRS SR8 — fully release all sureties when loan balance reaches zero"""
     for record in SuretyRecord.objects.filter(loan=loan, status=SuretyStatus.CONFIRMED):
         balance = get_or_create_balance(record.surety)
         balance.suretyship_committed = max(
@@ -227,11 +213,6 @@ def release_all_sureties(loan):
 
 @transaction.atomic
 def transfer_balance_to_sureties(loan) -> dict:
-    """
-    SRS SR7, M4 — default/abrupt exit.
-    Transfer outstanding balance to sureties proportionally.
-    Debit each surety's savings account.
-    """
     outstanding = loan.outstanding_balance
     confirmed_sureties = SuretyRecord.objects.filter(
         loan=loan, status=SuretyStatus.CONFIRMED
