@@ -433,7 +433,13 @@ export default function LoanDetailPage() {
                           #{s.layer}
                         </td>
                         <td className="px-3 py-2">
-                          {s.surety_file_number} — {s.surety_name}
+                          {s.is_self_surety ? (
+                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                              Self‑surety (borrower)
+                            </span>
+                          ) : (
+                            `${s.surety_file_number} — ${s.surety_name}`
+                          )}
                         </td>
                         <td className="px-3 py-2 text-right font-medium">
                           {formatNaira(s.amount_guaranteed)}
@@ -468,6 +474,13 @@ export default function LoanDetailPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+            {/* Note about self‑surety */}
+            <div className="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+              <p>
+                🔒 <strong>Self‑surety</strong> is the borrower's locked
+                savings. It is released when the loan is fully repaid.
+              </p>
             </div>
           </div>
         </div>

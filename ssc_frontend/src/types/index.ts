@@ -274,6 +274,7 @@ export interface LoanApplication {
     amount_guaranteed: number;
     current_liability: number;
     status: string;
+    is_self_surety?: boolean;
   }[];
 }
 
