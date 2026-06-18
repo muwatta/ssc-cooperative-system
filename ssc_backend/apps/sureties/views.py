@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee
 from .models import SuretyRecord, SuretyStatus
-from .serializers import SuretyRecordSerializer, AddSuretiesSerializer
+from .serializers import SuretyRecordSerializer, AddSuretiesSerializer, SuretyRecordWithBorrowerSerializer
 from .services import confirm_surety, decline_surety, create_surety_records, check_surety_eligibility
 from decimal import Decimal
 

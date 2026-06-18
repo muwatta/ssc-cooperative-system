@@ -1,10 +1,10 @@
-
 from rest_framework import serializers
 from .models import SuretyRecord
 from .services import check_surety_eligibility
 from decimal import Decimal
 
 
+# Used in LoanDetailPage (includes is_self_surety)
 class SuretyRecordSerializer(serializers.ModelSerializer):
     surety_file_number = serializers.CharField(source="surety.file_number", read_only=True)
     surety_name        = serializers.CharField(source="surety.full_name", read_only=True)
@@ -19,27 +19,8 @@ class SuretyRecordSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class AddSuretiesSerializer(serializers.Serializer):
-    sureties = serializers.ListField(child=serializers.DictField())
-
-    def validate_sureties(self, value):
-        from apps.accounts.models import MemberProfile
-        if len(value) > 5:
-            raise serializers.ValidationError("Maximum 5 external sureties (SRS SR3).")
-        for item in value:
-            if "member_id" not in item or "amount" not in item:
-                raise serializers.ValidationError("Each surety needs member_id and amount.")
-            try:
-                member = MemberProfile.objects.get(pk=item["member_id"])
-            except MemberProfile.DoesNotExist:
-                raise serializers.ValidationError(f"Member {item['member_id']} not found.")
-            check = check_surety_eligibility(member, Decimal(str(item["amount"])))
-            if not check["eligible"]:
-                raise serializers.ValidationError(check["reasons"])
-        return value
-
-
-class SuretyRecordSerializer(serializers.ModelSerializer):
+# Used in MySureties view (borrower details)
+class SuretyRecordWithBorrowerSerializer(serializers.ModelSerializer):
     borrower_name = serializers.CharField(source='loan.applicant.full_name', read_only=True)
     borrower_phone = serializers.CharField(source='loan.applicant.phone_primary', read_only=True)
     loan_amount = serializers.DecimalField(source='loan.amount_applied', max_digits=12, decimal_places=2, read_only=True)
@@ -59,3 +40,24 @@ class SuretyRecordSerializer(serializers.ModelSerializer):
     def get_self_surety_amount(self, obj):
         loan_amount = obj.loan.amount_approved or obj.loan.amount_applied
         return loan_amount * Decimal('0.75')
+
+
+# Used for adding sureties (validation)
+class AddSuretiesSerializer(serializers.Serializer):
+    sureties = serializers.ListField(child=serializers.DictField())
+
+    def validate_sureties(self, value):
+        from apps.accounts.models import MemberProfile
+        if len(value) > 5:
+            raise serializers.ValidationError("Maximum 5 external sureties (SRS SR3).")
+        for item in value:
+            if "member_id" not in item or "amount" not in item:
+                raise serializers.ValidationError("Each surety needs member_id and amount.")
+            try:
+                member = MemberProfile.objects.get(pk=item["member_id"])
+            except MemberProfile.DoesNotExist:
+                raise serializers.ValidationError(f"Member {item['member_id']} not found.")
+            check = check_surety_eligibility(member, Decimal(str(item["amount"])))
+            if not check["eligible"]:
+                raise serializers.ValidationError(check["reasons"])
+        return value
