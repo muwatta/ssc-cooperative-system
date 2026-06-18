@@ -335,6 +335,7 @@ export default function LoanDetailPage() {
                   <div
                     className="h-full bg-primary-600 rounded-full transition-all"
                     style={{ width: `${outstandingPercent}%` }}
+                    
                   />
                 </div>
                 <span className="text-xs text-gray-500 dark:text-gray-400">

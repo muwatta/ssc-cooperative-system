@@ -87,8 +87,7 @@ def check_loan_eligibility(member: MemberProfile) -> dict:
 def calculate_max_borrowable(member: MemberProfile) -> Decimal:
     config = get_loan_configuration()
     balance = get_or_create_balance(member)
-    return balance.total_savings * Decimal('0.75')
-
+    return (balance.available_balance / Decimal('0.75')).quantize(Decimal('0.01'))
 
 @transaction.atomic
 def submit_loan_application(member: MemberProfile, data: dict, sureties: list = None) -> LoanApplication:
