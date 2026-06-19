@@ -148,31 +148,15 @@ export default function ReportsPage() {
   };
 
   const downloadMonthlyReport = async () => {
-    const token = localStorage.getItem("ssc_access");
-    if (!token) {
-      alert("You are not logged in. Please log in again.");
-      return;
-    }
-
     try {
-      const response = await fetch(
-        `/api/v1/reports/monthly-deductions/?hijri_month=${deductionMonth}&hijri_year=${deductionYear}`,
+      const response = await api.get(
+        `/reports/monthly-deductions/?hijri_month=${deductionMonth}&hijri_year=${deductionYear}`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          responseType: "blob",
         },
       );
 
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          alert("Session expired. Please log in again.");
-          return;
-        }
-        throw new Error("Failed to download report");
-      }
-
-      const blob = await response.blob();
+      const blob = new Blob([response.data], { type: "text/csv" });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -186,7 +170,7 @@ export default function ReportsPage() {
       alert("Failed to download the report. Please try again.");
     }
   };
-  
+    
   return (
     <div className="space-y-6">
       {/* Header */}

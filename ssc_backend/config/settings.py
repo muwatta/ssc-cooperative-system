@@ -183,13 +183,11 @@ SIMPLE_JWT = {
     "TOKEN_OBTAIN_SERIALIZER": "apps.accounts.serializers.SSCTokenObtainPairSerializer",
 }
 
-# CORS — React frontend origins
 CORS_ALLOWED_ORIGINS_STRING = config(
     "CORS_ALLOWED_ORIGINS",
-    default="http://localhost:5173,http://localhost:3000"
+    default="http://localhost:5173,http://localhost:3000,https://ssc-cooperative-system.vercel.app"
 )
 CORS_ALLOWED_ORIGINS = [o.strip() for o in CORS_ALLOWED_ORIGINS_STRING.split(",")]
-CORS_ALLOW_CREDENTIALS = True
 
 # INTERNATIONALISATION
 LANGUAGE_CODE = "en-us"
