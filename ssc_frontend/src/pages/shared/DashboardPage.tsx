@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/api/client";
-import { membersApi, savingsApi } from "@/api/services";
+import { membersApi, savingsApi, loansApi } from "@/api/services";
 import type { MemberProfile, SavingsSummary } from "@/types";
 
-// StatCard (used in At a Glance, Membership Summary, Balance Overview)
+// StatCard (used in At a Glance, Membership Summary)
 function StatCard({
   label,
   value,
@@ -157,11 +157,21 @@ export default function DashboardPage() {
     refetchInterval: false,
   });
 
+  // Fetch the member's active loans to compute outstanding balance
+  const { data: myLoans } = useQuery({
+    queryKey: ["dashboard", "my-loans"],
+    queryFn: async () => {
+      const res = await loansApi.mine();
+      return res.data?.results || [];
+    },
+    enabled: isAuthenticated,
+    staleTime: 30000,
+  });
+
   const stats = memberStatsQuery.data as DashboardStats | undefined;
   const balances = balanceQuery.data as SavingsSummary | undefined;
   const myProfile = meQuery.data;
   const loading = memberStatsQuery.isLoading;
-  const balanceLoading = balanceQuery.isLoading || meQuery.isLoading;
   const error = memberStatsQuery.error
     ? "Unable to load dashboard statistics. Please refresh the page."
     : "";
@@ -181,7 +191,6 @@ export default function DashboardPage() {
 
   const memberBalance = balances?.member;
   const hasMemberBalance = !!memberBalance;
-  const coopSummary = balances?.cooperative;
 
   const displayName =
     myProfile?.full_name || user?.full_name || user?.staff_id || "Guest";
@@ -191,11 +200,26 @@ export default function DashboardPage() {
     return value;
   };
 
-  // ✅ FIX: Compute max borrowable (75% of Total Savings)
+  // Compute effective max borrowable: min(75% of total savings, available balance) but never negative
   const totalSavings = memberBalance?.total_savings
     ? Number(memberBalance.total_savings)
     : 0;
-  const maxBorrowable = totalSavings * 0.75;
+  const availableBalance = memberBalance?.available_balance
+    ? Number(memberBalance.available_balance)
+    : 0;
+  const maxBorrowable = Math.max(
+    0,
+    Math.min(totalSavings * 0.75, availableBalance),
+  );
+
+  // Compute outstanding loan from active loans
+  const outstandingLoan =
+    myLoans
+      ?.filter((l: any) => l.status === "active")
+      .reduce(
+        (sum: number, l: any) => sum + parseFloat(l.outstanding_balance),
+        0,
+      ) || 0;
 
   // Extract loan summary from new endpoint
   const pendingAdmin = dashSummary?.pending_admin ?? 0;
@@ -434,171 +458,102 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Balance Overview (UPDATED: added Max Borrowable) */}
-      <div className="card-panel mb-6 bg-primary-50 border-primary-100">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="rounded-full m-3 bg-primary-100 px-3 py-1 text-sm font-semibold text-primary-800">
-              Balance Overview
-            </div>
-            <button
-              onClick={toggleBalances}
-              className="text-primary-700 hover:text-primary-900 transition-colors text-xl"
-              aria-label={showBalances ? "Hide balances" : "Show balances"}
-            >
-              {showBalances ? "👁️" : "👁️‍🗨️"}
-            </button>
-          </div>
-          <p className="text-sm m-3 text-primary-700/80 mt-1">
-            {isAdmin || isCommittee
-              ? "Your savings balance plus a cooperative summary for all members."
-              : "Your personal savings balance and contribution details."}
-          </p>
-          {balanceLoading && (
-            <div className="text-sm m-3 text-primary-700/80">
-              Loading balances...
-            </div>
-          )}
+      {/* Simplified Balance Overview – Only four key numbers */}
+      <div className="card-panel mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+            💰 Your Balance
+          </h2>
+          <button
+            onClick={toggleBalances}
+            className="text-primary-600 hover:text-primary-800 transition-colors text-sm"
+          >
+            {showBalances ? "Hide" : "Show"} amounts
+          </button>
         </div>
 
         {balanceError ? (
-          <div className="mt-4 rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700">
-            {balanceError}
-          </div>
+          <div className="p-4 text-red-600">{balanceError}</div>
         ) : (
-          <>
-            {balances?.member === null && balances ? (
-              <div className="mt-4 rounded-lg border border-warning-200 bg-warning-50 p-4 text-sm text-warning-700">
-                ℹ️ No savings profile linked to this account. Personal balance
-                will appear here once a member profile is created and linked by
-                an administrator.
-              </div>
-            ) : null}
-
-            <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 p-2">
-              {/* 1. Total Savings */}
-              <div className="card-panel-light">
-                <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
-                  Your Total Savings
-                </p>
-                <p className="mt-3 m-3 text-1xl font-semibold text-gray-900">
-                  {hasMemberBalance
-                    ? maskIfNeeded(formatNaira(memberBalance!.total_savings))
-                    : "N/A"}
-                </p>
-              </div>
-
-              {/* 2. Available Balance */}
-              <div className="card-panel-light">
-                <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
-                  Your Available Balance
-                </p>
-                <p className="mt-3 m-3 text-1xl font-semibold text-gray-900">
-                  {hasMemberBalance
-                    ? maskIfNeeded(
-                        formatNaira(memberBalance!.available_balance),
-                      )
-                    : "N/A"}
-                </p>
-                <p className="text-xs m-3 text-gray-500 mt-1">
-                  After 25% investment reserve
-                </p>
-              </div>
-
-              {/* 3. NEW: Maximum Borrowable (75%) */}
-              <div className="card-panel-light">
-                <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
-                  Max Borrowable (75%)
-                </p>
-                <p className="mt-3 m-3 text-1xl font-semibold text-primary-700">
-                  {hasMemberBalance
-                    ? maskIfNeeded(formatNaira(maxBorrowable))
-                    : "N/A"}
-                </p>
-                <p className="text-xs m-3 text-gray-500 mt-1">
-                  Self‑surety limit
-                </p>
-              </div>
-
-              {/* 4. Approved Contribution */}
-              <div className="card-panel-light">
-                <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
-                  Approved Contribution
-                </p>
-                <p className="mt-3 m-3 text-1xl font-semibold text-gray-900">
-                  {myProfile?.approved_monthly_contribution !== undefined
-                    ? maskIfNeeded(
-                        formatNaira(myProfile.approved_monthly_contribution),
-                      )
-                    : "N/A"}
-                </p>
-              </div>
-
-              {/* 5. Committed Savings */}
-              <div className="card-panel-light">
-                <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
-                  Committed Savings
-                </p>
-                <p className="mt-3 m-3 text-1xl font-semibold text-gray-900">
-                  {hasMemberBalance
-                    ? maskIfNeeded(
-                        formatNaira(memberBalance!.suretyship_committed),
-                      )
-                    : "N/A"}
-                </p>
-              </div>
-
-              {/* 6. Special Fixed Savings (conditional) */}
-              {hasMemberBalance &&
-                Number(memberBalance!.special_savings || 0) > 0 && (
-                  <div className="card-panel-light">
-                    <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
-                      🔒 Special Fixed Savings
-                    </p>
-                    <p className="mt-3 m-3 text-1xl font-semibold text-purple-700">
-                      {maskIfNeeded(
-                        formatNaira(memberBalance!.special_savings || 0),
-                      )}
-                    </p>
-                  </div>
-                )}
-
-              {/* Cooperative totals – ADMIN ONLY */}
-              {isAdmin && coopSummary && (
-                <>
-                  <div className="card-panel-light">
-                    <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
-                      Cooperative Total Savings
-                    </p>
-                    <p className="mt-3 m-3 text-1xl font-semibold text-gray-900">
-                      {maskIfNeeded(formatNaira(coopSummary.total_savings))}
-                    </p>
-                  </div>
-                  <div className="card-panel-light">
-                    <p className="text-xs m-3 uppercase tracking-[0.2em] text-gray-500">
-                      Total Available Across Members
-                    </p>
-                    <p className="mt-3 m-3 text-1xl font-semibold text-gray-900">
-                      {maskIfNeeded(formatNaira(coopSummary.total_available))}
-                    </p>
-                  </div>
-                  {(coopSummary as any).total_special_savings &&
-                    Number((coopSummary as any).total_special_savings) > 0 && (
-                      <div className="card-panel-light">
-                        <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
-                          🔒 Total Special Savings (Locked)
-                        </p>
-                        <p className="mt-3 text-1xl font-semibold text-purple-700">
-                          {formatNaira(
-                            (coopSummary as any).total_special_savings,
-                          )}
-                        </p>
-                      </div>
-                    )}
-                </>
-              )}
+          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Available Balance – main number */}
+            <div className="col-span-1 md:col-span-2">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Your Available Balance
+              </p>
+              <p
+                className={`text-3xl font-bold ${
+                  availableBalance < 0
+                    ? "text-red-600 dark:text-red-400"
+                    : "text-green-600 dark:text-green-400"
+                }`}
+              >
+                {hasMemberBalance
+                  ? maskIfNeeded(formatNaira(availableBalance))
+                  : "—"}
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                {availableBalance < 0
+                  ? "You currently owe more than you have"
+                  : "What you can use right now"}
+              </p>
             </div>
-          </>
+
+            {/* Locked as Surety */}
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Locked as Surety
+              </p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">
+                {hasMemberBalance
+                  ? maskIfNeeded(
+                      formatNaira(memberBalance!.suretyship_committed),
+                    )
+                  : "—"}
+              </p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                (Guaranteed for others)
+              </p>
+            </div>
+
+            {/* Outstanding Loan */}
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Outstanding Loan
+              </p>
+              <p className="text-xl font-bold text-red-600 dark:text-red-400">
+                {hasMemberBalance
+                  ? maskIfNeeded(formatNaira(outstandingLoan))
+                  : "—"}
+              </p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                (What you owe)
+              </p>
+            </div>
+
+            {/* Maximum New Loan */}
+            <div className="col-span-1 md:col-span-2 bg-primary-50 dark:bg-primary-900/20 p-3 rounded-lg mt-2">
+              <p className="text-sm font-medium text-primary-800 dark:text-primary-200">
+                Maximum New Loan You Can Apply For
+              </p>
+              <p
+                className={`text-2xl font-bold ${
+                  maxBorrowable > 0
+                    ? "text-primary-700 dark:text-primary-300"
+                    : "text-gray-500 dark:text-gray-400"
+                }`}
+              >
+                {hasMemberBalance
+                  ? maskIfNeeded(formatNaira(maxBorrowable))
+                  : "—"}
+              </p>
+              <p className="text-[10px] text-primary-600 dark:text-primary-400">
+                {maxBorrowable > 0
+                  ? "Based on your available balance"
+                  : "You cannot borrow more until you repay or reduce commitments"}
+              </p>
+            </div>
+          </div>
         )}
       </div>
 
