@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .views import FinancialSnapshotView
+from .views import FinancialSnapshotView, MonthlyDeductionsReportView
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -187,4 +187,5 @@ urlpatterns = [
     path("loan-book/", loan_book_export, name="loan-book"),
     path("surety-exposure/", surety_exposure_export, name="surety-exposure"),
     path('financial-snapshot/', FinancialSnapshotView.as_view(), name='financial-snapshot'),
+    path('monthly-deductions/', MonthlyDeductionsReportView.as_view(), name='monthly-deductions'),
 ]

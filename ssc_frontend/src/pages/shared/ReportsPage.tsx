@@ -147,13 +147,46 @@ export default function ReportsPage() {
     window.open(`/api/v1/reports/surety-exposure/?format=csv`, "_blank");
   };
 
-  const downloadMonthlyReport = () => {
-    window.open(
-      `/api/v1/reports/monthly-deductions/?hijri_month=${deductionMonth}&hijri_year=${deductionYear}`,
-      "_blank",
-    );
-  };
+  const downloadMonthlyReport = async () => {
+    const token = localStorage.getItem("ssc_access");
+    if (!token) {
+      alert("You are not logged in. Please log in again.");
+      return;
+    }
 
+    try {
+      const response = await fetch(
+        `/api/v1/reports/monthly-deductions/?hijri_month=${deductionMonth}&hijri_year=${deductionYear}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          alert("Session expired. Please log in again.");
+          return;
+        }
+        throw new Error("Failed to download report");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `monthly_report_${deductionMonth}_${deductionYear}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Download error:", error);
+      alert("Failed to download the report. Please try again.");
+    }
+  };
+  
   return (
     <div className="space-y-6">
       {/* Header */}
