@@ -4,7 +4,7 @@ from django.db.models import Sum
 from django.utils import timezone
 from apps.accounts.models import MemberProfile
 from apps.savings.services import get_or_create_balance, post_debit_entry
-from apps.savings.models import LedgerEntryType
+from apps.savings.models import LedgerEntryType, SavingsLedger
 from apps.sureties.services import create_surety_records, lock_sureties_for_loan, release_sureties_proportionally, release_all_sureties, transfer_balance_to_sureties
 from apps.sureties.models import SuretyRecord, SuretyStatus
 from utils.hijri import hijri_month_display
@@ -193,13 +193,11 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
     # Create self‑surety record
     create_surety_records(
         loan,
-        [{"member_id": member.pk, "amount": amount_applied, "layer": 1}],
+        [{"member_id": member.pk, "amount": self_surety_max, "layer": 1}],
         note=data.get("note"),
-    )
-
+)
     if sureties:
-        # ✅ Ensure external sureties are capped to shortfall
-        # (already checked above, but re-check for safety)
+       
         total_external = sum(Decimal(str(s["amount"])) for s in sureties)
         if total_external > shortfall:
             raise ValueError(
@@ -284,7 +282,7 @@ def committee_reject_loan(loan: LoanApplication, rejected_by, note: str = "") ->
 
 
 @transaction.atomic
-def admin_final_approve_loan(loan: LoanApplication, admin_user, note: str = "") -> LoanApplication:
+def admin_final_approve_loan(loan, admin_user, note: str = "") -> LoanApplication:
     loan = LoanApplication.objects.select_for_update().get(pk=loan.pk)
     if loan.status != LoanStatus.PENDING_ADMIN:
         raise ValueError("Loan must be pending admin approval before final approval.")
@@ -307,14 +305,20 @@ def admin_final_approve_loan(loan: LoanApplication, admin_user, note: str = "") 
     balance.suretyship_committed += self_surety_amount
     balance.save(update_fields=["suretyship_committed", "updated_at"])
 
-    post_debit_entry(
+    hijri_disp = hijri_month_display(h_month, h_year)
+    SavingsLedger.objects.create(
         member=loan.applicant,
-        amount=self_surety_amount,
         hijri_month=h_month,
         hijri_year=h_year,
-        posted_by=admin_user,
+        hijri_display=hijri_disp,
         entry_type=LedgerEntryType.LOAN_DISBURSEMENT,
-        details=f"Self-surety lock for loan #{loan.id} (₦{self_surety_amount} of ₦{loan.amount_approved} approved)",
+        details=f"Self-surety locked for loan #{loan.id} (₦{self_surety_amount} of ₦{loan.amount_approved} approved) — savings unaffected",
+        debit=None,
+        credit=None,
+        balance=balance.total_savings,
+        posted_by=admin_user,
+        verified_by_name=admin_user.staff_id,
+        verified_by_role=admin_user.role,
     )
 
     loan.status = LoanStatus.ACTIVE
@@ -334,15 +338,8 @@ def admin_final_approve_loan(loan: LoanApplication, admin_user, note: str = "") 
 
     return loan
 
-
 @transaction.atomic
 def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hijri_year: int, posted_by) -> LoanRepaymentLedger:
-    """
-    Process a repayment:
-    1. Repayments FIRST reduce external sureties' liabilities proportionally.
-    2. Only after ALL external sureties are fully cleared does the borrower's balance reduce.
-    3. Borrower still sees a decreasing outstanding balance (after sureties are free).
-    """
     loan = LoanApplication.objects.select_for_update().get(pk=loan.pk)
 
     if loan.status != LoanStatus.ACTIVE:
