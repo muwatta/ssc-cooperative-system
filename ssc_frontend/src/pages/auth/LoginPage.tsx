@@ -26,6 +26,26 @@ export default function LoginPage() {
     setServerError("");
     try {
       const result = await login(data);
+
+      // ✅ Store user object from decoded token
+      const token = localStorage.getItem("ssc_access");
+      if (token) {
+        const payload = token.split(".")[1];
+        const decoded = JSON.parse(
+          atob(payload.replace(/-/g, "+").replace(/_/g, "/")),
+        );
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            user_id: decoded.user_id,
+            staff_id: decoded.staff_id,
+            role: decoded.role,
+            file_number: decoded.file_number,
+            full_name: decoded.full_name,
+          }),
+        );
+      }
+
       if (result.is_first_login) {
         navigate("/set-password");
       } else {
@@ -140,7 +160,6 @@ export default function LoginPage() {
                 "Sign in"
               )}
             </button>
-            
 
             <Link
               to="/forgot-password"
