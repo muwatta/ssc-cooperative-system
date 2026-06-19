@@ -3,7 +3,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { membersApi, savingsApi } from "@/api/services";
 import { AnimatedCard } from "@/components/common";
 import type { MemberBalance, MemberProfile } from "@/types";
-import { HIJRI_MONTHS } from "@/types";
 
 function formatCurrency(value: string | number) {
   const amount = Number(value);
@@ -16,20 +15,7 @@ function formatCurrency(value: string | number) {
 }
 
 export default function MySavingsPage() {
-  // Filters & pagination state
   const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState({
-    hijri_month: "",
-    hijri_year: "",
-    date_from: "",
-    date_to: "",
-  });
-  const [appliedFilters, setAppliedFilters] = useState({
-    hijri_month: "",
-    hijri_year: "",
-    date_from: "",
-    date_to: "",
-  });
 
   // Request modal state
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -66,21 +52,12 @@ export default function MySavingsPage() {
     staleTime: 1000 * 60 * 2,
   });
 
-  // Ledger
-  const ledgerParams: Record<string, string | number> = { page };
-  if (appliedFilters.hijri_month)
-    ledgerParams.hijri_month = Number(appliedFilters.hijri_month);
-  if (appliedFilters.hijri_year)
-    ledgerParams.hijri_year = Number(appliedFilters.hijri_year);
-  if (appliedFilters.date_from)
-    ledgerParams.date_from = appliedFilters.date_from;
-  if (appliedFilters.date_to) ledgerParams.date_to = appliedFilters.date_to;
-
+  // Ledger – no filters, just pagination
   const { data: ledgerResponse, isFetching: ledgerFetching } = useQuery({
-    queryKey: ["my-ledger", profile?.id, ledgerParams],
+    queryKey: ["my-ledger", profile?.id, page],
     enabled: !!profile?.id,
     queryFn: async () => {
-      const res = await savingsApi.getLedger(profile!.id, ledgerParams);
+      const res = await savingsApi.getLedger(profile!.id, { page });
       return res.data;
     },
     staleTime: 1000 * 60 * 1,
@@ -141,66 +118,6 @@ export default function MySavingsPage() {
       );
     },
   });
-
-  // Filter helpers
-  const handleApplyFilters = () => {
-    setPage(1);
-    setAppliedFilters(filters);
-  };
-
-  const handleClearFilters = () => {
-    const empty = {
-      hijri_month: "",
-      hijri_year: "",
-      date_from: "",
-      date_to: "",
-    };
-    setFilters(empty);
-    setAppliedFilters(empty);
-    setPage(1);
-  };
-
-  // Download handler
-  const [downloading, setDownloading] = useState(false);
-  const [downloadFormat, setDownloadFormat] = useState<"csv" | "pdf">("csv");
-
-  const handleDownload = async (format: "csv" | "pdf") => {
-    if (!profile?.id) return;
-    setDownloading(true);
-    setDownloadFormat(format);
-    try {
-      const params = {
-        hijri_month: appliedFilters.hijri_month
-          ? Number(appliedFilters.hijri_month)
-          : undefined,
-        hijri_year: appliedFilters.hijri_year
-          ? Number(appliedFilters.hijri_year)
-          : undefined,
-        date_from: appliedFilters.date_from || undefined,
-        date_to: appliedFilters.date_to || undefined,
-      };
-      const response = await savingsApi.exportLedger(
-        profile.id,
-        params,
-        format,
-      );
-      const blob = new Blob([response.data], {
-        type: format === "pdf" ? "application/pdf" : "text/csv;charset=utf-8;",
-      });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `savings_ledger_${profile.file_number}.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch {
-      // ignore
-    } finally {
-      setDownloading(false);
-    }
-  };
 
   if (profileLoading) {
     return (
@@ -362,109 +279,17 @@ export default function MySavingsPage() {
         </div>
       )}
 
-      {/* Ledger section */}
+      {/* Ledger section – no filters, just table */}
       <div>
         <div className="mb-4">
           <h2 className="text-lg font-semibold dark:text-white">
             Savings Ledger
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Filter your ledger by Hijri month/year or date range, then export.
+            Chronological view of all your savings transactions.
           </p>
         </div>
 
-        {/* Filter bar */}
-        <div className="card-panel-light mb-6 p-4">
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className="label">Hijri Month</label>
-              <select
-                value={filters.hijri_month}
-                onChange={(e) =>
-                  setFilters((p) => ({ ...p, hijri_month: e.target.value }))
-                }
-                className="input"
-                aria-label="Hijri month filter"
-              >
-                <option value="">All months</option>
-                {HIJRI_MONTHS.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="label">Hijri Year</label>
-              <input
-                type="number"
-                min={1}
-                value={filters.hijri_year}
-                onChange={(e) =>
-                  setFilters((p) => ({ ...p, hijri_year: e.target.value }))
-                }
-                className="input"
-                placeholder="YYYY"
-              />
-            </div>
-            <div>
-              <label className="label">From</label>
-              <input
-                type="date"
-                value={filters.date_from}
-                onChange={(e) =>
-                  setFilters((p) => ({ ...p, date_from: e.target.value }))
-                }
-                className="input"
-                aria-label="Start date filter"
-              />
-            </div>
-            <div>
-              <label className="label">To</label>
-              <input
-                type="date"
-                value={filters.date_to}
-                onChange={(e) =>
-                  setFilters((p) => ({ ...p, date_to: e.target.value }))
-                }
-                className="input"
-                aria-label="End date filter"
-              />
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <button className="btn-primary" onClick={handleApplyFilters}>
-              Apply Filters
-            </button>
-            <button className="btn-secondary" onClick={handleClearFilters}>
-              Clear Filters
-            </button>
-            <button className="btn-secondary" onClick={() => window.print()}>
-              Print
-            </button>
-            <button
-              className="btn-secondary"
-              onClick={() => handleDownload("csv")}
-              disabled={downloading}
-            >
-              {downloading && downloadFormat === "csv"
-                ? "Preparing..."
-                : "Download CSV"}
-            </button>
-            <button
-              className="btn-secondary"
-              onClick={() => handleDownload("pdf")}
-              disabled={downloading}
-            >
-              {downloading && downloadFormat === "pdf"
-                ? "Preparing..."
-                : "Download PDF"}
-            </button>
-          </div>
-        </div>
-
-        {/* Table */}
         {ledgerFetching && !ledger.length ? (
           <div className="text-gray-500 dark:text-gray-400">
             Loading ledger entries…
