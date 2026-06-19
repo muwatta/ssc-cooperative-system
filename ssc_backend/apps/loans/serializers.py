@@ -322,7 +322,7 @@ class LoanSettingsSerializer(serializers.ModelSerializer):
             "committee_can_view_totals",
             "hos_can_view_totals",
         ]
-        
+
 class LoanDraftSerializer(serializers.ModelSerializer):
     class Meta:
         model = LoanDraft
