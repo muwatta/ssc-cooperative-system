@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/api/client";
 import { loansApi } from "@/api/services";
 import clsx from "clsx";
+import DeveloperContactModal from "@/components/common/DeveloperContactModal";
 
 interface NavItem {
   label: string;
@@ -58,6 +59,7 @@ export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDeveloperModal, setShowDeveloperModal] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const navItems = useNavItems();
@@ -229,6 +231,19 @@ export default function AppLayout() {
           >
             <span>🚪</span>
             {sidebarOpen && "Logout"}
+          </button>
+
+          {/* Developer credit link */}
+          <button
+            onClick={() => setShowDeveloperModal(true)}
+            className={clsx(
+              "w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-md transition-colors",
+              "text-gray-400 hover:text-primary-600 dark:hover:text-primary-400",
+              !sidebarOpen && "justify-center px-2",
+            )}
+          >
+            <span>👨‍💻</span>
+            {sidebarOpen && "Built by Abdullahi Musliudeen"}
           </button>
         </div>
       </aside>
@@ -412,6 +427,17 @@ export default function AppLayout() {
           >
             🚪 Logout
           </button>
+
+          {/* Developer credit link in mobile sidebar */}
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              setShowDeveloperModal(true);
+            }}
+            className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-left text-xs text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
+          >
+            👨‍💻 Built by Abdullahi Musliudeen
+          </button>
         </div>
       </aside>
 
@@ -439,6 +465,12 @@ export default function AppLayout() {
           </div>
         </div>
       )}
+
+      {/* Developer Contact Modal */}
+      <DeveloperContactModal
+        isOpen={showDeveloperModal}
+        onClose={() => setShowDeveloperModal(false)}
+      />
     </div>
   );
 }
