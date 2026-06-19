@@ -38,7 +38,7 @@ class DashboardSummaryView(APIView):
 
     def get(self, request):
         user = request.user
-        is_admin = user.role in ["admin", "committee", "head_of_school"]
+        is_admin = user.role == "admin"
         data = {}
 
         if is_admin:
@@ -85,6 +85,18 @@ class DashboardSummaryView(APIView):
                 for loan in active_loans_qs
             ]
             data["upcoming_repayments"] = upcoming
+        else:
+            data = {
+                "pending_admin": LoanApplication.objects.filter(status=LoanStatus.PENDING_ADMIN).count(),
+                "submitted": LoanApplication.objects.filter(status=LoanStatus.SUBMITTED).count(),
+                "under_review": LoanApplication.objects.filter(status=LoanStatus.UNDER_REVIEW).count(),
+                "pending_sureties": LoanApplication.objects.filter(status=LoanStatus.PENDING_SURETIES).count(),
+                "active_loans": LoanApplication.objects.filter(status=LoanStatus.ACTIVE).count(),
+                "total_outstanding": "0.00",
+                "total_savings": "0.00",
+                "total_special_savings": "0.00",
+                "upcoming_repayments": [],
+            }
 
         try:
             profile = request.user.member_profile
@@ -100,7 +112,6 @@ class DashboardSummaryView(APIView):
             data["my_active_loans"] = 0
 
         return Response(data)
-
 
 class ResetDataView(APIView):
     permission_classes = [IsAuthenticated]

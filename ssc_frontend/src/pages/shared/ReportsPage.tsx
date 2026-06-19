@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { membersApi, savingsApi } from "@/api/services";
 import { AnimatedCard } from "@/components/common";
 import api from "@/api/client";
+import { useAuth } from "@/context/AuthContext";
 
 import type {
   MemberProfile,
@@ -80,6 +81,7 @@ export default function ReportsPage() {
   const activeMemberCount = membersPage?.count ?? 0;
   const error = membersError || poolError ? "Unable to load report data." : "";
   const totalSavingsPool = savingsSummary?.cooperative?.total_savings ?? null;
+  const { isAdmin } = useAuth();
 
   // Filter members by search term for the table only
   const filteredMembers = useMemo(() => {
@@ -250,6 +252,7 @@ export default function ReportsPage() {
         <>
           {/* Key metrics cards – 3 columns */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Active Members */}
             <AnimatedCard className="group relative overflow-hidden bg-white dark:bg-gray-800 p-6 shadow-md">
               <div className="absolute right-0 top-0 h-20 w-20 -translate-y-2 translate-x-2 rounded-full bg-primary-50 dark:bg-primary-900/30 opacity-20 group-hover:scale-110 transition-transform" />
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -263,6 +266,7 @@ export default function ReportsPage() {
               </p>
             </AnimatedCard>
 
+            {/* Loan‑Eligible Members */}
             <AnimatedCard className="group relative overflow-hidden bg-white dark:bg-gray-800 p-6 shadow-md">
               <div className="absolute right-0 top-0 h-20 w-20 -translate-y-2 translate-x-2 rounded-full bg-success-50 dark:bg-success-900/30 opacity-20 group-hover:scale-110 transition-transform" />
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -276,22 +280,25 @@ export default function ReportsPage() {
               </p>
             </AnimatedCard>
 
-            <AnimatedCard className="group relative overflow-hidden bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/40 dark:to-gray-800 p-6 shadow-md">
-              <div className="absolute right-0 top-0 h-24 w-24 -translate-y-2 translate-x-2 rounded-full bg-primary-200 dark:bg-primary-800/50 opacity-30 group-hover:scale-110 transition-transform" />
-              <p className="text-sm font-medium text-primary-800 dark:text-primary-200">
-                Total Savings Pool
-              </p>
-              <p className="mt-2 text-4xl font-bold text-primary-900 dark:text-white">
-                {poolLoading
-                  ? "Loading..."
-                  : totalSavingsPool !== null
-                    ? formatNaira(totalSavingsPool)
-                    : "₦0.00"}
-              </p>
-              <p className="mt-1 text-xs text-primary-700 dark:text-primary-300">
-                Actual money saved across all members
-              </p>
-            </AnimatedCard>
+            {/* Total Savings Pool – Admin only */}
+            {isAdmin && (
+              <AnimatedCard className="group relative overflow-hidden bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/40 dark:to-gray-800 p-6 shadow-md">
+                <div className="absolute right-0 top-0 h-24 w-24 -translate-y-2 translate-x-2 rounded-full bg-primary-200 dark:bg-primary-800/50 opacity-30 group-hover:scale-110 transition-transform" />
+                <p className="text-sm font-medium text-primary-800 dark:text-primary-200">
+                  Total Savings Pool
+                </p>
+                <p className="mt-2 text-4xl font-bold text-primary-900 dark:text-white">
+                  {poolLoading
+                    ? "Loading..."
+                    : totalSavingsPool !== null
+                      ? formatNaira(totalSavingsPool)
+                      : "₦0.00"}
+                </p>
+                <p className="mt-1 text-xs text-primary-700 dark:text-primary-300">
+                  Actual money saved across all members
+                </p>
+              </AnimatedCard>
+            )}
           </div>
 
           {/* Distribution Cards – 2 columns */}
@@ -337,7 +344,6 @@ export default function ReportsPage() {
               </div>
             </AnimatedCard>
           </div>
-
           {/* Member Table with Search */}
           <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-md">
             <div className="border-b border-gray-100 dark:border-gray-700 p-5">

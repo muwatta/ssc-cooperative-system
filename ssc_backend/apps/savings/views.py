@@ -138,7 +138,7 @@ class SavingsSummaryView(APIView):
                 member_balance = get_or_create_balance(profile)
                 member_data = MemberBalanceSerializer(member_balance).data
 
-            if request.user.role in ("admin", "committee"):
+            if request.user.role == "admin":
                 summary = MemberBalance.objects.aggregate(
                     total_savings=Sum("total_savings"),
                     total_committed=Sum("suretyship_committed"),
@@ -170,7 +170,6 @@ class SavingsSummaryView(APIView):
                 "member_count": member_count,
             },
         })
-
 
 class MyBalanceView(APIView):
     def get(self, request):

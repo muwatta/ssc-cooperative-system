@@ -260,27 +260,28 @@ export default function DashboardPage() {
               value={activeLoans}
               color="primary"
             />
-            <StatCard
-              label="Total Outstanding"
-              value={totalOutstanding}
-              color="danger"
-            />
-            <StatCard
-              label="Total Savings Pool"
-              value={totalSavingsCoop}
-              color="success"
-            />
             {isAdmin && (
-              <StatCard
-                label="🔒 Total Special Savings Locked"
-                value={totalSpecialSavings}
-                color="primary"
-              />
+              <>
+                <StatCard
+                  label="Total Outstanding"
+                  value={totalOutstanding}
+                  color="danger"
+                />
+                <StatCard
+                  label="Total Savings Pool"
+                  value={totalSavingsCoop}
+                  color="success"
+                />
+                <StatCard
+                  label="🔒 Total Special Savings Locked"
+                  value={totalSpecialSavings}
+                  color="primary"
+                />
+              </>
             )}
           </div>
         </div>
       )}
-
       {/* Upcoming Repayments (leadership) */}
       {isLeadership && dashSummary?.upcoming_repayments?.length > 0 && (
         <div className="card-panel mb-6 bg-white border border-gray-200">
