@@ -283,15 +283,22 @@ export interface LoanSettings {
   max_loans_per_year: number;
   max_repayment_months: number;
   self_surety_ratio: number;
-  max_borrowable_ratio: number; 
-  external_surety_max_ratio: number; 
+  max_borrowable_ratio: number;
+  external_surety_max_ratio: number;
   max_sureties: number;
   min_loan_amount: number;
   max_loan_amount: number;
   require_no_active_loan: boolean;
   require_no_surety_liabilities: boolean;
+  interest_rate: number;
+  max_active_loans: number;
+  min_savings_contribution: number;
+  default_termly_dues: number;
+  late_repayment_fee: number;
+  repayment_grace_days: number;
+  committee_can_view_totals: boolean;
+  hos_can_view_totals: boolean;
 }
-
 export interface LoanEligibilityResponse {
   eligible: boolean;
   reasons: string[];

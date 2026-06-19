@@ -113,6 +113,47 @@ function ToggleField({
   );
 }
 
+function NumberField({
+  label,
+  description,
+  value,
+  min,
+  step,
+  prefix,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  value: number;
+  min?: number;
+  step?: number;
+  prefix?: string;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        {label}
+      </label>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+        {description}
+      </p>
+      <div className="flex items-center gap-2">
+        {prefix && <span className="text-gray-500">{prefix}</span>}
+        <input
+          type="number"
+          min={min}
+          step={step}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="input w-32"
+          title="loan"
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function LoanSettingsPage() {
   const qc = useQueryClient();
   const [saved, setSaved] = useState(false);
@@ -172,6 +213,16 @@ export default function LoanSettingsPage() {
             step={1}
             unit="months"
             onChange={(v) => update("consecutive_savings_months_required", v)}
+          />
+          <SliderField
+            label="Max active loans per member"
+            description="How many active loans can a member have at once?"
+            value={form.max_active_loans}
+            min={1}
+            max={5}
+            step={1}
+            unit="loans"
+            onChange={(v) => update("max_active_loans", v)}
           />
           <ToggleField
             label="Require no active loan"
@@ -241,21 +292,51 @@ export default function LoanSettingsPage() {
             unit="₦"
             onChange={(v) => update("max_loan_amount", v)}
           />
+          <NumberField
+            label="Interest rate (% per month)"
+            description="Monthly interest charged on outstanding balance."
+            value={form.interest_rate}
+            min={0}
+            step={0.1}
+            prefix="%"
+            onChange={(v) => update("interest_rate", v)}
+          />
         </div>
       </Card>
 
       {/* ---- 3. REPAYMENT ---- */}
-      <Card title="📆 Repayment Rules">
-        <SliderField
-          label="Maximum repayment months"
-          description="Longest allowed repayment period."
-          value={form.max_repayment_months}
-          min={1}
-          max={24}
-          step={1}
-          unit="months"
-          onChange={(v) => update("max_repayment_months", v)}
-        />
+      <Card title="📆 Repayment & Penalties">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SliderField
+            label="Maximum repayment months"
+            description="Longest allowed repayment period."
+            value={form.max_repayment_months}
+            min={1}
+            max={24}
+            step={1}
+            unit="months"
+            onChange={(v) => update("max_repayment_months", v)}
+          />
+          <NumberField
+            label="Late repayment fee (₦)"
+            description="Flat fee charged for a late repayment."
+            value={form.late_repayment_fee}
+            min={0}
+            step={100}
+            prefix="₦"
+            onChange={(v) => update("late_repayment_fee", v)}
+          />
+          <SliderField
+            label="Repayment grace period (days)"
+            description="Days allowed after due date before late fee applies."
+            value={form.repayment_grace_days}
+            min={0}
+            max={30}
+            step={1}
+            unit="days"
+            onChange={(v) => update("repayment_grace_days", v)}
+          />
+        </div>
       </Card>
 
       {/* ---- 4. SURETIES ---- */}
@@ -282,6 +363,59 @@ export default function LoanSettingsPage() {
             onChange={(v) => update("external_surety_max_ratio", v / 100)}
           />
         </div>
+      </Card>
+
+      {/* ---- 5. SAVINGS & DUES ---- */}
+      <Card title="💾 Savings & Dues Defaults">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <NumberField
+            label="Minimum savings contribution (₦)"
+            description="Minimum monthly savings amount a member can set."
+            value={form.min_savings_contribution}
+            min={100}
+            step={100}
+            prefix="₦"
+            onChange={(v) => update("min_savings_contribution", v)}
+          />
+          <NumberField
+            label="Default termly dues (₦)"
+            description="Preset amount for posting termly dues."
+            value={form.default_termly_dues}
+            min={0}
+            step={100}
+            prefix="₦"
+            onChange={(v) => update("default_termly_dues", v)}
+          />
+        </div>
+      </Card>
+
+      {/* ---- 6. PERMISSIONS ---- */}
+      <Card title="🔐 Role Permissions">
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Control which roles can view cooperative financial totals.
+          <br />
+          <span className="text-xs text-gray-400">
+            (Admin always has full access.)
+          </span>
+        </p>
+        <div className="space-y-4">
+          <ToggleField
+            label="Committee can view financial totals"
+            description="Allow Committee members to see total savings, outstanding loans, and other monetary summaries."
+            checked={form.committee_can_view_totals ?? false}
+            onChange={(v) => update("committee_can_view_totals", v)}
+          />
+          <ToggleField
+            label="Head of School can view financial totals"
+            description="Allow HOS to see cooperative financial totals."
+            checked={form.hos_can_view_totals ?? false}
+            onChange={(v) => update("hos_can_view_totals", v)}
+          />
+        </div>
+        <p className="text-xs text-gray-400 mt-4">
+          These settings will be applied globally. Changes take effect
+          immediately after saving.
+        </p>
       </Card>
 
       {/* Save button */}

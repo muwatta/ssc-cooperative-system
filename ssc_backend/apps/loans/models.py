@@ -48,7 +48,32 @@ class LoanConfiguration(models.Model):
     decimal_places=2,
     default=Decimal("0.75"),
     help_text="Maximum fraction of a surety's available balance they can guarantee.",
-)
+    )
+
+    interest_rate = models.DecimalField(
+    max_digits=5, decimal_places=2, default=0.00,
+    help_text="Monthly interest rate in % applied to outstanding balance."
+    )
+    max_active_loans = models.PositiveSmallIntegerField(
+        default=1,
+        help_text="Maximum number of active loans a member can have simultaneously."
+    )
+    min_savings_contribution = models.DecimalField(
+        max_digits=12, decimal_places=2, default=1000.00,
+        help_text="Minimum monthly savings contribution amount."
+    )
+    default_termly_dues = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0.00,
+        help_text="Default amount for termly dues."
+    )
+    late_repayment_fee = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0.00,
+        help_text="Flat fee charged for late repayment."
+    )
+    repayment_grace_days = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Days allowed after due date before late fee applies."
+    )
 
     max_sureties = models.PositiveSmallIntegerField(
         default=5,

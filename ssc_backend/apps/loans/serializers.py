@@ -313,9 +313,16 @@ class LoanSettingsSerializer(serializers.ModelSerializer):
             "max_loan_amount",
             "require_no_active_loan",
             "require_no_surety_liabilities",
+            "interest_rate",
+            "max_active_loans",
+            "min_savings_contribution",
+            "default_termly_dues",
+            "late_repayment_fee",
+            "repayment_grace_days",
+            "committee_can_view_totals",
+            "hos_can_view_totals",
         ]
-
-
+        
 class LoanDraftSerializer(serializers.ModelSerializer):
     class Meta:
         model = LoanDraft
