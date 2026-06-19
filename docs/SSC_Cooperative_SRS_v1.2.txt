@@ -343,11 +343,11 @@ Layer  Who Coverage Rule
 (Mandatory)  Borrower — Self 
 Surety  Must cover 75% of loan from own Available Balance. Non -negotiable 
 first layer.  
-2 External Surety 1  Up to 85% of their own Available Balance committed as guarantee.  
-3 External Surety 2  Up to 85% of their own Available Balance committed as guarantee.  
-4 External Surety 3  Up to 85% of their own Available Balance committed as guarantee.  
-5 External Surety 4  Up to 85% of their own Available Balance committed as guarantee.  
-6 External Surety 5  Up to 85% of their own Available Balance committed as guarantee.  
+2 External Surety 1  Up to 75% of their own Available Balance committed as guarantee.  
+3 External Surety 2  Up to 75% of their own Available Balance committed as guarantee.  
+4 External Surety 3  Up to 75% of their own Available Balance committed as guarantee.  
+5 External Surety 4  Up to 75% of their own Available Balance committed as guarantee.  
+6 External Surety 5  Up to 75% of their own Available Balance committed as guarantee.  
  
 External sureties 2 through 5 are optional. Only Surety 1 (self) is mandatory. The combined external sureties must 
 together cover the full shortfall beyond the self -surety portion.  
@@ -356,7 +356,7 @@ together cover the full shortfall beyond the self -surety portion.
 Rule Detail  
 Savings tenure  Surety must have 6 consecutive months of savings.  
 Available balance check  Surety’s Available Balance must be ≥ the amount they are guaranteeing.  
-Maximum commitment  Each external surety may commit up to 85% of their Available Balance.  
+Maximum commitment  Each external surety may commit up to 75% of their Available Balance.  
 Annual limit  A member may act as external surety a maximum of 3 times per 
 calendar year.  
 Confirmation  Each surety must individually confirm acceptance before loan is 
@@ -452,7 +452,7 @@ SOLACE STAFF COOPERATIVE LTD (SSC) — Management System SRS v1.2  Confidential
 For Client & Developer Review Only  Page 14 / 17  7.4  Surety Rules  
 # Rule 
 SR1 Borrower must self -surety the first 75% of the loan from their own Available Balance. Mandatory.  
-SR2 Each external surety may commit up to 85% of their own Available Balance per loan.  
+SR2 Each external surety may commit up to 75% of their own Available Balance per loan.  
 SR3 Maximum 5 external sureties per loan application.  
 SR4 A member may act as external surety a maximum of 3 times per calendar year.  
 SR5 Surety’s committed amount is locked immediately upon their confirmation.  
@@ -484,7 +484,7 @@ Debits savings. Appears in ledger as ‘Termly Dues’.  Admin
 Loan Application  Digital loan form matching physical SSC form. Eligibility 
 auto-checked. Sureties nominated.  Staff/Admin/Committee  
 Surety Confirmation  Nominated sureties receive notification and 
-confirm/decline. System validates 85% limit and annual 
+confirm/decline. System validates 75% limit and annual 
 count.  Staff/Committee  
 Loan Approval Queue  Committee reviews applications. Chairman 
 approves/rejects. Head of School gives final sign -off. Committee/HOS  
@@ -552,7 +552,7 @@ Please Confirm Each Item Before Signing
 ☐  6 consecutive months of savings required for loan/surety eligibility  
 ☐  Missed month (non -debtor): balance frozen, counter resets. Active debtor: cannot skip — enforced.  
 ☐  Maximum borrowable: 75% of Available Balance  
-☐  External sureties: up to 5, each up to 85% of their Available Balance  
+☐  External sureties: up to 5, each up to 75% of their Available Balance  
 ☐  Surety annual limit: 3 acts per calendar year per member  
 ☐  Repayment: 12 -month maximum, manual posting, not payslip deduction  
 ☐  Loan approval: Committee Chairman → Head of School (2 -stage)  

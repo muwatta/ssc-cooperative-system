@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { membersApi, savingsApi } from "@/api/services";
 import { AnimatedCard } from "@/components/common";
+import api from "@/api/client";
 
 import type {
   MemberProfile,
@@ -10,6 +11,7 @@ import type {
   SchoolBranch,
   MembershipStatus,
 } from "@/types";
+import { HIJRI_MONTHS } from "@/types";
 
 function formatNaira(value: string | number) {
   const amount = Number(value);
@@ -24,6 +26,25 @@ function formatNaira(value: string | number) {
 export default function ReportsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState("");
+
+  // Monthly deduction report state
+  const [deductionMonth, setDeductionMonth] = useState(1);
+  const [deductionYear, setDeductionYear] = useState(1446); // default to some year
+
+  // Fetch current Hijri date to pre‑fill the deduction month/year
+  const { data: currentDate } = useQuery({
+    queryKey: ["current-date"],
+    queryFn: () => api.get("/date/").then((r) => r.data),
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+  });
+
+  useEffect(() => {
+    if (currentDate?.hijri) {
+      setDeductionMonth(currentDate.hijri.month);
+      setDeductionYear(currentDate.hijri.year);
+    }
+  }, [currentDate]);
 
   const {
     data: membersPage,
@@ -126,6 +147,13 @@ export default function ReportsPage() {
     window.open(`/api/v1/reports/surety-exposure/?format=csv`, "_blank");
   };
 
+  const downloadMonthlyReport = () => {
+    window.open(
+      `/api/v1/reports/monthly-deductions/?hijri_month=${deductionMonth}&hijri_year=${deductionYear}`,
+      "_blank",
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -168,6 +196,7 @@ export default function ReportsPage() {
           Export Reports
         </h2>
         <div className="flex flex-wrap gap-4 items-end">
+          {/* Member Statement */}
           <div className="flex-1 min-w-[220px]">
             <label className="label text-xs">Member Statement</label>
             <div className="flex gap-2">
@@ -230,6 +259,41 @@ export default function ReportsPage() {
               </button>
             </div>
           </div>
+
+          {/* Monthly Deductions Report */}
+          <div className="flex-1 min-w-[220px]">
+            <label className="label text-xs">Monthly Deductions Report</label>
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={deductionMonth}
+                onChange={(e) => setDeductionMonth(Number(e.target.value))}
+                className="input flex-1 min-w-[100px]"
+                aria-label="Select Hijri month"
+              >
+                {HIJRI_MONTHS.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                value={deductionYear}
+                onChange={(e) => setDeductionYear(Number(e.target.value))}
+                className="input w-24"
+                min={1400}
+                max={1500}
+                step={1}
+                aria-label="Enter Hijri year"
+              />
+              <button
+                onClick={downloadMonthlyReport}
+                className="btn-primary text-xs px-3 py-1.5 whitespace-nowrap"
+              >
+                Download CSV
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -247,7 +311,6 @@ export default function ReportsPage() {
         <>
           {/* Key metrics cards – 3 columns on desktop, 1 on mobile */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Active Members Card */}
             <AnimatedCard className="group relative overflow-hidden bg-white dark:bg-gray-800 p-6 shadow-md">
               <div className="absolute right-0 top-0 h-20 w-20 -translate-y-2 translate-x-2 rounded-full bg-primary-50 dark:bg-primary-900/30 opacity-20 group-hover:scale-110 transition-transform" />
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -261,7 +324,6 @@ export default function ReportsPage() {
               </p>
             </AnimatedCard>
 
-            {/* Loan‑Eligible Members Card */}
             <AnimatedCard className="group relative overflow-hidden bg-white dark:bg-gray-800 p-6 shadow-md">
               <div className="absolute right-0 top-0 h-20 w-20 -translate-y-2 translate-x-2 rounded-full bg-success-50 dark:bg-success-900/30 opacity-20 group-hover:scale-110 transition-transform" />
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -275,7 +337,6 @@ export default function ReportsPage() {
               </p>
             </AnimatedCard>
 
-            {/* Total Savings Pool Card */}
             <AnimatedCard className="group relative overflow-hidden bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/40 dark:to-gray-800 p-6 shadow-md">
               <div className="absolute right-0 top-0 h-24 w-24 -translate-y-2 translate-x-2 rounded-full bg-primary-200 dark:bg-primary-800/50 opacity-30 group-hover:scale-110 transition-transform" />
               <p className="text-sm font-medium text-primary-800 dark:text-primary-200">
