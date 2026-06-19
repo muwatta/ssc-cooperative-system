@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { membersApi, savingsApi } from "@/api/services";
-import { useAuth } from "@/context/AuthContext";
 import { AnimatedCard } from "@/components/common";
 import type { MemberBalance, MemberProfile } from "@/types";
 import { HIJRI_MONTHS } from "@/types";
@@ -17,8 +16,6 @@ function formatCurrency(value: string | number) {
 }
 
 export default function MySavingsPage() {
-  const { isAdmin, isCommittee } = useAuth();
-
   // Filters & pagination state
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
@@ -39,7 +36,7 @@ export default function MySavingsPage() {
   const [requestAmount, setRequestAmount] = useState("");
   const [requestError, setRequestError] = useState("");
 
-  // Profile (React Query, 10 min cache)
+  // Profile
   const {
     data: profile,
     isLoading: profileLoading,
@@ -56,7 +53,7 @@ export default function MySavingsPage() {
 
   const profileMissing = profile === null && !profileLoading && !profileError;
 
-  // Balance (React Query, 2 min cache)
+  // Balance
   const { data: balance } = useQuery<
     MemberBalance & { reserved_for_investment?: string }
   >({
@@ -69,7 +66,7 @@ export default function MySavingsPage() {
     staleTime: 1000 * 60 * 2,
   });
 
-  // Ledger (React Query, 1 min cache)
+  // Ledger
   const ledgerParams: Record<string, string | number> = { page };
   if (appliedFilters.hijri_month)
     ledgerParams.hijri_month = Number(appliedFilters.hijri_month);
@@ -95,7 +92,6 @@ export default function MySavingsPage() {
   const pageSize = 50;
   const pageCount = Math.max(1, Math.ceil(totalLedgerCount / pageSize));
 
-  // Sort ledger chronologically (oldest first)
   const sortedLedger = useMemo(() => {
     return [...ledger].sort((a, b) => {
       if (a.hijri_year !== b.hijri_year) return a.hijri_year - b.hijri_year;
@@ -103,22 +99,6 @@ export default function MySavingsPage() {
       return (a.gregorian_date ?? "").localeCompare(b.gregorian_date ?? "");
     });
   }, [ledger]);
-
-  // Cooperative summary (admin/committee only, 10 min cache)
-  const canSeeCoopBalances = isAdmin || isCommittee;
-  const {
-    data: cooperativeSummary,
-    isLoading: summaryLoading,
-    error: summaryLoadError,
-  } = useQuery({
-    queryKey: ["my-savings-summary"],
-    queryFn: async () => {
-      const response = await savingsApi.summary();
-      return response.data;
-    },
-    staleTime: 1000 * 60 * 10,
-    enabled: canSeeCoopBalances,
-  });
 
   // Summary derived state
   const summary = useMemo(() => {
@@ -262,387 +242,293 @@ export default function MySavingsPage() {
         </div>
       )}
 
-      {/* Personal summary cards – responsive grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 ">
-        {/* Total Savings */}
+      {/* Personal summary cards – first row */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card-panel bg-gradient-to-br from-primary-50 to-white dark:from-primary-900/30 dark:to-gray-900">
-          <p className="text-sm m-3 text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
             Total Savings
           </p>
-          <p className="text-2xl m-3 font-semibold mt-1 dark:text-white">
+          <p className="text-2xl font-semibold m-3 dark:text-white">
             {summary.savingsBalance}
           </p>
         </div>
 
-        {/* Available Balance */}
         <div className="card-panel bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-900/30 dark:to-gray-900">
-          <p className="text-sm m-3 text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
             Available Balance
           </p>
-          <p className="text-2xl m-3 font-semibold mt-1 dark:text-white">
+          <p className="text-2xl font-semibold m-3 dark:text-white">
             {summary.availableBalance}
           </p>
         </div>
 
-        {/* Approved Monthly Contribution */}
         <div className="card-panel bg-gradient-to-br from-sky-50 to-white dark:from-sky-900/30 dark:to-gray-900">
-          <p className="text-sm m-3 text-gray-500 dark:text-gray-400">
-            Approved Monthly Contribution
+          <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
+            Monthly Contribution
           </p>
-          <p className="text-2xl m-3 font-semibold mt-1 dark:text-white">
+          <p className="text-2xl font-semibold m-3 dark:text-white">
             {summary.contribution}
           </p>
         </div>
 
-        {/* Loan Eligible */}
         <div className="card-panel bg-gradient-to-br from-amber-50 to-white dark:from-amber-900/30 dark:to-gray-900">
-          <p className="text-sm m-3 text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
             Loan Eligible
           </p>
-          <p className="text-2xl m-3 font-semibold mt-1 dark:text-white">
+          <p className="text-2xl font-semibold m-3 dark:text-white">
             {summary.loanEligibility}
           </p>
         </div>
-
-        {/* Request Change */}
-        <div className="card-panel dark:bg-gray-900 flex flex-col items-start p-2">
-          <p className="text-sm m-3 text-gray-500 dark:text-gray-400">
-            Request Change
-          </p>
-          <button
-            onClick={() => setShowRequestModal(true)}
-            className="btn-secondary btn-sm mt-2 w-full"
-          >
-            📝 Increase / Decrease
-          </button>
-        </div>
       </div>
 
-      {/* Suretyship Commitment, Reserved for Investment, and Special Savings */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        {/* Suretyship Commitment */}
+      {/* Second row – commitments and extra info */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="card-panel bg-gradient-to-br from-purple-50 to-white dark:from-purple-900/30 dark:to-gray-900">
           <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
             Suretyship Commitment
           </p>
-          <p className="text-2xl m-3 font-semibold mt-1 dark:text-white">
+          <p className="text-2xl font-semibold m-3 dark:text-white">
             {summary.suretyCommitted}
           </p>
-          <p className="text-xs m-3 text-gray-400 dark:text-gray-500 mt-1">
-            Total amount you have guaranteed for others
+          <p className="text-xs text-gray-400 dark:text-gray-500 m-3 mt-1">
+            Amount you've guaranteed for others
           </p>
         </div>
 
-        {/* Reserved for Investment */}
         <div className="card-panel bg-gradient-to-br from-blue-50 to-white dark:from-blue-900/30 dark:to-gray-900">
           <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
             Reserved for Investment
           </p>
-          <p className="text-2xl font-semibold mt-1 m-3 dark:text-white">
+          <p className="text-2xl font-semibold m-3 dark:text-white">
             {summary.reservedForInvestment}
           </p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 m-3">
-            25% of (total savings − special savings) – not available for loans
-            or surety
+          <p className="text-xs text-gray-400 dark:text-gray-500 m-3 mt-1">
+            25% of (total savings − special savings) – not available
           </p>
         </div>
 
-        {/* Special Fixed Savings */}
         {Number(balance?.special_savings || 0) > 0 && (
           <div className="card-panel bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900/30 dark:to-gray-900">
-            <p className="text-sm m-3 text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
               🔒 Special Fixed Savings
             </p>
-            <p className="text-2xl m-3 font-semibold mt-1 text-indigo-700 dark:text-indigo-400">
+            <p className="text-2xl font-semibold text-indigo-700 dark:text-indigo-400 m-3">
               {summary.specialSavings}
             </p>
-            <p className="text-xs m-3 text-gray-400 dark:text-gray-500 mt-1">
-              Locked savings – not available for loans
+            <p className="text-xs text-gray-400 dark:text-gray-500 m-3 mt-1">
+              Locked savings – not available
             </p>
           </div>
         )}
+
+        {/* Request Change Button */}
+        <div className="col-span-2 sm:col-span-2 lg:col-span-1 flex items-end justify-end">
+          <button
+            onClick={() => setShowRequestModal(true)}
+            className="btn-secondary w-full sm:w-auto px-6 py-2 text-sm"
+          >
+            📝 Request Contribution Change
+          </button>
+        </div>
       </div>
 
-      {/* Cooperative Balances (admin/committee only) */}
-      {canSeeCoopBalances && (
-        <div className="card-panel">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold m-3 dark:text-white">
-                Cooperative Balances
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
-                General totals for all members.
-              </p>
-            </div>
-            {summaryLoadError && (
-              <p className="text-sm text-danger-700 m-3">
-                Unable to load cooperative summary.
-              </p>
-            )}
+      {/* Member details – compact */}
+      {!profileMissing && profile && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="card-panel-light">
+            <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
+              Membership Status
+            </p>
+            <p className="text-lg font-semibold capitalize dark:text-white m-3">
+              {summary.status}
+            </p>
           </div>
-          {summaryLoading ? (
-            <div className="mt-4 m-3 text-gray-500 dark:text-gray-400">
-              Loading...
-            </div>
-          ) : (
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-1">
-              <div className="card-panel-light">
-                <p className="text-xs text-gray-500 dark:text-gray-400 m-3">
-                  Total Savings
-                </p>
-                <p className="text-xl font-semibold m-3 dark:text-white">
-                  {cooperativeSummary
-                    ? formatCurrency(
-                        cooperativeSummary.cooperative.total_savings,
-                      )
-                    : "₦0.00"}
-                </p>
-              </div>
-              <div className="card-panel-light">
-                <p className="text-xs text-gray-500 dark:text-gray-400 m-3">
-                  Total Commitments
-                </p>
-                <p className="text-xl font-semibold m-3 dark:text-white">
-                  {cooperativeSummary
-                    ? formatCurrency(
-                        cooperativeSummary.cooperative.total_committed,
-                      )
-                    : "₦0.00"}
-                </p>
-              </div>
-              <div className="card-panel-light">
-                <p className="text-xs text-gray-500 dark:text-gray-400 m-3">
-                  Total Available
-                </p>
-                <p className="text-xl font-semibold m-3 dark:text-white">
-                  {cooperativeSummary
-                    ? formatCurrency(
-                        cooperativeSummary.cooperative.total_available,
-                      )
-                    : "₦0.00"}
-                </p>
-              </div>
-              <div className="card-panel-light">
-                <p className="text-xs text-gray-500 dark:text-gray-400 m-3">
-                  Members Count
-                </p>
-                <p className="text-xl font-semibold m-3 dark:text-white">
-                  {cooperativeSummary?.cooperative.member_count ?? 0}
-                </p>
-              </div>
-            </div>
-          )}
+          <div className="card-panel-light">
+            <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
+              Consecutive Savings Months
+            </p>
+            <p className="text-lg font-semibold dark:text-white m-3">
+              {summary.months}
+            </p>
+          </div>
+          <div className="card-panel-light">
+            <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
+              SSC File Number
+            </p>
+            <p className="text-lg font-semibold dark:text-white m-3">
+              {profile.file_number}
+            </p>
+          </div>
         </div>
       )}
 
-      {/* Member details */}
-      {!profileMissing && profile && (
-        <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div className="card-panel-light">
-              <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
-                Membership Status
-              </p>
-              <p className="text-lg font-semibold capitalize dark:text-white m-3">
-                {summary.status}
-              </p>
+      {/* Ledger section */}
+      <div>
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold dark:text-white">
+            Savings Ledger
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Filter your ledger by Hijri month/year or date range, then export.
+          </p>
+        </div>
+
+        {/* Filter bar */}
+        <div className="card-panel-light mb-6 p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label className="label">Hijri Month</label>
+              <select
+                value={filters.hijri_month}
+                onChange={(e) =>
+                  setFilters((p) => ({ ...p, hijri_month: e.target.value }))
+                }
+                className="input"
+                aria-label="Hijri month filter"
+              >
+                <option value="">All months</option>
+                {HIJRI_MONTHS.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="card-panel-light">
-              <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
-                Consecutive Savings Months
-              </p>
-              <p className="text-lg font-semibold dark:text-white m-3">
-                {summary.months}
-              </p>
+            <div>
+              <label className="label">Hijri Year</label>
+              <input
+                type="number"
+                min={1}
+                value={filters.hijri_year}
+                onChange={(e) =>
+                  setFilters((p) => ({ ...p, hijri_year: e.target.value }))
+                }
+                className="input"
+                placeholder="YYYY"
+              />
             </div>
-            <div className="card-panel-light">
-              <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
-                SSC File Number
-              </p>
-              <p className="text-lg font-semibold dark:text-white m-3">
-                {profile.file_number}
-              </p>
+            <div>
+              <label className="label">From</label>
+              <input
+                type="date"
+                value={filters.date_from}
+                onChange={(e) =>
+                  setFilters((p) => ({ ...p, date_from: e.target.value }))
+                }
+                className="input"
+                aria-label="Start date filter"
+              />
+            </div>
+            <div>
+              <label className="label">To</label>
+              <input
+                type="date"
+                value={filters.date_to}
+                onChange={(e) =>
+                  setFilters((p) => ({ ...p, date_to: e.target.value }))
+                }
+                className="input"
+                aria-label="End date filter"
+              />
             </div>
           </div>
 
-          {/* Ledger section */}
-          <div>
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold dark:text-white">
-                Savings Ledger
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Filter your ledger by Hijri month/year or by date range, then
-                export.
-              </p>
-            </div>
-
-            {/* Filter bar */}
-            <div className="card-panel-light mb-6 p-4">
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <label className="label">Hijri Month</label>
-                  <select
-                    value={filters.hijri_month}
-                    onChange={(e) =>
-                      setFilters((p) => ({ ...p, hijri_month: e.target.value }))
-                    }
-                    className="input"
-                    aria-label="Hijri month filter"
-                  >
-                    <option value="">All months</option>
-                    {HIJRI_MONTHS.map((m) => (
-                      <option key={m.value} value={m.value}>
-                        {m.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="label">Hijri Year</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={filters.hijri_year}
-                    onChange={(e) =>
-                      setFilters((p) => ({ ...p, hijri_year: e.target.value }))
-                    }
-                    className="input"
-                    placeholder="YYYY"
-                  />
-                </div>
-                <div>
-                  <label className="label">From</label>
-                  <input
-                    type="date"
-                    value={filters.date_from}
-                    onChange={(e) =>
-                      setFilters((p) => ({ ...p, date_from: e.target.value }))
-                    }
-                    className="input"
-                    aria-label="Start date filter"
-                  />
-                </div>
-                <div>
-                  <label className="label">To</label>
-                  <input
-                    type="date"
-                    value={filters.date_to}
-                    onChange={(e) =>
-                      setFilters((p) => ({ ...p, date_to: e.target.value }))
-                    }
-                    className="input"
-                    aria-label="End date filter"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-3">
-                <button className="btn-primary" onClick={handleApplyFilters}>
-                  Apply Filters
-                </button>
-                <button className="btn-secondary" onClick={handleClearFilters}>
-                  Clear Filters
-                </button>
-                <button
-                  className="btn-secondary"
-                  onClick={() => window.print()}
-                >
-                  Print
-                </button>
-                <button
-                  className="btn-secondary"
-                  onClick={() => handleDownload("csv")}
-                  disabled={downloading}
-                >
-                  {downloading && downloadFormat === "csv"
-                    ? "Preparing..."
-                    : "Download CSV / Excel"}
-                </button>
-                <button
-                  className="btn-secondary"
-                  onClick={() => handleDownload("pdf")}
-                  disabled={downloading}
-                >
-                  {downloading && downloadFormat === "pdf"
-                    ? "Preparing..."
-                    : "Download PDF"}
-                </button>
-              </div>
-            </div>
-
-            {/* Table */}
-            {ledgerFetching && !ledger.length ? (
-              <div className="text-gray-500 dark:text-gray-400">
-                Loading ledger entries…
-              </div>
-            ) : sortedLedger.length === 0 ? (
-              <div className="text-gray-500 dark:text-gray-400">
-                No ledger entries found.
-              </div>
-            ) : (
-              <div className="table-container">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Hijri</th>
-                      <th>Type</th>
-                      <th>Details</th>
-                      <th>Debit</th>
-                      <th>Credit</th>
-                      <th>Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedLedger.map((entry) => (
-                      <tr key={entry.id}>
-                        <td>{entry.gregorian_date}</td>
-                        <td>{entry.hijri_display}</td>
-                        <td className="capitalize">
-                          {entry.entry_type.replace(/_/g, " ")}
-                        </td>
-                        <td>{entry.details || "—"}</td>
-                        <td>
-                          {entry.debit ? formatCurrency(entry.debit) : "—"}
-                        </td>
-                        <td>
-                          {entry.credit ? formatCurrency(entry.credit) : "—"}
-                        </td>
-                        <td>{formatCurrency(entry.balance)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* Pagination */}
-            {pageCount > 1 && (
-              <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-                <button
-                  className="btn-ghost btn-sm"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  ← Previous
-                </button>
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Page {page} of {pageCount}
-                </span>
-                <button
-                  className="btn-ghost btn-sm"
-                  disabled={page >= pageCount}
-                  onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-                >
-                  Next →
-                </button>
-              </div>
-            )}
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button className="btn-primary" onClick={handleApplyFilters}>
+              Apply Filters
+            </button>
+            <button className="btn-secondary" onClick={handleClearFilters}>
+              Clear Filters
+            </button>
+            <button className="btn-secondary" onClick={() => window.print()}>
+              Print
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={() => handleDownload("csv")}
+              disabled={downloading}
+            >
+              {downloading && downloadFormat === "csv"
+                ? "Preparing..."
+                : "Download CSV"}
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={() => handleDownload("pdf")}
+              disabled={downloading}
+            >
+              {downloading && downloadFormat === "pdf"
+                ? "Preparing..."
+                : "Download PDF"}
+            </button>
           </div>
-        </>
-      )}
+        </div>
+
+        {/* Table */}
+        {ledgerFetching && !ledger.length ? (
+          <div className="text-gray-500 dark:text-gray-400">
+            Loading ledger entries…
+          </div>
+        ) : sortedLedger.length === 0 ? (
+          <div className="text-gray-500 dark:text-gray-400">
+            No ledger entries found.
+          </div>
+        ) : (
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Hijri</th>
+                  <th>Type</th>
+                  <th>Details</th>
+                  <th>Debit</th>
+                  <th>Credit</th>
+                  <th>Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedLedger.map((entry) => (
+                  <tr key={entry.id}>
+                    <td>{entry.gregorian_date}</td>
+                    <td>{entry.hijri_display}</td>
+                    <td className="capitalize">
+                      {entry.entry_type.replace(/_/g, " ")}
+                    </td>
+                    <td>{entry.details || "—"}</td>
+                    <td>{entry.debit ? formatCurrency(entry.debit) : "—"}</td>
+                    <td>{entry.credit ? formatCurrency(entry.credit) : "—"}</td>
+                    <td>{formatCurrency(entry.balance)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {pageCount > 1 && (
+          <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+            <button
+              className="btn-ghost btn-sm"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              ← Previous
+            </button>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Page {page} of {pageCount}
+            </span>
+            <button
+              className="btn-ghost btn-sm"
+              disabled={page >= pageCount}
+              onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+            >
+              Next →
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Request Change Modal */}
       {showRequestModal && (
