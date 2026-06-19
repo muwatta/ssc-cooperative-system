@@ -1,118 +1,139 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { RequireAuth, RequireRole, GuestOnly } from "./guards";
 import AppLayout from "@/components/layout/AppLayout";
+import { PageLoader } from "@/components/common";
 
-// Auth pages
-import LoginPage from "@/pages/auth/LoginPage";
-import SetPasswordPage from "@/pages/auth/SetPasswordPage";
-import UnauthorizedPage from "@/pages/auth/UnauthorizedPage";
-import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
-import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
+// Lazy-load all pages
+const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
+const SetPasswordPage = lazy(() => import("@/pages/auth/SetPasswordPage"));
+const UnauthorizedPage = lazy(() => import("@/pages/auth/UnauthorizedPage"));
+const ForgotPasswordPage = lazy(
+  () => import("@/pages/auth/ForgotPasswordPage"),
+);
+const ResetPasswordPage = lazy(() => import("@/pages/auth/ResetPasswordPage"));
 
-// Shared pages
-import DashboardPage from "@/pages/shared/DashboardPage";
-import MyProfilePage from "@/pages/shared/MyProfilePage";
-import MySavingsPage from "@/pages/shared/MySavingsPage";
-import ReportsPage from "@/pages/shared/ReportsPage";
-import ChangePasswordPage from "@/pages/shared/ChangePasswordPage";
+const DashboardPage = lazy(() => import("@/pages/shared/DashboardPage"));
+const MyProfilePage = lazy(() => import("@/pages/shared/MyProfilePage"));
+const MySavingsPage = lazy(() => import("@/pages/shared/MySavingsPage"));
+const ReportsPage = lazy(() => import("@/pages/shared/ReportsPage"));
+const ChangePasswordPage = lazy(
+  () => import("@/pages/shared/ChangePasswordPage"),
+);
 
-// Admin pages
-import MembersListPage from "@/pages/admin/MembersListPage";
-import MemberDetailPage from "@/pages/admin/MemberDetailPage";
-import AddMemberPage from "@/pages/admin/AddMemberPage";
-import CreateUserPage from "@/pages/admin/CreateUserPage";
-import StaffIDRegistryPage from "@/pages/admin/StaffIDRegistryPage";
-import PostSavingsPage from "@/pages/admin/PostSavingsPage";
-import PostDuesPage from "@/pages/admin/PostDuesPage";
-import LoanSettingsPage from "@/pages/admin/LoanSettingsPage";
-import LegacyImportPage from "@/pages/admin/LegacyImportPage";
-import ReconciliationPage from "@/pages/admin/ReconciliationPage";
-import PostSpecialSavingsPage from "@/pages/admin/PostSpecialSavingsPage";
-import AuditReportPage from "@/pages/admin/AuditReportPage";
-import SavingsChangeRequestsPage from "@/pages/admin/SavingsChangeRequestsPage";
+const MembersListPage = lazy(() => import("@/pages/admin/MembersListPage"));
+const MemberDetailPage = lazy(() => import("@/pages/admin/MemberDetailPage"));
+const AddMemberPage = lazy(() => import("@/pages/admin/AddMemberPage"));
+const CreateUserPage = lazy(() => import("@/pages/admin/CreateUserPage"));
+const StaffIDRegistryPage = lazy(
+  () => import("@/pages/admin/StaffIDRegistryPage"),
+);
+const PostSavingsPage = lazy(() => import("@/pages/admin/PostSavingsPage"));
+const PostDuesPage = lazy(() => import("@/pages/admin/PostDuesPage"));
+const LoanSettingsPage = lazy(() => import("@/pages/admin/LoanSettingsPage"));
+const LegacyImportPage = lazy(() => import("@/pages/admin/LegacyImportPage"));
+const ReconciliationPage = lazy(
+  () => import("@/pages/admin/ReconciliationPage"),
+);
+const PostSpecialSavingsPage = lazy(
+  () => import("@/pages/admin/PostSpecialSavingsPage"),
+);
+const AuditReportPage = lazy(() => import("@/pages/admin/AuditReportPage"));
+const SavingsChangeRequestsPage = lazy(
+  () => import("@/pages/admin/SavingsChangeRequestsPage"),
+);
 
-// Committee pages
-import LoanQueuePage from "@/pages/committee/LoanQueuePage";
+const LoanQueuePage = lazy(() => import("@/pages/committee/LoanQueuePage"));
 
-// Staff pages
-import ApplyLoanPage from "@/pages/staff/ApplyLoanPage";
-import MyLoansPage from "@/pages/staff/MyLoansPage";
-import LoanDetailPage from "@/pages/staff/LoanDetailPage";
-import LoanSuccessPage from "@/pages/staff/LoanSuccessPage";
+const ApplyLoanPage = lazy(() => import("@/pages/staff/ApplyLoanPage"));
+const MyLoansPage = lazy(() => import("@/pages/staff/MyLoansPage"));
+const LoanDetailPage = lazy(() => import("@/pages/staff/LoanDetailPage"));
+const LoanSuccessPage = lazy(() => import("@/pages/staff/LoanSuccessPage"));
 
-// Other
-import ComingSoonPage from "@/pages/shared/ComingSoonPage";
+const ComingSoonPage = lazy(() => import("@/pages/shared/ComingSoonPage"));
+
+// Loading fallback
+const PageFallback = () => (
+  <div className="flex h-full items-center justify-center p-8">
+    <PageLoader />
+  </div>
+);
 
 export default function AppRouter() {
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Public routes – no authentication required */}
-        <Route element={<GuestOnly />}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/set-password" element={<SetPasswordPage />} />
-        </Route>
+      <Suspense fallback={<PageFallback />}>
+        <Routes>
+          {/* Public routes – no authentication required */}
+          <Route element={<GuestOnly />}>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/set-password" element={<SetPasswordPage />} />
+          </Route>
 
-        {/* Public password reset routes (no auth needed) */}
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route
-          path="/reset-password/:uid/:token"
-          element={<ResetPasswordPage />}
-        />
+          {/* Public password reset routes (no auth needed) */}
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route
+            path="/reset-password/:uid/:token"
+            element={<ResetPasswordPage />}
+          />
 
-        {/* Authenticated routes – require login */}
-        <Route element={<RequireAuth />}>
-          <Route element={<AppLayout />}>
-            <Route index element={<DashboardPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/profile" element={<MyProfilePage />} />
-            <Route path="/my-savings" element={<MySavingsPage />} />
-            <Route path="/my-loans" element={<MyLoansPage />} />
-            <Route path="/loans/apply" element={<ApplyLoanPage />} />
-            <Route path="/loans/success" element={<LoanSuccessPage />} />
-            <Route path="/loans/:id" element={<LoanDetailPage />} />
-            <Route path="/change-password" element={<ChangePasswordPage />} />
+          {/* Authenticated routes – require login */}
+          <Route element={<RequireAuth />}>
+            <Route element={<AppLayout />}>
+              <Route index element={<DashboardPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/profile" element={<MyProfilePage />} />
+              <Route path="/my-savings" element={<MySavingsPage />} />
+              <Route path="/my-loans" element={<MyLoansPage />} />
+              <Route path="/loans/apply" element={<ApplyLoanPage />} />
+              <Route path="/loans/success" element={<LoanSuccessPage />} />
+              <Route path="/loans/:id" element={<LoanDetailPage />} />
+              <Route path="/change-password" element={<ChangePasswordPage />} />
 
-            {/* Admin only */}
-            <Route element={<RequireRole roles={["admin"]} />}>
-              <Route path="/members" element={<MembersListPage />} />
-              <Route path="/members/import" element={<LegacyImportPage />} />
-              <Route path="/members/add" element={<AddMemberPage />} />
-              <Route path="/members/:id" element={<MemberDetailPage />} />
-              <Route path="/users/create" element={<CreateUserPage />} />
-              <Route path="/staff-ids" element={<StaffIDRegistryPage />} />
-              <Route path="/loan-settings" element={<LoanSettingsPage />} />
-              <Route path="/savings/post" element={<PostSavingsPage />} />
-              <Route path="/savings/dues" element={<PostDuesPage />} />
-              <Route
-                path="/special-savings"
-                element={<PostSpecialSavingsPage />}
-              />
-              <Route path="/reconciliation" element={<ReconciliationPage />} />
-              <Route path="/audit-report" element={<AuditReportPage />} />
-            </Route>
+              {/* Admin only */}
+              <Route element={<RequireRole roles={["admin"]} />}>
+                <Route path="/members" element={<MembersListPage />} />
+                <Route path="/members/import" element={<LegacyImportPage />} />
+                <Route path="/members/add" element={<AddMemberPage />} />
+                <Route path="/members/:id" element={<MemberDetailPage />} />
+                <Route path="/users/create" element={<CreateUserPage />} />
+                <Route path="/staff-ids" element={<StaffIDRegistryPage />} />
+                <Route path="/loan-settings" element={<LoanSettingsPage />} />
+                <Route path="/savings/post" element={<PostSavingsPage />} />
+                <Route path="/savings/dues" element={<PostDuesPage />} />
+                <Route
+                  path="/special-savings"
+                  element={<PostSpecialSavingsPage />}
+                />
+                <Route
+                  path="/reconciliation"
+                  element={<ReconciliationPage />}
+                />
+                <Route path="/audit-report" element={<AuditReportPage />} />
+              </Route>
 
-            {/* Admin + Committee */}
-            <Route element={<RequireRole roles={["admin", "committee"]} />}>
-              <Route path="/loans/queue" element={<LoanQueuePage />} />
-              <Route path="/reports" element={<ReportsPage />} />
-              <Route
-                path="/savings/change-requests"
-                element={<SavingsChangeRequestsPage />}
-              />
-            </Route>
+              {/* Admin + Committee */}
+              <Route element={<RequireRole roles={["admin", "committee"]} />}>
+                <Route path="/loans/queue" element={<LoanQueuePage />} />
+                <Route path="/reports" element={<ReportsPage />} />
+                <Route
+                  path="/savings/change-requests"
+                  element={<SavingsChangeRequestsPage />}
+                />
+              </Route>
 
-            {/* Head of School */}
-            <Route element={<RequireRole roles={["head_of_school"]} />}>
-              <Route path="/loan-approvals" element={<ComingSoonPage />} />
+              {/* Head of School */}
+              <Route element={<RequireRole roles={["head_of_school"]} />}>
+                <Route path="/loan-approvals" element={<ComingSoonPage />} />
+              </Route>
             </Route>
           </Route>
-        </Route>
 
-        <Route path="/unauthorized" element={<UnauthorizedPage />} />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<UnauthorizedPage />} />
-      </Routes>
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<UnauthorizedPage />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
