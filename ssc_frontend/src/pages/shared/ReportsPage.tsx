@@ -25,11 +25,10 @@ function formatNaira(value: string | number) {
 
 export default function ReportsPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMemberId, setSelectedMemberId] = useState("");
 
   // Monthly deduction report state
   const [deductionMonth, setDeductionMonth] = useState(1);
-  const [deductionYear, setDeductionYear] = useState(1446); // default to some year
+  const [deductionYear, setDeductionYear] = useState(1446);
 
   // Fetch current Hijri date to pre‑fill the deduction month/year
   const { data: currentDate } = useQuery({
@@ -129,24 +128,7 @@ export default function ReportsPage() {
   const isLoading = loading && !members.length;
   const isRefreshing = fetchingMembers && members.length > 0;
 
-  // Export Handlers
-  const exportMemberStatement = (format: "csv" | "pdf") => {
-    const id = selectedMemberId;
-    if (!id) return alert("Please select a member from the list.");
-    window.open(
-      `/api/v1/reports/member-statement/${id}/?format=${format}`,
-      "_blank",
-    );
-  };
-
-  const exportLoanBook = (format: "csv" | "pdf") => {
-    window.open(`/api/v1/reports/loan-book/?format=${format}`, "_blank");
-  };
-
-  const exportSuretyExposure = () => {
-    window.open(`/api/v1/reports/surety-exposure/?format=csv`, "_blank");
-  };
-
+  // Download Monthly Deductions Report
   const downloadMonthlyReport = async () => {
     try {
       const response = await api.get(
@@ -170,7 +152,7 @@ export default function ReportsPage() {
       alert("Failed to download the report. Please try again.");
     }
   };
-    
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -178,7 +160,7 @@ export default function ReportsPage() {
         <div>
           <h1 className="page-title">Reports</h1>
           <p className="page-subtitle">
-            Live summary reports based on member data and savings balances.
+            Download the monthly deductions report for HR.
           </p>
         </div>
         {isRefreshing && (
@@ -207,111 +189,51 @@ export default function ReportsPage() {
         )}
       </div>
 
-      {/* Export Buttons Section */}
-      <div className="card-panel p-2">
-        <h2 className="text-base m-2 font-semibold text-gray-800 dark:text-white mb-3">
-          Export Reports
+      {/* Monthly Deductions Report – Download */}
+      <div className="card-panel p-4">
+        <h2 className="text-base font-semibold text-gray-800 dark:text-white mb-3">
+          Monthly Deductions Report
         </h2>
-        <div className="flex flex-wrap gap-4 items-end">
-          {/* Member Statement */}
-          <div className="flex-1 min-w-[220px]">
-            <label className="label text-xs">Member Statement</label>
-            <div className="flex gap-2">
-              <select
-                value={selectedMemberId}
-                onChange={(e) => setSelectedMemberId(e.target.value)}
-                className="input flex-1"
-                title="Select member"
-              >
-                <option value="">-- Select a member --</option>
-                {members.map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.file_number} – {member.full_name}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={() => exportMemberStatement("csv")}
-                className="btn-secondary text-xs px-3 py-1.5 whitespace-nowrap"
-              >
-                CSV
-              </button>
-              <button
-                onClick={() => exportMemberStatement("pdf")}
-                className="btn-secondary text-xs px-3 py-1.5 whitespace-nowrap"
-              >
-                PDF
-              </button>
-            </div>
+        <div className="flex flex-wrap gap-2 items-end">
+          <div>
+            <label className="label text-xs">Hijri Month</label>
+            <select
+              value={deductionMonth}
+              onChange={(e) => setDeductionMonth(Number(e.target.value))}
+              className="input"
+              aria-label="Select Hijri month"
+            >
+              {HIJRI_MONTHS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
           </div>
-
-          {/* Loan Book Report */}
-          <div className="flex-1 min-w-[150px]">
-            <label className="label text-xs">Loan Book Report</label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => exportLoanBook("csv")}
-                className="btn-secondary text-xs px-3 py-1.5 flex-1"
-              >
-                CSV
-              </button>
-              <button
-                onClick={() => exportLoanBook("pdf")}
-                className="btn-secondary text-xs px-3 py-1.5 flex-1"
-              >
-                PDF
-              </button>
-            </div>
+          <div>
+            <label className="label text-xs">Hijri Year</label>
+            <input
+              type="number"
+              value={deductionYear}
+              onChange={(e) => setDeductionYear(Number(e.target.value))}
+              className="input w-24"
+              min={1400}
+              max={1500}
+              step={1}
+              aria-label="Enter Hijri year"
+            />
           </div>
-
-          {/* Surety Exposure Report */}
-          <div className="flex-1 min-w-[150px]">
-            <label className="label text-xs">Surety Exposure Report</label>
-            <div className="flex gap-2">
-              <button
-                onClick={exportSuretyExposure}
-                className="btn-secondary text-xs px-3 py-1.5 flex-1"
-              >
-                CSV
-              </button>
-            </div>
-          </div>
-
-          {/* Monthly Deductions Report */}
-          <div className="flex-1 min-w-[220px]">
-            <label className="label text-xs">Monthly Deductions Report</label>
-            <div className="flex flex-wrap gap-2">
-              <select
-                value={deductionMonth}
-                onChange={(e) => setDeductionMonth(Number(e.target.value))}
-                className="input flex-1 min-w-[100px]"
-                aria-label="Select Hijri month"
-              >
-                {HIJRI_MONTHS.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                value={deductionYear}
-                onChange={(e) => setDeductionYear(Number(e.target.value))}
-                className="input w-24"
-                min={1400}
-                max={1500}
-                step={1}
-                aria-label="Enter Hijri year"
-              />
-              <button
-                onClick={downloadMonthlyReport}
-                className="btn-primary text-xs px-3 py-1.5 whitespace-nowrap"
-              >
-                Download CSV
-              </button>
-            </div>
-          </div>
+          <button
+            onClick={downloadMonthlyReport}
+            className="btn-primary text-sm px-4 py-2 whitespace-nowrap"
+          >
+            Download CSV
+          </button>
         </div>
+        <p className="text-xs text-gray-500 mt-2">
+          Export a CSV file with Name, Section, SSC Ordinary Savings, SSC Loan,
+          and SSC Special Savings for the selected Hijri month.
+        </p>
       </div>
 
       {isLoading ? (
@@ -326,7 +248,7 @@ export default function ReportsPage() {
         </div>
       ) : (
         <>
-          {/* Key metrics cards – 3 columns on desktop, 1 on mobile */}
+          {/* Key metrics cards – 3 columns */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <AnimatedCard className="group relative overflow-hidden bg-white dark:bg-gray-800 p-6 shadow-md">
               <div className="absolute right-0 top-0 h-20 w-20 -translate-y-2 translate-x-2 rounded-full bg-primary-50 dark:bg-primary-900/30 opacity-20 group-hover:scale-110 transition-transform" />
@@ -449,7 +371,7 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            {/* Desktop Table (hidden on mobile) */}
+            {/* Desktop Table */}
             <div className="hidden table-container sm:block">
               <table className="table">
                 <thead>
@@ -523,7 +445,7 @@ export default function ReportsPage() {
               </table>
             </div>
 
-            {/* Mobile Card Layout (visible only on small screens) */}
+            {/* Mobile Card Layout */}
             <div className="space-y-3 p-4 sm:hidden">
               {filteredMembers.length === 0 ? (
                 <div className="py-12 text-center text-gray-400 dark:text-gray-500">
