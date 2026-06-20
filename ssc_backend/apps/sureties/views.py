@@ -18,16 +18,19 @@ class LoanSuretiesView(generics.ListAPIView):
 
 
 class MySuretiesView(generics.ListAPIView):
-    serializer_class   = SuretyRecordWithBorrowerSerializer
+    serializer_class = SuretyRecordWithBorrowerSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         try:
             profile = self.request.user.member_profile
-            return SuretyRecord.objects.filter(surety=profile).select_related("loan__applicant")
+            return SuretyRecord.objects.filter(
+                surety=profile,
+                is_self_surety=False
+            ).select_related("loan__applicant")
         except Exception:
             return SuretyRecord.objects.none()
-
+        
 class ConfirmSuretyView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -37,7 +40,6 @@ class ConfirmSuretyView(APIView):
         except SuretyRecord.DoesNotExist:
             return Response({"error": "Surety record not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Only the surety themselves can confirm
         if record.surety.user != request.user:
             return Response({"error": "You can only confirm your own surety obligations."}, status=status.HTTP_403_FORBIDDEN)
 
