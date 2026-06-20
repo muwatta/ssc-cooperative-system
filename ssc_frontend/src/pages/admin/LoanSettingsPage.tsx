@@ -389,35 +389,6 @@ export default function LoanSettingsPage() {
         </div>
       </Card>
 
-      {/* ---- 6. PERMISSIONS ---- */}
-      <Card title="🔐 Role Permissions">
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Control which roles can view cooperative financial totals.
-          <br />
-          <span className="text-xs text-gray-400">
-            (Admin always has full access.)
-          </span>
-        </p>
-        <div className="space-y-4">
-          <ToggleField
-            label="Committee can view financial totals"
-            description="Allow Committee members to see total savings, outstanding loans, and other monetary summaries."
-            checked={form.committee_can_view_totals ?? false}
-            onChange={(v) => update("committee_can_view_totals", v)}
-          />
-          <ToggleField
-            label="Head of School can view financial totals"
-            description="Allow HOS to see cooperative financial totals."
-            checked={form.hos_can_view_totals ?? false}
-            onChange={(v) => update("hos_can_view_totals", v)}
-          />
-        </div>
-        <p className="text-xs text-gray-400 mt-4">
-          These settings will be applied globally. Changes take effect
-          immediately after saving.
-        </p>
-      </Card>
-
       {/* Save button */}
       <div className="flex justify-end">
         <button

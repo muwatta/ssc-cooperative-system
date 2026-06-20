@@ -296,8 +296,6 @@ export interface LoanSettings {
   default_termly_dues: number;
   late_repayment_fee: number;
   repayment_grace_days: number;
-  committee_can_view_totals: boolean;
-  hos_can_view_totals: boolean;
 }
 export interface LoanEligibilityResponse {
   eligible: boolean;
