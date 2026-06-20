@@ -4,7 +4,7 @@ from .views import (
     MyBalanceView, MyLedgerView, PostSpecialSavingsView, ReconciliationView, SavingsSummaryView,
     SavingsChangeRequestListCreateView, ApproveSavingsChangeView, RejectSavingsChangeView,
     DuesCycleListCreateView, PostDuesCycleView, LedgerExportView,
-    BulkSavingsReportView, WithdrawSpecialView, WithdrawSpecialView, CombinedDeductionPreviewView, CombinedDeductionPostView
+    BulkSavingsReportView, WithdrawSpecialView, WithdrawSpecialView,
 )
 
 urlpatterns = [
@@ -29,7 +29,4 @@ urlpatterns = [
     path("reconciliation/", ReconciliationView.as_view(), name="reconciliation"),
     path('special-savings/', PostSpecialSavingsView.as_view(), name='special-savings'),
     path('special-savings/withdraw/<int:member_id>/', WithdrawSpecialView.as_view(), name='special-savings-withdraw'),
-    path("combined-deduction/preview/", CombinedDeductionPreviewView.as_view(), name="combined-deduction-preview"),
-    path("combined-deduction/post/", CombinedDeductionPostView.as_view(), name="combined-deduction-post"),
 ]
-
