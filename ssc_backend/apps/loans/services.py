@@ -111,7 +111,7 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
     if amount_applied <= 0:
         raise ValueError("Loan amount must be positive.")
 
-    self_surety_max = (balance.total_savings * config.self_surety_ratio).quantize(Decimal("0.01"))
+    self_surety_max = (balance.available_balance * config.self_surety_ratio).quantize(Decimal("0.01"))
     shortfall = (amount_applied - self_surety_max).quantize(Decimal("0.01"))
 
     if shortfall > 0:

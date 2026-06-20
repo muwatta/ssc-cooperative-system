@@ -32,17 +32,17 @@ class LoanConfiguration(models.Model):
     self_surety_ratio = models.DecimalField(
         max_digits=4,
         decimal_places=2,
-        default=Decimal("0.75"),
-        help_text="Fraction of available balance a member may borrow.",
-    )
-    
-    max_borrowable_ratio = models.DecimalField(
-    max_digits=4,
-    decimal_places=2,
-    default=Decimal("0.75"),
-    help_text="Absolute maximum borrowable as a fraction of available balance (e.g. 1.00 for 100%).",
+        default=Decimal("1.00"), 
+        help_text="Fraction of available balance a member may borrow without external sureties.",
     )
 
+    max_borrowable_ratio = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=Decimal("1.00"), 
+        help_text="Absolute maximum borrowable as a fraction of available balance (e.g. 1.00 for 100%).",
+    )
+    
     external_surety_max_ratio = models.DecimalField(
     max_digits=4,
     decimal_places=2,

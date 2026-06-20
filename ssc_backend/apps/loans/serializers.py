@@ -204,7 +204,6 @@ class SubmitLoanSerializer(serializers.Serializer):
 
             total_external = sum(Decimal(str(s["amount"])) for s in sureties)
 
-            # ✅ Cap: total external guarantee cannot exceed the shortfall
             if total_external > shortfall:
                 raise serializers.ValidationError({
                     "sureties": (
