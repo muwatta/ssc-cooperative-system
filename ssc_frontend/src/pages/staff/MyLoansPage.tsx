@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { loansApi, suretiesApi } from "@/api/services";
 import { PageLoader, EmptyState, formatNaira } from "@/components/common";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect} from "react";
 import type { LoanApplication as Loan, SuretyRecord as Surety } from "@/types";
 
 export default function MyLoansPage() {
@@ -11,6 +11,16 @@ export default function MyLoansPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"loans" | "sureties">("loans");
   const [expandedLoan, setExpandedLoan] = useState<number | null>(null);
+
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const tabParam = searchParams.get("tab");
+
+  useEffect(() => {
+    if (tabParam === "sureties") {
+      setActiveTab("sureties");
+    }
+  }, [tabParam]);
 
   // Cache loans for 3 minutes
   const { data: loansData, isLoading: loansLoading } = useQuery({
@@ -71,7 +81,7 @@ export default function MyLoansPage() {
       100
     : 0;
   const { isAdmin, isCommittee } = useAuth();
-
+  
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       active:

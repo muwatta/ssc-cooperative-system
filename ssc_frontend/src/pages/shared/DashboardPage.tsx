@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/api/client";
 import { membersApi, savingsApi, loansApi } from "@/api/services";
 import type { MemberProfile, SavingsSummary } from "@/types";
+import { Link } from "react-router-dom";
 
 // StatCard (used in At a Glance, Membership Summary)
 function StatCard({
@@ -556,6 +557,28 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="mt-4 text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
+        <Link
+          to="/my-loans?tab=sureties"
+          className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 inline-flex items-center gap-1"
+        >
+          🤝 View Surety Details
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </Link>
       </div>
 
       {/* Financial Snapshot – Admin only */}
