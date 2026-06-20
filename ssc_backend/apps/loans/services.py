@@ -87,16 +87,20 @@ def check_loan_eligibility(member: MemberProfile) -> dict:
 
     return {"eligible": len(reasons) == 0, "reasons": reasons}
 
+
 def calculate_max_borrowable(member: MemberProfile) -> Decimal:
     config = get_loan_configuration()
     balance = get_or_create_balance(member)
-    return (balance.available_balance / Decimal('0.75')).quantize(Decimal('0.01'))
+    return max(
+        Decimal('0.00'),
+        (balance.available_balance * config.max_borrowable_ratio).quantize(Decimal('0.01'))
+    )
+
 
 @transaction.atomic
 def submit_loan_application(member: MemberProfile, data: dict, sureties: list = None) -> LoanApplication:
     from utils.hijri import current_hijri
 
-    # Lock member balance row to prevent concurrent submission races
     balance = get_or_create_balance(member)
     balance = balance.__class__.objects.select_for_update().get(pk=balance.pk)
 
@@ -114,7 +118,10 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
     if amount_applied <= 0:
         raise ValueError("Loan amount must be positive.")
 
-    self_surety_max = (balance.available_balance * config.self_surety_ratio).quantize(Decimal("0.01"))
+    self_surety_max = max(
+        Decimal('0.00'),
+        (balance.available_balance * config.self_surety_ratio).quantize(Decimal("0.01"))
+    )
     shortfall = (amount_applied - self_surety_max).quantize(Decimal("0.01"))
 
     if shortfall > 0:
@@ -135,7 +142,7 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
                     f"{surety_member.full_name} can guarantee at most ₦{max_surety} (75% of their available balance)."
                 )
 
-        # ✅ Cap: total external guarantee cannot exceed the shortfall
+        # Cap: total external guarantee cannot exceed the shortfall
         if total_external > shortfall:
             raise ValueError(
                 f"Total external guarantee (₦{total_external}) exceeds the required shortfall of ₦{shortfall}. "
@@ -179,7 +186,6 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
         status=LoanStatus.SUBMITTED,
     )
 
-    # Auto-set repayment start
     from utils.hijri import current_hijri as get_hijri_now
     now_month, now_year = get_hijri_now()
     if now_month == 12:
@@ -193,14 +199,16 @@ def submit_loan_application(member: MemberProfile, data: dict, sureties: list = 
     loan.repayment_start_hijri_year = start_year
     loan.save(update_fields=["repayment_start_hijri_month", "repayment_start_hijri_year"])
 
-    # Create self‑surety record
+    self_surety_lock_amount = min(self_surety_max, amount_applied)
+
     create_surety_records(
         loan,
-        [{"member_id": member.pk, "amount": self_surety_max, "layer": 1}],
+        [{"member_id": member.pk, "amount": self_surety_lock_amount, "layer": 1}],
         note=data.get("note"),
-)
+    )
+
     if sureties:
-       
+
         total_external = sum(Decimal(str(s["amount"])) for s in sureties)
         if total_external > shortfall:
             raise ValueError(
@@ -297,7 +305,10 @@ def admin_final_approve_loan(loan, admin_user, note: str = "") -> LoanApplicatio
     balance = get_or_create_balance(loan.applicant)
     balance = balance.__class__.objects.select_for_update().get(pk=balance.pk)
 
-    self_surety_amount = (loan.amount_approved * config.self_surety_ratio).quantize(Decimal("0.01"))
+    self_surety_amount = min(
+        loan.amount_approved,
+        (loan.amount_approved * config.self_surety_ratio).quantize(Decimal("0.01"))
+    )
 
     if balance.available_balance < self_surety_amount:
         raise ValueError(
@@ -307,6 +318,14 @@ def admin_final_approve_loan(loan, admin_user, note: str = "") -> LoanApplicatio
 
     balance.suretyship_committed += self_surety_amount
     balance.save(update_fields=["suretyship_committed", "updated_at"])
+
+    self_surety_record = SuretyRecord.objects.select_for_update().filter(
+        loan=loan, is_self_surety=True
+    ).first()
+    if self_surety_record:
+        self_surety_record.amount_guaranteed = self_surety_amount
+        self_surety_record.current_liability = self_surety_amount
+        self_surety_record.save(update_fields=["amount_guaranteed", "current_liability"])
 
     hijri_disp = hijri_month_display(h_month, h_year)
     SavingsLedger.objects.create(
@@ -341,6 +360,7 @@ def admin_final_approve_loan(loan, admin_user, note: str = "") -> LoanApplicatio
 
     return loan
 
+
 @transaction.atomic
 def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hijri_year: int, posted_by) -> LoanRepaymentLedger:
     loan = LoanApplication.objects.select_for_update().get(pk=loan.pk)
@@ -373,6 +393,32 @@ def post_repayment(loan: LoanApplication, amount: Decimal, hijri_month: int, hij
                 surety.status = SuretyStatus.RELEASED
                 surety.released_at = timezone.now()
             surety.save(update_fields=['current_liability', 'status', 'released_at'])
+
+            surety_balance = get_or_create_balance(surety.surety)
+            surety_balance.suretyship_committed = max(
+                Decimal('0.00'), surety_balance.suretyship_committed - reduction
+            )
+            surety_balance.save(update_fields=['suretyship_committed', 'updated_at'])
+
+    if amount_to_borrower > 0:
+        self_surety = SuretyRecord.objects.select_for_update().filter(
+            loan=loan, is_self_surety=True
+        ).exclude(status=SuretyStatus.RELEASED).first()
+
+        if self_surety:
+            reduction = min(amount_to_borrower, self_surety.current_liability)
+            new_liability = max(Decimal('0.00'), self_surety.current_liability - reduction)
+            self_surety.current_liability = new_liability
+            if new_liability == Decimal('0.00'):
+                self_surety.status = SuretyStatus.RELEASED
+                self_surety.released_at = timezone.now()
+            self_surety.save(update_fields=['current_liability', 'status', 'released_at'])
+
+            self_balance = get_or_create_balance(self_surety.surety)
+            self_balance.suretyship_committed = max(
+                Decimal('0.00'), self_balance.suretyship_committed - reduction
+            )
+            self_balance.save(update_fields=['suretyship_committed', 'updated_at'])
 
     balance_before = loan.outstanding_balance
     new_balance = max(Decimal('0.00'), balance_before - amount_to_borrower)
