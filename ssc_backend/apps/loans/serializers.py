@@ -319,8 +319,6 @@ class LoanSettingsSerializer(serializers.ModelSerializer):
             "default_termly_dues",
             "late_repayment_fee",
             "repayment_grace_days",
-            "committee_can_view_totals",
-            "hos_can_view_totals",
         ]
 
 class LoanDraftSerializer(serializers.ModelSerializer):
