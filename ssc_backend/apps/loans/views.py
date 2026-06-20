@@ -139,8 +139,11 @@ class SubmitLoanView(APIView):
         try:
             loan = submit_loan_application(
                 member=profile,
-                data={**d, "monthly_salary": d.get("monthly_salary", profile.monthly_income)},
-                sureties=sureties if sureties else None
+                data={
+                    **d,
+                    "monthly_salary": d.get("monthly_salary", profile.monthly_income),
+                },
+                sureties=d.get("sureties", []),
             )
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
