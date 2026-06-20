@@ -576,6 +576,7 @@ export default function DashboardPage() {
                   <th className="px-3 py-2 text-left">File</th>
                   <th className="px-3 py-2 text-left">Name</th>
                   <th className="px-3 py-2 text-right">Available</th>
+                  <th className="px-3 py-2 text-right">Surety</th>
                   <th className="px-3 py-2 text-right">Outstanding</th>
                   <th className="px-3 py-2 text-right">Special</th>
                 </tr>
@@ -601,6 +602,11 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-3 py-2 text-right font-medium text-emerald-700 dark:text-emerald-400">
                         {formatNaira(member.available_balance)}
+                      </td>
+                      <td className="px-3 py-2 text-right font-medium text-amber-600 dark:text-amber-400">
+                        {member.surety_committed !== "0.00"
+                          ? formatNaira(member.surety_committed)
+                          : "—"}
                       </td>
                       <td className="px-3 py-2 text-right font-medium text-danger-700 dark:text-danger-400">
                         {member.outstanding_loan !== "0.00"

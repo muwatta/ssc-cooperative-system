@@ -33,10 +33,10 @@ class FinancialSnapshotView(APIView):
                 'available_balance': str(balance.available_balance),
                 'outstanding_loan': str(outstanding),
                 'special_savings': str(balance.special_savings or Decimal('0.00')),
+                'surety_committed': str(balance.suretyship_committed),
             })
 
         return Response(data)
-
 
 class MonthlyDeductionsReportView(APIView):
     permission_classes = [IsAuthenticated]
