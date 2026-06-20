@@ -27,7 +27,7 @@ def check_loan_eligibility(member: MemberProfile) -> dict:
             f"Need {remaining} more consecutive savings month(s). Currently: {member.consecutive_savings_months}."
         )
 
-    # 2. Active loan requirement – block ONLY if external sureties exist (single query)
+    # 2. Active loan requirement – block ONLY if external sureties exist
     if config.require_no_active_loan:
         external_surety_exists = SuretyRecord.objects.filter(
             loan__applicant=member,
@@ -38,12 +38,16 @@ def check_loan_eligibility(member: MemberProfile) -> dict:
         if external_surety_exists:
             reasons.append("You already have an active loan that uses external sureties. You cannot apply for another loan until it is fully repaid.")
 
-    # 3. Surety liability requirement
+    # 3. Surety liability requirement – only external sureties (not self‑surety)
     if config.require_no_surety_liabilities:
-        balance = get_or_create_balance(member)
-        if balance.suretyship_committed > Decimal("0.00"):
+        external_surety_sum = SuretyRecord.objects.filter(
+            surety=member,
+            is_self_surety=False,
+            status=SuretyStatus.CONFIRMED
+        ).aggregate(total=Sum('current_liability'))['total'] or Decimal('0.00')
+        if external_surety_sum > Decimal("0.00"):
             reasons.append(
-                f"Member has ₦{balance.suretyship_committed} committed as surety. Must be released first."
+                f"Member has ₦{external_surety_sum} committed as surety for others. Must be released first."
             )
 
     # 4. Max loans per calendar year
@@ -82,7 +86,6 @@ def check_loan_eligibility(member: MemberProfile) -> dict:
         )
 
     return {"eligible": len(reasons) == 0, "reasons": reasons}
-
 
 def calculate_max_borrowable(member: MemberProfile) -> Decimal:
     config = get_loan_configuration()
