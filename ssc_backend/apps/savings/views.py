@@ -27,8 +27,9 @@ from .serializers import (
 )
 from .services import (
     post_debit_entry, post_savings_entry, post_termly_dues,
-    apply_savings_change, get_or_create_balance, post_special_savings_entry, post_repayment
+    apply_savings_change, get_or_create_balance, post_special_savings_entry,
 )
+from apps.loans.services import post_repayment
 
 def invalidate_dashboard_cache():
     cache.delete("dashboard_summary_admin_stats")
