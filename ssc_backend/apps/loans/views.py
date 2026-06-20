@@ -130,7 +130,9 @@ class SubmitLoanView(APIView):
             return Response({"error": "No member profile."}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = SubmitLoanSerializer(data=request.data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
         d = serializer.validated_data
         sureties = d.pop("sureties", [])
 
@@ -142,6 +144,13 @@ class SubmitLoanView(APIView):
             )
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            return Response(
+                {"error": f"An unexpected error occurred: {str(e)}", "details": error_details},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
         log_action(
             user=request.user,
@@ -154,7 +163,6 @@ class SubmitLoanView(APIView):
         )
 
         return Response(LoanApplicationSerializer(loan).data, status=status.HTTP_201_CREATED)
-
 
 class CommitteeDecisionView(APIView):
     permission_classes = [CanApproveLoan]
