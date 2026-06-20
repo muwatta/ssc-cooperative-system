@@ -40,7 +40,7 @@ class SuretyRecordWithBorrowerSerializer(serializers.ModelSerializer):
     def get_self_surety_amount(self, obj):
         loan_amount = obj.loan.amount_approved or obj.loan.amount_applied
         return loan_amount * Decimal('0.75')
-
+    
 
 # Used for adding sureties (validation)
 class AddSuretiesSerializer(serializers.Serializer):

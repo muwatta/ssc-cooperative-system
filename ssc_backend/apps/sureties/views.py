@@ -18,7 +18,7 @@ class LoanSuretiesView(generics.ListAPIView):
 
 
 class MySuretiesView(generics.ListAPIView):
-    serializer_class   = SuretyRecordSerializer
+    serializer_class   = SuretyRecordWithBorrowerSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -27,7 +27,6 @@ class MySuretiesView(generics.ListAPIView):
             return SuretyRecord.objects.filter(surety=profile).select_related("loan__applicant")
         except Exception:
             return SuretyRecord.objects.none()
-
 
 class ConfirmSuretyView(APIView):
     permission_classes = [IsAuthenticated]

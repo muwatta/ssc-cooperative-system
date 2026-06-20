@@ -439,10 +439,10 @@ export default function MyLoansPage() {
                     {(surety.borrower_name || surety.borrower_phone) && (
                       <div className="mt-3 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-700/50">
                         <p className="font-semibold dark:text-white">
-                          Borrower: {surety.borrower_name || "—"}
+                          Borrower: {surety.borrower_name || "Unknown"}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Phone: {surety.borrower_phone || "—"}
+                          Phone: {surety.borrower_phone || "Unknown"}
                         </p>
                         <div className="mt-2 grid grid-cols-2 gap-2">
                           <div>
