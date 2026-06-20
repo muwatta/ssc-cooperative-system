@@ -269,13 +269,6 @@ export default function LoanDetailPage() {
                 Post Repayment
               </button>
             )}
-            <button
-              onClick={() => exportRepayments("pdf")}
-              disabled={isExporting}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 shadow-sm"
-            >
-              📄 Export Schedule
-            </button>
             {isAdmin && loan.status === "pending_admin" && (
               <button
                 onClick={() => setShowApprovalPreview(true)}
@@ -335,7 +328,6 @@ export default function LoanDetailPage() {
                   <div
                     className="h-full bg-primary-600 rounded-full transition-all"
                     style={{ width: `${outstandingPercent}%` }}
-                    
                   />
                 </div>
                 <span className="text-xs text-gray-500 dark:text-gray-400">
