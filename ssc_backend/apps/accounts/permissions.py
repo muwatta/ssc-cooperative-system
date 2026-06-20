@@ -1,5 +1,6 @@
 from rest_framework.permissions import BasePermission
 from .models import Role
+from apps.sureties.models import SuretyRecord
 
 
 class IsAdmin(BasePermission):
@@ -36,7 +37,6 @@ class IsHeadOfSchool(BasePermission):
 
 
 class IsAdminOrCommittee(BasePermission):
-    
     message = "Only Admin or Committee members can perform this action."
 
     def has_permission(self, request, view):
@@ -48,7 +48,6 @@ class IsAdminOrCommittee(BasePermission):
 
 
 class IsAdminOrCommitteeOrHOS(BasePermission):
-    
     message = "Insufficient permissions to view this resource."
 
     def has_permission(self, request, view):
@@ -60,7 +59,6 @@ class IsAdminOrCommitteeOrHOS(BasePermission):
 
 
 class IsProfileOwnerOrAdmin(BasePermission):
-   
     message = "Only the profile owner or Admin can update this profile."
 
     def has_permission(self, request, view):
@@ -73,7 +71,6 @@ class IsProfileOwnerOrAdmin(BasePermission):
 
 
 class CanPostSavings(BasePermission):
-  
     message = "Only Admin can post savings entries."
 
     def has_permission(self, request, view):
@@ -85,7 +82,6 @@ class CanPostSavings(BasePermission):
 
 
 class CanApproveLoan(BasePermission):
-   
     message = "Only Admin or Committee can approve loans."
 
     def has_permission(self, request, view):
@@ -96,9 +92,7 @@ class CanApproveLoan(BasePermission):
         )
 
     def has_object_permission(self, request, view, obj):
-        
         if request.user.role == Role.ADMIN:
-            # Check if this loan belongs to the admin trying to approve it
             loan_applicant_user = getattr(obj.applicant, "user", None)
             if loan_applicant_user and loan_applicant_user.pk == request.user.pk:
                 self.message = "Admin cannot approve their own loan application."
@@ -107,7 +101,6 @@ class CanApproveLoan(BasePermission):
 
 
 class CanGiveFinalLoanApproval(BasePermission):
-   
     message = "Only the Head of School can give final loan approval."
 
     def has_permission(self, request, view):
@@ -119,7 +112,6 @@ class CanGiveFinalLoanApproval(BasePermission):
 
 
 class IsOwnerOrAdminOrCommittee(BasePermission):
-
     message = "You do not have permission to access this record."
 
     def has_object_permission(self, request, view, obj):
@@ -131,4 +123,24 @@ class IsOwnerOrAdminOrCommittee(BasePermission):
             return obj.member.user == request.user
         if hasattr(obj, "applicant"):
             return obj.applicant.user == request.user
+        return False
+
+
+class IsApplicantOrSurety(BasePermission):
+    
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        if not user.is_authenticated:
+            return False
+        if user.role in (Role.ADMIN, Role.COMMITTEE, Role.HEAD_OF_SCHOOL):
+            return True
+        if hasattr(obj, 'applicant') and hasattr(user, 'member_profile'):
+            if obj.applicant == user.member_profile:
+                return True
+        if hasattr(user, 'member_profile'):
+            return SuretyRecord.objects.filter(
+                loan=obj,
+                surety=user.member_profile,
+                is_self_surety=False
+            ).exists()
         return False

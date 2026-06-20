@@ -15,7 +15,7 @@ from django.db.models import Sum
 
 from apps.sureties.models import SuretyRecord, SuretyStatus
 from apps.sureties.services import check_surety_eligibility
-from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee, IsAdminOrCommitteeOrHOS, IsHeadOfSchool, CanApproveLoan
+from apps.accounts.permissions import IsAdmin, IsAdminOrCommittee, IsAdminOrCommitteeOrHOS, IsHeadOfSchool, CanApproveLoan, IsApplicantOrSurety
 from apps.accounts.models import MemberProfile
 from apps.savings.services import get_or_create_balance
 from apps.savings.models import SavingsLedger, MemberBalance
@@ -365,14 +365,14 @@ class PostRepaymentView(APIView):
 
 class LoanRepaymentHistoryView(generics.ListAPIView):
     serializer_class = LoanRepaymentLedgerSerializer
-    permission_classes = [IsAdminOrCommitteeOrHOS]
+    permission_classes = [IsApplicantOrSurety]
 
     def get_queryset(self):
         return LoanRepaymentLedger.objects.filter(loan_id=self.kwargs["pk"]).order_by("hijri_year", "hijri_month")
 
 
 class LoanRepaymentExportView(APIView):
-    permission_classes = [IsAdminOrCommitteeOrHOS]
+    permission_classes = [IsApplicantOrSurety]
 
     def get(self, request, pk):
         try:
@@ -488,7 +488,7 @@ class LoanRepaymentExportView(APIView):
 
 class LoanDetailView(generics.RetrieveAPIView):
     serializer_class = LoanApplicationSerializer
-    permission_classes = [IsAdminOrCommitteeOrHOS]
+    permission_classes = [IsApplicantOrSurety]
     queryset = LoanApplication.objects.select_related('applicant').all()
 
 
