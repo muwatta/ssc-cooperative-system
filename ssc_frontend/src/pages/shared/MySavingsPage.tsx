@@ -279,7 +279,7 @@ export default function MySavingsPage() {
         </div>
       )}
 
-      {/* Ledger section – no filters, just table */}
+      {/* Ledger section – responsive */}
       <div>
         <div className="mb-4">
           <h2 className="text-lg font-semibold dark:text-white">
@@ -299,31 +299,46 @@ export default function MySavingsPage() {
             No ledger entries found.
           </div>
         ) : (
-          <div className="table-container">
-            <table className="table">
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <table className="min-w-[640px] sm:min-w-full table-auto border-collapse text-xs sm:text-sm">
               <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Hijri</th>
-                  <th>Type</th>
-                  <th>Details</th>
-                  <th>Debit</th>
-                  <th>Credit</th>
-                  <th>Balance</th>
+                <tr className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">
+                  <th className="px-2 py-2 text-left font-medium">Date</th>
+                  <th className="px-2 py-2 text-left font-medium">Hijri</th>
+                  <th className="px-2 py-2 text-left font-medium">Type</th>
+                  <th className="px-2 py-2 text-left font-medium">Details</th>
+                  <th className="px-2 py-2 text-right font-medium">Debit</th>
+                  <th className="px-2 py-2 text-right font-medium">Credit</th>
+                  <th className="px-2 py-2 text-right font-medium">Balance</th>
                 </tr>
               </thead>
               <tbody>
                 {sortedLedger.map((entry) => (
-                  <tr key={entry.id}>
-                    <td>{entry.gregorian_date}</td>
-                    <td>{entry.hijri_display}</td>
-                    <td className="capitalize">
+                  <tr
+                    key={entry.id}
+                    className="border-b border-gray-100 dark:border-gray-700"
+                  >
+                    <td className="px-2 py-2 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                      {entry.gregorian_date}
+                    </td>
+                    <td className="px-2 py-2 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                      {entry.hijri_display}
+                    </td>
+                    <td className="px-2 py-2 capitalize text-gray-700 dark:text-gray-300">
                       {entry.entry_type.replace(/_/g, " ")}
                     </td>
-                    <td>{entry.details || "—"}</td>
-                    <td>{entry.debit ? formatCurrency(entry.debit) : "—"}</td>
-                    <td>{entry.credit ? formatCurrency(entry.credit) : "—"}</td>
-                    <td>{formatCurrency(entry.balance)}</td>
+                    <td className="px-2 py-2 max-w-[120px] truncate text-gray-600 dark:text-gray-400">
+                      {entry.details || "—"}
+                    </td>
+                    <td className="px-2 py-2 text-right font-mono text-xs text-rose-600 dark:text-rose-400">
+                      {entry.debit ? formatCurrency(entry.debit) : "—"}
+                    </td>
+                    <td className="px-2 py-2 text-right font-mono text-xs text-emerald-600 dark:text-emerald-400">
+                      {entry.credit ? formatCurrency(entry.credit) : "—"}
+                    </td>
+                    <td className="px-2 py-2 text-right font-mono text-xs font-medium text-gray-900 dark:text-white">
+                      {formatCurrency(entry.balance)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -335,7 +350,7 @@ export default function MySavingsPage() {
         {pageCount > 1 && (
           <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
             <button
-              className="btn-ghost btn-sm"
+              className="btn-ghost btn-sm text-sm"
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
@@ -345,7 +360,7 @@ export default function MySavingsPage() {
               Page {page} of {pageCount}
             </span>
             <button
-              className="btn-ghost btn-sm"
+              className="btn-ghost btn-sm text-sm"
               disabled={page >= pageCount}
               onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
             >
@@ -355,28 +370,28 @@ export default function MySavingsPage() {
         )}
       </div>
 
-      {/* Request Change Modal */}
+      {/* Request Change Modal – responsive */}
       {showRequestModal && (
-        <div className="fixed inset-0 z-50 m-4 flex items-center justify-center bg-black/40 p-4">
-          <div className="card-panel w-full max-w-md">
-            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
-              <h2 className="font-semibold m-3 text-gray-900 dark:text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="card-panel w-full max-w-md mx-2 sm:mx-4">
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3 mb-4">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                 Request Savings Change
               </h2>
               <button
                 onClick={() => setShowRequestModal(false)}
-                className="text-gray-400 m-3 hover:text-gray-600 dark:hover:text-gray-300"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xl"
               >
                 ✕
               </button>
             </div>
-            <div className="space-y-4 m-3">
+            <div className="space-y-4">
               {requestError && (
-                <div className="bg-danger-50 border border-danger-200 text-danger-700 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-danger-50 border border-danger-200 text-danger-700 px-3 py-2 rounded-lg text-sm">
                   {requestError}
                 </div>
               )}
-              <p className="text-sm text-gray-600 dark:text-gray-300 m-3">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Your current monthly contribution:{" "}
                 <strong>
                   {formatCurrency(
@@ -385,7 +400,7 @@ export default function MySavingsPage() {
                 </strong>
               </p>
               <div>
-                <label className="label m-3">
+                <label className="label text-sm">
                   New monthly contribution (₦)
                 </label>
                 <input
@@ -394,17 +409,17 @@ export default function MySavingsPage() {
                   min="1000"
                   value={requestAmount}
                   onChange={(e) => setRequestAmount(e.target.value)}
-                  className="input"
+                  className="input w-full"
                   placeholder="Enter new amount"
                 />
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 m-3">
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                   Minimum ₦1,000
                 </p>
               </div>
-              <div className="flex gap-3 pt-2">
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <button
                   onClick={() => setShowRequestModal(false)}
-                  className="btn-secondary flex-1"
+                  className="btn-secondary w-full sm:flex-1 py-2"
                 >
                   Cancel
                 </button>
@@ -417,7 +432,7 @@ export default function MySavingsPage() {
                     createRequestMutation.mutate(requestAmount);
                   }}
                   disabled={createRequestMutation.isPending}
-                  className="btn-primary flex-1"
+                  className="btn-primary w-full sm:flex-1 py-2"
                 >
                   {createRequestMutation.isPending
                     ? "Submitting..."
