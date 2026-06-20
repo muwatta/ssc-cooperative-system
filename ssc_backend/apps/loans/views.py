@@ -246,6 +246,16 @@ class AdminFinalApprovalView(APIView):
         if loan.applicant.user == request.user:
             return Response({"error": "Admin cannot approve their own loan."}, status=status.HTTP_403_FORBIDDEN)
 
+        if loan.committee_reviewed_by_id == request.user.id:
+            return Response(
+                {"error": (
+                    "Separation of duties: the same person who gave committee approval "
+                    "cannot also give final approval for this loan. A different Admin "
+                    "must complete the final sign-off."
+                )},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         serializer = AdminFinalApprovalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         d = serializer.validated_data
@@ -321,7 +331,7 @@ class PostRepaymentView(APIView):
         except LoanApplication.DoesNotExist:
             return Response({"error": "Active loan not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = PostRepaymentSerializer(data=request.data)
+        serializer = PostRepaymentSerializer(data=request.data, context={"loan": loan})
         serializer.is_valid(raise_exception=True)
         d = serializer.validated_data
 

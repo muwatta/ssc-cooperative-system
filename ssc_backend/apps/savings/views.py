@@ -27,7 +27,7 @@ from .serializers import (
 )
 from .services import (
     post_debit_entry, post_savings_entry, post_termly_dues,
-    apply_savings_change, get_or_create_balance, post_special_savings_entry,
+    apply_savings_change, get_or_create_balance, post_special_savings_entry, post_repayment
 )
 
 def invalidate_dashboard_cache():
@@ -660,77 +660,103 @@ class BatchMonthlyDeductionView(APIView):
         hijri_month = request.data.get("hijri_month")
         hijri_year = request.data.get("hijri_year")
         preview = request.data.get("preview", True)
+        member_id = request.data.get("member_id") 
 
         if not hijri_month or not hijri_year:
             return Response({"error": "hijri_month and hijri_year required."}, status=400)
 
         members = MemberProfile.objects.filter(membership_status=MembershipStatus.ACTIVE)
+        if member_id:
+            try:
+                members = members.filter(pk=member_id)
+                if not members.exists():
+                    return Response({"error": "Member not found."}, status=404)
+            except ValueError:
+                return Response({"error": "Invalid member_id."}, status=400)
+
         results = []
 
         for member in members:
-            contribution = member.approved_monthly_contribution
+            contribution = member.approved_monthly_contribution or Decimal('0.00')
             active_loan = LoanApplication.objects.filter(
                 applicant=member, status=LoanStatus.ACTIVE
             ).first()
-            loan_repayment = active_loan.proposed_monthly_repayment if active_loan else Decimal(0)
+            loan_repayment = active_loan.proposed_monthly_repayment if active_loan else Decimal('0.00')
             total_debit = contribution + loan_repayment
 
-            results.append({
+            existing_savings = SavingsLedger.objects.filter(
+                member=member,
+                hijri_month=hijri_month,
+                hijri_year=hijri_year,
+                entry_type=LedgerEntryType.ORDINARY_SAVINGS,
+            ).exists()
+
+            result_item = {
                 "member_id": member.id,
                 "file_number": member.file_number,
                 "name": member.full_name,
                 "contribution": str(contribution),
                 "loan_repayment": str(loan_repayment),
                 "total_debit": str(total_debit),
+                "existing_savings": existing_savings,
+            }
+            if existing_savings:
+                result_item["warning"] = (
+                    f"Savings already posted for {member.full_name} in {hijri_month}/{hijri_year}. "
+                    "Proceeding will post a duplicate."
+                )
+            results.append(result_item)
+
+        if preview:
+            return Response({
+                "preview": True,
+                "single_member": bool(member_id),
+                "total_members": len(results),
+                "deductions": results,
             })
 
-        if not preview:
-            from apps.savings.services import post_savings_entry
-            from apps.loans.services import post_repayment
-            from utils.hijri import current_hijri as get_hijri
-
-            h_month, h_year = get_hijri()
-            posted_by = request.user
-
-            for item in results:
-                member = MemberProfile.objects.get(pk=item["member_id"])
-                if Decimal(item["contribution"]) > 0:
-                    post_savings_entry(
-                        member=member,
-                        amount=Decimal(item["contribution"]),
+        posted_by = request.user
+        for item in results:
+            member = MemberProfile.objects.get(pk=item["member_id"])
+            if Decimal(item["contribution"]) > 0:
+                post_savings_entry(
+                    member=member,
+                    amount=Decimal(item["contribution"]),
+                    hijri_month=hijri_month,
+                    hijri_year=hijri_year,
+                    posted_by=posted_by,
+                    entry_type=LedgerEntryType.ORDINARY_SAVINGS,
+                    details=f"Monthly contribution {hijri_month}/{hijri_year}",
+                )
+            if Decimal(item["loan_repayment"]) > 0:
+                active_loan = LoanApplication.objects.filter(
+                    applicant=member, status=LoanStatus.ACTIVE
+                ).first()
+                if active_loan:
+                    post_repayment(
+                        loan=active_loan,
+                        amount=Decimal(item["loan_repayment"]),
                         hijri_month=hijri_month,
                         hijri_year=hijri_year,
                         posted_by=posted_by,
-                        entry_type="ordinary_savings",
-                        details=f"Monthly contribution {hijri_month}/{hijri_year}",
                     )
-                if Decimal(item["loan_repayment"]) > 0:
-                    active_loan = LoanApplication.objects.filter(
-                        applicant=member, status=LoanStatus.ACTIVE
-                    ).first()
-                    if active_loan:
-                        post_repayment(
-                            loan=active_loan,
-                            amount=Decimal(item["loan_repayment"]),
-                            hijri_month=hijri_month,
-                            hijri_year=hijri_year,
-                            posted_by=posted_by,
-                        )
-            invalidate_dashboard_cache()
 
-            log_action(
-                user=request.user,
-                action="BATCH_DEDUCTION",
-                description=f"Processed monthly deductions for {len(results)} members (contribution + loan repayment)",
-                object_type="BatchOperation",
-                object_id=0,
-                object_name="BatchMonthlyDeduction",
-                new_values={"total_members": len(results)},
-                request_ip=get_client_ip(request),
-            )
+        invalidate_dashboard_cache()
+
+        log_action(
+            user=request.user,
+            action="BATCH_DEDUCTION",
+            description=f"Processed monthly deductions for {len(results)} members (contribution + loan repayment)",
+            object_type="BatchOperation",
+            object_id=0,
+            object_name="BatchMonthlyDeduction",
+            new_values={"total_members": len(results)},
+            request_ip=get_client_ip(request),
+        )
 
         return Response({
-            "preview": preview,
+            "preview": False,
+            "single_member": bool(member_id),
             "total_members": len(results),
             "deductions": results,
         })

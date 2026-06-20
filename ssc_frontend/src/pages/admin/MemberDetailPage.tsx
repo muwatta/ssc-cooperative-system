@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/common";
 import { useAuth } from "@/context/AuthContext";
 import type { MemberProfile, Role } from "@/types";
 import api from "@/api/client";
+import CombinedDeductionModal from "@/components/savings/CombinedDeductionModal";
 
 function formatNaira(value: string | number) {
   const n = Number(value);
@@ -308,6 +309,9 @@ export default function MemberDetailPage() {
   const [contributionDraft, setContributionDraft] = useState("");
   const [contributionError, setContributionError] = useState("");
   const [withdrawing, setWithdrawing] = useState(false);
+  // Combined deduction modal state
+  const [showCombinedModal, setShowCombinedModal] = useState(false);
+  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
 
   const updateContributionMutation = useMutation({
     mutationFn: (amount: string) =>
@@ -492,6 +496,15 @@ export default function MemberDetailPage() {
                   className="btn-secondary text-sm"
                 >
                   📄 Export PDF
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedMemberId(member.id);
+                    setShowCombinedModal(true);
+                  }}
+                  className="btn-secondary text-sm"
+                >
+                  📋 Post Combined Deduction
                 </button>
                 {member.membership_status === "active" && (
                   <button
@@ -880,6 +893,15 @@ export default function MemberDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Combined Deduction Modal */}
+      {showCombinedModal && selectedMemberId && (
+        <CombinedDeductionModal
+          isOpen={showCombinedModal}
+          onClose={() => setShowCombinedModal(false)}
+          memberId={selectedMemberId}
+        />
       )}
     </div>
   );

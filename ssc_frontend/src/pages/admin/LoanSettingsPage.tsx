@@ -201,7 +201,7 @@ export default function LoanSettingsPage() {
         <ErrorAlert message="Failed to save. Please try again." />
       )}
 
-      {/* ---- 1. ELIGIBILITY ---- */}
+      {/* 1. ELIGIBILITY */}
       <Card title="📅 When can a member apply?">
         <div className="grid gap-4 sm:grid-cols-2">
           <SliderField
@@ -249,7 +249,7 @@ export default function LoanSettingsPage() {
         </div>
       </Card>
 
-      {/* ---- 2. BORROWING LIMITS ---- */}
+      {/* 2. BORROWING LIMITS */}
       <Card title="💰 How much can members borrow?">
         <div className="grid gap-4 sm:grid-cols-2">
           <SliderField
@@ -304,7 +304,7 @@ export default function LoanSettingsPage() {
         </div>
       </Card>
 
-      {/* ---- 3. REPAYMENT ---- */}
+      {/* 3. REPAYMENT */}
       <Card title="📆 Repayment & Penalties">
         <div className="grid gap-4 sm:grid-cols-2">
           <SliderField
@@ -339,7 +339,7 @@ export default function LoanSettingsPage() {
         </div>
       </Card>
 
-      {/* ---- 4. SURETIES ---- */}
+      {/* 4. SURETIES */}
       <Card title="🤝 Surety Rules">
         <div className="grid gap-4 sm:grid-cols-2">
           <SliderField
@@ -365,7 +365,7 @@ export default function LoanSettingsPage() {
         </div>
       </Card>
 
-      {/* ---- 5. SAVINGS & DUES ---- */}
+      {/* 5. SAVINGS & DUES */}
       <Card title="💾 Savings & Dues Defaults">
         <div className="grid gap-4 sm:grid-cols-2">
           <NumberField

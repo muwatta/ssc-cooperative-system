@@ -13,3 +13,4 @@ media/
 dist/
 *.egg-info/
 .pytest_cache/
+.hintrc
