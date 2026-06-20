@@ -87,11 +87,32 @@ class LoanSettingsView(APIView):
 
     def patch(self, request):
         config = get_loan_configuration()
+        old_values = LoanSettingsSerializer(config).data
+
         serializer = LoanSettingsSerializer(config, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(serializer.data)
 
+        new_values = serializer.data
+        changed_fields = {
+            k: {"old": old_values.get(k), "new": new_values.get(k)}
+            for k in new_values
+            if str(old_values.get(k)) != str(new_values.get(k))
+        }
+
+        log_action(
+            user=request.user,
+            action="UPDATE_LOAN_SETTINGS",
+            description=f"Updated loan settings — {len(changed_fields)} field(s) changed: {', '.join(changed_fields.keys()) or 'none'}",
+            object_type="LoanConfiguration",
+            object_id=config.pk,
+            object_name="Loan Rules",
+            old_values={k: v["old"] for k, v in changed_fields.items()},
+            new_values={k: v["new"] for k, v in changed_fields.items()},
+            request_ip=get_client_ip(request),
+        )
+
+        return Response(serializer.data)
 
 class LoanApplicationListView(generics.ListAPIView):
     throttle_classes = [UserRateThrottle]

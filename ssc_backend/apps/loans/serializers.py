@@ -321,6 +321,90 @@ class LoanSettingsSerializer(serializers.ModelSerializer):
             "repayment_grace_days",
         ]
 
+    def validate_self_surety_ratio(self, value):
+        if not (Decimal("0.01") <= value <= Decimal("1.00")):
+            raise serializers.ValidationError("Self-surety ratio must be between 1% and 100%.")
+        return value
+
+    def validate_max_borrowable_ratio(self, value):
+        if not (Decimal("0.01") <= value <= Decimal("1.00")):
+            raise serializers.ValidationError("Max borrowable ratio must be between 1% and 100%.")
+        return value
+
+    def validate_external_surety_max_ratio(self, value):
+        if not (Decimal("0.01") <= value <= Decimal("1.00")):
+            raise serializers.ValidationError("External surety max ratio must be between 1% and 100%.")
+        return value
+
+    def validate_consecutive_savings_months_required(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Cannot be negative.")
+        return value
+
+    def validate_max_loans_per_year(self, value):
+        if value < 1:
+            raise serializers.ValidationError("Must allow at least 1 loan per year.")
+        return value
+
+    def validate_max_repayment_months(self, value):
+        if value < 1:
+            raise serializers.ValidationError("Must allow at least 1 month of repayment.")
+        return value
+
+    def validate_max_active_loans(self, value):
+        if value < 1:
+            raise serializers.ValidationError("Members must be allowed at least 1 active loan.")
+        return value
+
+    def validate_max_sureties(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Cannot be negative.")
+        return value
+
+    def validate_interest_rate(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Interest rate cannot be negative.")
+        return value
+
+    def validate_min_savings_contribution(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Cannot be negative.")
+        return value
+
+    def validate_default_termly_dues(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Cannot be negative.")
+        return value
+
+    def validate_late_repayment_fee(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Cannot be negative.")
+        return value
+
+    def validate_repayment_grace_days(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Cannot be negative.")
+        return value
+
+    def validate_min_loan_amount(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Cannot be negative.")
+        return value
+
+    def validate_max_loan_amount(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Cannot be negative. Use 0 for no limit.")
+        return value
+
+    def validate(self, attrs):
+        # Cross-field check: min <= max (only when max is set, i.e. not 0 = unlimited)
+        min_amt = attrs.get("min_loan_amount", getattr(self.instance, "min_loan_amount", None))
+        max_amt = attrs.get("max_loan_amount", getattr(self.instance, "max_loan_amount", None))
+        if min_amt is not None and max_amt is not None and max_amt > 0 and min_amt > max_amt:
+            raise serializers.ValidationError({
+                "min_loan_amount": f"Minimum loan amount (₦{min_amt}) cannot exceed maximum loan amount (₦{max_amt})."
+            })
+        return attrs        
 class LoanDraftSerializer(serializers.ModelSerializer):
     class Meta:
         model = LoanDraft
