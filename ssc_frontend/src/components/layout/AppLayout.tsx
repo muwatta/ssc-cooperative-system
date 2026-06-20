@@ -15,7 +15,7 @@ interface NavItem {
 }
 
 function useNavItems(): NavItem[] {
-  const { isAdmin, isCommittee, isHOS } = useAuth();
+  const { isAdmin, isCommittee } = useAuth();
 
   const shared: NavItem[] = [
     { label: "Dashboard", to: "/dashboard", icon: "⊞" },
@@ -42,14 +42,9 @@ function useNavItems(): NavItem[] {
     { label: "Change Requests", to: "/savings/change-requests", icon: "📝" },
   ];
 
-  const hosItems: NavItem[] = [
-    { label: "Loan Approvals", to: "/loan-approvals", icon: "✅" },
-    { label: "Reports", to: "/reports", icon: "📊" },
-  ];
-
+ 
   if (isAdmin) return [...shared, ...adminItems, ...committeeItems];
   if (isCommittee) return [...shared, ...committeeItems];
-  if (isHOS) return [...shared, ...hosItems];
   return shared;
 }
 
