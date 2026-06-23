@@ -1,0 +1,24 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+<div class="badge badge-success">Transaction Alert</div>
+
+<h2 style="margin:0 0 8px 0;font-size:22px;font-weight:700;color:#0f172a;">
+  Savings Updated
+</h2>
+
+<p>
+  Your cooperative savings account has been updated.
+</p>
+
+<p style="background:#f8fafc;padding:16px;border-radius:8px;border:1px solid #e5e7eb;">
+  <b>Amount:</b> ₦{{amount|floatformat:2}}<br/>
+  <b>New Balance:</b> ₦{{balance|floatformat:2}}<br/>
+  <b>Date:</b> {{date}}<br/>
+  <b>Reference:</b> #{{reference}}
+</p>
+
+<a class="button" href="{{dashboard_link}}">
+  View Account
+</a>
+{% endblock %}

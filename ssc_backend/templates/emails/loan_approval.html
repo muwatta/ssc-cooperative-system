@@ -1,0 +1,30 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+<div class="badge badge-{% if status == 'approved' %}success{% else %}warning{% endif %}">
+  Loan Update
+</div>
+
+<h2 style="margin:0 0 8px 0;font-size:22px;font-weight:700;color:#0f172a;">
+  Loan Application Status
+</h2>
+
+<p>
+  Your loan request has been reviewed.
+</p>
+
+<p style="background:#f8fafc;padding:16px;border-radius:8px;border:1px solid #e5e7eb;">
+  <b>Status:</b> {{status|title}}<br/>
+  <b>Amount:</b> ₦{{amount|floatformat:2}}<br/>
+  <b>Duration:</b> {{duration}} months<br/>
+  <b>Monthly Repayment:</b> ₦{{monthly_repayment|floatformat:2}}
+</p>
+
+<p>
+  {{message}}
+</p>
+
+<a class="button" href="{{dashboard_link}}">
+  View Details
+</a>
+{% endblock %}
