@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { loansApi, suretiesApi } from "@/api/services";
 import { PageLoader, EmptyState, formatNaira } from "@/components/common";
-import { useState, useMemo, useEffect} from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { LoanApplication as Loan, SuretyRecord as Surety } from "@/types";
 
 export default function MyLoansPage() {
@@ -81,7 +81,7 @@ export default function MyLoansPage() {
       100
     : 0;
   const { isAdmin, isCommittee } = useAuth();
-  
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       active:
@@ -553,7 +553,7 @@ export default function MyLoansPage() {
         )}
 
         <div className="mt-8 text-center text-xs text-gray-400 dark:text-gray-500">
-          <p>🏦 SSC Cooperative — Islamic (Hijri) Calendar based system</p>
+          <p>🏦 SMS Cooperative — Islamic (Hijri) Calendar based system</p>
         </div>
       </div>
     </div>

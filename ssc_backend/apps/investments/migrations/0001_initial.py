@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
                 ('recorded_by', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to=settings.AUTH_USER_MODEL)),
             ],
             options={
-                'db_table': 'ssc_investments',
+                'db_table': 'SMS_investments',
                 'ordering': ['-hijri_year', '-hijri_month'],
             },
         ),
@@ -48,7 +48,7 @@ class Migration(migrations.Migration):
                 ('investment', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='distributions', to='investments.investment')),
             ],
             options={
-                'db_table': 'ssc_profit_distributions',
+                'db_table': 'SMS_profit_distributions',
                 'ordering': ['-hijri_year'],
             },
         ),

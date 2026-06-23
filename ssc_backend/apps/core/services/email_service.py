@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class EmailService:
-    """Professional email service for SSC Cooperative"""
+    """Professional email service for SMS Cooperative"""
     
     FROM_EMAIL = settings.DEFAULT_FROM_EMAIL
     FRONTEND_URL = settings.FRONTEND_URL
@@ -20,11 +20,11 @@ class EmailService:
                 'reset_link': reset_link,
                 'email': email,
                 'year': settings.TIME_ZONE.now().year if hasattr(settings, 'TIME_ZONE') else 2026,
-                'title': 'Reset Your SSC Cooperative Password'
+                'title': 'Reset Your SMS Cooperative Password'
             })
             
             send_mail(
-                subject='Reset Your SSC Cooperative Password',
+                subject='Reset Your SMS Cooperative Password',
                 message=f'Click the link to reset your password: {reset_link}',
                 from_email=cls.FROM_EMAIL,
                 recipient_list=[email],

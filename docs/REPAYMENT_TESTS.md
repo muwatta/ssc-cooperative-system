@@ -11,7 +11,7 @@ Quick start (dev)
 1. Start backend (example):
 
 ```bash
-# from ssc_backend
+# from SMS_backend
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
@@ -21,7 +21,7 @@ python manage.py runserver
 2. Start frontend dev server:
 
 ```bash
-cd ssc_frontend
+cd SMS_frontend
 npm install
 npm run dev
 ```
@@ -67,7 +67,7 @@ Notes
 Commands to run unit tests (if added later)
 
 ```bash
-cd ssc_frontend
+cd SMS_frontend
 npm test
 ```
 

@@ -42,7 +42,6 @@ function useNavItems(): NavItem[] {
     { label: "Change Requests", to: "/savings/change-requests", icon: "📝" },
   ];
 
- 
   if (isAdmin) return [...shared, ...adminItems, ...committeeItems];
   if (isCommittee) return [...shared, ...committeeItems];
   return shared;
@@ -125,7 +124,7 @@ export default function AppLayout() {
           {sidebarOpen && (
             <div className="overflow-hidden">
               <p className="font-bold text-sm text-gray-900 dark:text-white truncate">
-                SSC
+                SMS
               </p>
               <p className="text-xs text-gray-400 truncate">Cooperative</p>
             </div>
@@ -264,7 +263,7 @@ export default function AppLayout() {
 
                 <div className="flex flex-col gap-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                    SSC Cooperative
+                    SMS Cooperative
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     Quick access to your dashboard and reports
@@ -339,7 +338,7 @@ export default function AppLayout() {
             </div>
             <div>
               <p className="font-bold text-sm text-gray-900 dark:text-white">
-                SSC
+                SMS
               </p>
               <p className="text-xs text-gray-400">Cooperative</p>
             </div>

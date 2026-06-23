@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
                 ('applicant', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='loan_draft', to='accounts.memberprofile')),
             ],
             options={
-                'db_table': 'ssc_loan_drafts',
+                'db_table': 'SMS_loan_drafts',
             },
         ),
     ]

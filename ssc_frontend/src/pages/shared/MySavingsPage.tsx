@@ -270,7 +270,7 @@ export default function MySavingsPage() {
           </div>
           <div className="card-panel-light">
             <p className="text-sm text-gray-500 dark:text-gray-400 m-3">
-              SSC File Number
+              SMS File Number
             </p>
             <p className="text-lg font-semibold dark:text-white m-3">
               {profile.file_number}

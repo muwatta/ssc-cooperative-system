@@ -31,7 +31,7 @@ from django.contrib.auth.hashers import make_password
 
 from .models import MembershipStatus, User, StaffIDRegistry, MemberProfile
 from .serializers import (
-    SSCTokenObtainPairSerializer,
+    SMSTokenObtainPairSerializer,
     StaffIDRegistrySerializer,
     CreateUserSerializer,
     MemberProfileSerializer,
@@ -70,7 +70,7 @@ def send_reset_email(email, reset_link):
         'reset_link': reset_link,
         'email': email,
         'year': timezone.now().year,
-        'title': 'Reset Your SSC Cooperative Password'
+        'title': 'Reset Your SMS Cooperative Password'
     })
 
     response = requests.post(
@@ -82,7 +82,7 @@ def send_reset_email(email, reset_link):
         json={
             "from": settings.DEFAULT_FROM_EMAIL,
             "to": [email],
-            "subject": "Reset Your SSC Cooperative Password",
+            "subject": "Reset Your SMS Cooperative Password",
             "html": html_message,
             "text": f"Click the link to reset your password: {reset_link}",
         },
@@ -92,9 +92,9 @@ def send_reset_email(email, reset_link):
     return response.json()
 
 
-class SSCTokenObtainPairView(TokenObtainPairView):
+class SMSTokenObtainPairView(TokenObtainPairView):
     throttle_classes = [LoginRateThrottle]
-    serializer_class = SSCTokenObtainPairSerializer
+    serializer_class = SMSTokenObtainPairSerializer
 
 
 class LogoutView(APIView):
@@ -693,7 +693,7 @@ class PasswordResetRequestView(APIView):
             'reset_link': reset_link,
             'email': email,
             'year': timezone.now().year,
-            'title': 'Reset Your SSC Cooperative Password'
+            'title': 'Reset Your SMS Cooperative Password'
         })
 
         try:

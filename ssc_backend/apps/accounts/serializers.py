@@ -4,7 +4,7 @@ from django.db import transaction
 from .models import User, StaffIDRegistry, MemberProfile, Role, generate_file_number
 
 
-class SSCTokenObtainPairSerializer(TokenObtainPairSerializer):
+class SMSTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = "staff_id"
 
     def validate(self, attrs):

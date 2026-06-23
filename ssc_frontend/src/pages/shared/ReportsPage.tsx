@@ -233,8 +233,8 @@ export default function ReportsPage() {
           </button>
         </div>
         <p className="text-xs text-gray-500 mt-2">
-          Export a CSV file with Name, Section, SSC Ordinary Savings, SSC Loan,
-          and SSC Special Savings for the selected Hijri month.
+          Export a CSV file with Name, Section, SMS Ordinary Savings, SMS Loan,
+          and SMS Special Savings for the selected Hijri month.
         </p>
       </div>
 

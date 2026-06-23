@@ -56,7 +56,7 @@ class MonthlyDeductionsReportView(APIView):
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename="monthly_report_{hijri_month}_{hijri_year}.csv"'
         writer = csv.writer(response)
-        writer.writerow(['Name', 'Section', 'SSC Ordinary Savings', 'SSC Loan', 'SSC Special Savings'])
+        writer.writerow(['Name', 'Section', 'SMS Ordinary Savings', 'SMS Loan', 'SMS Special Savings'])
 
         total_ordinary = Decimal('0.00')
         total_loan = Decimal('0.00')

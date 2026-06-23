@@ -1,9 +1,9 @@
-# SSC Cooperative — Phase 1 Setup Guide
+# SMS Cooperative — Phase 1 Setup Guide
 
 ## 1. Python Environment
 
 ```bash
-cd ssc_backend
+cd SMS_backend
 python -m venv venv
 source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
@@ -72,6 +72,7 @@ curl -X POST http://localhost:8000/api/v1/auth/login/ \
 ```
 
 Expected response:
+
 ```json
 {
   "access": "eyJ...",
@@ -87,6 +88,7 @@ Expected response:
 ## 8. Production (Railway / Render)
 
 Set these environment variables in your hosting dashboard:
+
 - `SECRET_KEY` — strong random key
 - `DEBUG` — `False`
 - `ENVIRONMENT` — `production`
@@ -100,26 +102,27 @@ python manage.py collectstatic --noinput
 ```
 
 Procfile (for Railway/Render):
+
 ```
 web: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
 ```
 
 ## API Endpoints — Phase 1
 
-| Method | URL | Auth | Description |
-|--------|-----|------|-------------|
-| POST | /api/v1/auth/login/ | None | Login with Staff ID |
-| POST | /api/v1/auth/refresh/ | None | Refresh JWT token |
-| POST | /api/v1/auth/logout/ | Bearer | Logout (blacklist refresh) |
-| POST | /api/v1/accounts/set-password/ | None | First login password setup |
-| GET | /api/v1/accounts/me/ | Bearer | My own profile |
-| GET | /api/v1/accounts/staff-ids/ | Admin | List staff ID registry |
-| POST | /api/v1/accounts/staff-ids/ | Admin | Add Staff ID |
-| PATCH | /api/v1/accounts/staff-ids/<id>/ | Admin | Update/deactivate Staff ID |
-| GET | /api/v1/accounts/members/ | Admin/Committee/HOS | List all members |
-| POST | /api/v1/accounts/members/ | Admin | Create member |
-| GET | /api/v1/accounts/members/summary/ | Admin/Committee | Lightweight list |
-| GET | /api/v1/accounts/members/<id>/ | Role-based | Member detail |
-| PATCH | /api/v1/accounts/members/<id>/ | Admin | Update member |
-| POST | /api/v1/accounts/members/<id>/approve/ | Admin | Approve membership |
-| POST | /api/v1/accounts/members/<id>/deactivate/ | Admin | Deactivate member |
+| Method | URL                                       | Auth                | Description                |
+| ------ | ----------------------------------------- | ------------------- | -------------------------- |
+| POST   | /api/v1/auth/login/                       | None                | Login with Staff ID        |
+| POST   | /api/v1/auth/refresh/                     | None                | Refresh JWT token          |
+| POST   | /api/v1/auth/logout/                      | Bearer              | Logout (blacklist refresh) |
+| POST   | /api/v1/accounts/set-password/            | None                | First login password setup |
+| GET    | /api/v1/accounts/me/                      | Bearer              | My own profile             |
+| GET    | /api/v1/accounts/staff-ids/               | Admin               | List staff ID registry     |
+| POST   | /api/v1/accounts/staff-ids/               | Admin               | Add Staff ID               |
+| PATCH  | /api/v1/accounts/staff-ids/<id>/          | Admin               | Update/deactivate Staff ID |
+| GET    | /api/v1/accounts/members/                 | Admin/Committee/HOS | List all members           |
+| POST   | /api/v1/accounts/members/                 | Admin               | Create member              |
+| GET    | /api/v1/accounts/members/summary/         | Admin/Committee     | Lightweight list           |
+| GET    | /api/v1/accounts/members/<id>/            | Role-based          | Member detail              |
+| PATCH  | /api/v1/accounts/members/<id>/            | Admin               | Update member              |
+| POST   | /api/v1/accounts/members/<id>/approve/    | Admin               | Approve membership         |
+| POST   | /api/v1/accounts/members/<id>/deactivate/ | Admin               | Deactivate member          |

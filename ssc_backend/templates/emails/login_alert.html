@@ -1,32 +1,35 @@
-{% extends "emails/base.html" %}
-
-{% block content %}
+{% extends "emails/base.html" %} {% block content %}
 <div class="badge badge-security">Security Notice</div>
 
-<h2 style="margin:0 0 8px 0;font-size:22px;font-weight:700;color:#0f172a;">
+<h2
+  style="margin: 0 0 8px 0; font-size: 22px; font-weight: 700; color: #0f172a"
+>
   New Login Detected
 </h2>
 
-<p>
-  We detected a new login to your SSC Cooperative account.
-</p>
+<p>We detected a new login to your SMS Cooperative account.</p>
 
-<p style="background:#f8fafc;padding:16px;border-radius:8px;border:1px solid #e5e7eb;">
-  <b>Device:</b> {{device}}<br/>
-  <b>Location:</b> {{location}}<br/>
+<p
+  style="
+    background: #f8fafc;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+  "
+>
+  <b>Device:</b> {{device}}<br />
+  <b>Location:</b> {{location}}<br />
   <b>Time:</b> {{time}}
 </p>
 
 <p>
-  If this was you, no action is required.
-  If this was not you, please reset your password immediately.
+  If this was you, no action is required. If this was not you, please reset your
+  password immediately.
 </p>
 
-<a class="button" href="{{security_link}}">
-  Secure Account
-</a>
+<a class="button" href="{{security_link}}"> Secure Account </a>
 
-<p style="font-size:13px;color:#6b7280;margin-top:16px;">
+<p style="font-size: 13px; color: #6b7280; margin-top: 16px">
   For your security, this email is sent on every new login.
 </p>
 {% endblock %}

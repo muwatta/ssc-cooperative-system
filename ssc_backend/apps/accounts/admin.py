@@ -16,7 +16,7 @@ class UserAdmin(BaseUserAdmin):
     ordering = ["staff_id"]
     fieldsets = (
         (None, {"fields": ("staff_id", "password")}),
-        ("SSC Info", {"fields": ("role", "is_first_login")}),
+        ("SMS Info", {"fields": ("role", "is_first_login")}),
         ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser")}),
     )
     add_fieldsets = (

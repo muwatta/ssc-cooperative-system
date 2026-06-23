@@ -69,7 +69,7 @@ class StaffIDRegistry(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "ssc_staff_id_registry"
+        db_table = "SMS_staff_id_registry"
         verbose_name = "Staff ID Registry"
         verbose_name_plural = "Staff ID Registry"
         ordering = ["staff_id"]
@@ -100,7 +100,7 @@ class UserManager(BaseUserManager):
 
 # CUSTOM USER MODEL
 # Login identity = Staff ID.
-# Cooperative identity = SSC File Number (on MemberProfile).
+# Cooperative identity = SMS File Number (on MemberProfile).
 
 class User(AbstractBaseUser, PermissionsMixin):
    
@@ -132,7 +132,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     class Meta:
-        db_table = "ssc_users"
+        db_table = "SMS_users"
         verbose_name = "User"
         verbose_name_plural = "Users"
 
@@ -168,7 +168,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.role == Role.HEAD_OF_SCHOOL
 
     @property
-    def ssc_file_number(self):
+    def SMS_file_number(self):
         try:
             return self.member_profile.file_number
         except MemberProfile.DoesNotExist:
@@ -197,7 +197,7 @@ class MemberProfile(models.Model):
     file_number = models.CharField(
         max_length=10,
         unique=True,
-        help_text="SSC File Number e.g. A048. Auto-generated or imported for legacy."
+        help_text="SMS File Number e.g. A048. Auto-generated or imported for legacy."
     )
     _file_sequence = models.PositiveIntegerField(
         unique=True,
@@ -283,7 +283,7 @@ class MemberProfile(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "ssc_member_profiles"
+        db_table = "SMS_member_profiles"
         verbose_name = "Member Profile"
         verbose_name_plural = "Member Profiles"
         ordering = ["file_number"]
@@ -336,7 +336,7 @@ class Invitation(models.Model):
     clicked_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        db_table = "ssc_invitations"
+        db_table = "SMS_invitations"
         verbose_name = "Invitation"
         verbose_name_plural = "Invitations"
         ordering = ["-email_sent_at"]

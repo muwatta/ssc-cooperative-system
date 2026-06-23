@@ -28,7 +28,7 @@ export default function LoginPage() {
       const result = await login(data);
 
       // ✅ Store user object from decoded token
-      const token = localStorage.getItem("ssc_access");
+      const token = localStorage.getItem("SMS_access");
       if (token) {
         const payload = token.split(".")[1];
         const decoded = JSON.parse(
@@ -175,7 +175,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-primary-300 text-xs mt-4">
-          SSC Cooperative Management System v1.2
+          SMS Cooperative Management System v1.2
         </p>
       </div>
     </div>

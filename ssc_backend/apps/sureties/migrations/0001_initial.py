@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
                 ('surety', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='surety_records', to='accounts.memberprofile')),
             ],
             options={
-                'db_table': 'ssc_surety_records',
+                'db_table': 'SMS_surety_records',
                 'ordering': ['layer'],
                 'unique_together': {('loan', 'surety')},
             },

@@ -1,4 +1,4 @@
-// SSC Cooperative — Common Reusable Components
+// SMS Cooperative — Common Reusable Components
 
 import { type ChangeEvent, type ReactNode } from "react";
 import { motion, type HTMLMotionProps } from "framer-motion";

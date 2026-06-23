@@ -1,8 +1,3 @@
-"""
-SSC Cooperative — Sureties Models
-Covers SRS Section 6, Rules SR1-SR8
-"""
-
 from django.db import models
 from decimal import Decimal
 
@@ -16,11 +11,6 @@ class SuretyStatus(models.TextChoices):
 
 
 class SuretyRecord(models.Model):
-    """
-    One record per surety per loan.
-    Layer 1 = self-surety (borrower). Layers 2-6 = external sureties.
-    SRS Section 6.1 — six-layer structure.
-    """
     loan   = models.ForeignKey(
         "loans.LoanApplication",
         on_delete=models.PROTECT,
@@ -53,7 +43,7 @@ class SuretyRecord(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "ssc_surety_records"
+        db_table = "SMS_surety_records"
         unique_together = [("loan", "surety")]
         ordering = ["layer"]
 

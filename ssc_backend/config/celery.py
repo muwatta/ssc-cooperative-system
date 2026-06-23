@@ -6,7 +6,7 @@ from django.conf import settings
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
-app = Celery("ssc_cooperative")
+app = Celery("SMS_cooperative")
 
 # Load configuration from Django settings with CELERY namespace
 app.config_from_object("django.conf:settings", namespace="CELERY")

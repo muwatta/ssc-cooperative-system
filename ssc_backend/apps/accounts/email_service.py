@@ -23,9 +23,9 @@ def send_password_invitation(user, invitation, frontend_url: str = None) -> bool
 
     # Simple HTML template (in production, use a proper template file)
     html_message = f"""
-    <h2>Welcome to SSC Cooperative Management System</h2>
+    <h2>Welcome to SMS Cooperative Management System</h2>
     <p>Dear {user.staff_id},</p>
-    <p>You have been invited to join the SSC Cooperative system. Please set your password to get started:</p>
+    <p>You have been invited to join the SMS Cooperative system. Please set your password to get started:</p>
     <p>
         <a href="{set_password_url}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
             Set Password
@@ -35,10 +35,10 @@ def send_password_invitation(user, invitation, frontend_url: str = None) -> bool
     <p>This link expires in 7 days.</p>
     <p>If you didn't request this, please ignore this email.</p>
     <hr/>
-    <p><small>SSC Cooperative Management System</small></p>
+    <p><small>SMS Cooperative Management System</small></p>
     """
 
-    subject = "SSC Cooperative — Set Your Password"
+    subject = "SMS Cooperative — Set Your Password"
     text_message = strip_tags(html_message)
     recipient_email = user.email_address
 
@@ -49,7 +49,7 @@ def send_password_invitation(user, invitation, frontend_url: str = None) -> bool
         send_mail(
             subject=subject,
             message=text_message,
-            from_email=settings.DEFAULT_FROM_EMAIL or "noreply@ssc.internal",
+            from_email=settings.DEFAULT_FROM_EMAIL or "noreply@SMS.internal",
             recipient_list=[recipient_email],
             html_message=html_message,
             fail_silently=False,

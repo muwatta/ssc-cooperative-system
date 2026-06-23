@@ -15,13 +15,13 @@ ENVIRONMENT = config("ENVIRONMENT", default="development")
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
-    "ssc-cooperative-system.onrender.com",
-    "ssc-cooperative-system.vercel.app",
+    "SMS-cooperative-system.onrender.com",
+    "SMS-cooperative-system.vercel.app",
     "solacestaffcooperative.com.ng",
     "www.solacestaffcooperative.com.ng",
 ]
 
-ADMIN_URL = "ssc-coop-admin-secret/"
+ADMIN_URL = "SMS-coop-admin-secret/"
 
 # APPLICATIONS
 DJANGO_APPS = [
@@ -73,7 +73,7 @@ MIDDLEWARE = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://ssc-cooperative-system.vercel.app",
+    "https://SMS-cooperative-system.vercel.app",
     "https://solacestaffcooperative.com.ng",
     "https://www.solacestaffcooperative.com.ng",
 ]
@@ -109,7 +109,7 @@ DATABASES = {
     )
 }
 
-DATABASES["default"]["TEST"] = {"NAME": "test_ssc_cooperative"}
+DATABASES["default"]["TEST"] = {"NAME": "test_SMS_cooperative"}
 
 # AUTH
 AUTH_USER_MODEL = "accounts.User"
@@ -164,7 +164,7 @@ else:
     EMAIL_USE_TLS = True
     EMAIL_HOST_USER = 'resend'
     EMAIL_HOST_PASSWORD = RESEND_API_KEY
-    DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='SSC Cooperative <noreply@solacestaffcooperative.com.ng>')
+    DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='SMS Cooperative <noreply@solacestaffcooperative.com.ng>')
 
 FRONTEND_URL = config('FRONTEND_URL', default='https://solacestaffcooperative.com.ng')
 
@@ -183,14 +183,14 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
-    "TOKEN_OBTAIN_SERIALIZER": "apps.accounts.serializers.SSCTokenObtainPairSerializer",
+    "TOKEN_OBTAIN_SERIALIZER": "apps.accounts.serializers.SMSTokenObtainPairSerializer",
 }
 
 # CORS
 CORS_ALLOWED_ORIGINS = [
     "https://solacestaffcooperative.com.ng",
     "https://www.solacestaffcooperative.com.ng",
-    "https://ssc-cooperative-system.vercel.app",
+    "https://SMS-cooperative-system.vercel.app",
     "http://localhost:5173",
 ]
 

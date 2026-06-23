@@ -1,6 +1,6 @@
 const BACKEND_URL =
   import.meta.env.VITE_API_BASE_URL?.replace("/api/v1", "") ??
-  "https://ssc-cooperative-system.onrender.com";
+  "https://SMS-cooperative-system.onrender.com";
 
 export function startKeepAlive() {
   const ping = () =>

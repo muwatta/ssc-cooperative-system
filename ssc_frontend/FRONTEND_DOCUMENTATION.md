@@ -1,4 +1,4 @@
-# SSC Frontend Documentation
+# SMS Frontend Documentation
 
 ## Overview
 

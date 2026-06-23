@@ -1,6 +1,6 @@
 {
-  "name": "SSC Cooperative",
-  "short_name": "SSC",
+  "name": "SMS Cooperative",
+  "short_name": "SMS",
   "description": "Solace Staff Cooperative Management System",
   "start_url": "/",
   "display": "standalone",
