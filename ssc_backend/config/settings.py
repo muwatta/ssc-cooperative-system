@@ -3,6 +3,7 @@ from pathlib import Path
 from decouple import config
 import dj_database_url
 from datetime import timedelta
+from corsheaders.defaults import default_headers
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -11,13 +12,15 @@ SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", default=False, cast=bool)
 ENVIRONMENT = config("ENVIRONMENT", default="development")
 
-ALLOWED_HOSTS_STRING = config("ALLOWED_HOSTS", default="localhost,127.0.0.1")
-ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STRING.split(",")]
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "ssc-cooperative-system.onrender.com",
+    "ssc-cooperative-system.vercel.app",
+    "solacestaffcooperative.com.ng",
+    "www.solacestaffcooperative.com.ng",
+]
 
-if ENVIRONMENT == "production":
-    ALLOWED_HOSTS += ["*.railway.app", "*.onrender.com", "*.vercel.app"]
-
-# Admin URL (keep this secret!)
 ADMIN_URL = "ssc-coop-admin-secret/"
 
 # APPLICATIONS
@@ -54,7 +57,7 @@ LOCAL_APPS = [
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
-# MIDDLEWARE (order is critical)
+# MIDDLEWARE
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -63,13 +66,18 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "apps.core.middleware.AdminSessionTimeoutMiddleware",  
-    'django_otp.middleware.OTPMiddleware',                
+    "apps.core.middleware.AdminSessionTimeoutMiddleware",
+    'django_otp.middleware.OTPMiddleware',
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# Admin session idle timeout (minutes)
+CSRF_TRUSTED_ORIGINS = [
+    "https://ssc-cooperative-system.vercel.app",
+    "https://solacestaffcooperative.com.ng",
+    "https://www.solacestaffcooperative.com.ng",
+]
+
 ADMIN_SESSION_TIMEOUT_MINUTES = 15
 
 ROOT_URLCONF = "config.urls"
@@ -101,14 +109,11 @@ DATABASES = {
     )
 }
 
-DATABASES["default"]["TEST"] = {
-    "NAME": "test_ssc_cooperative",
-}
+DATABASES["default"]["TEST"] = {"NAME": "test_ssc_cooperative"}
 
-# CUSTOM AUTH USER MODEL
+# AUTH
 AUTH_USER_MODEL = "accounts.User"
 
-# PASSWORD VALIDATION
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -116,7 +121,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# DJANGO REST FRAMEWORK
+# REST FRAMEWORK
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -131,10 +136,7 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
-    "DEFAULT_RENDERER_CLASSES": (
-        "rest_framework.renderers.JSONRenderer",
-    ),
-    # THROTTLING (rate limiting)
+    "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
@@ -149,10 +151,10 @@ REST_FRAMEWORK = {
     },
 }
 REST_FRAMEWORK["EXCEPTION_HANDLER"] = "apps.core.exceptions.custom_exception_handler"
-RESEND_API_KEY = config("RESEND_API_KEY", default="")  # For sending emails via Resend
 
+# EMAIL — Resend (SMTP)
+RESEND_API_KEY = config("RESEND_API_KEY", default="")
 
-# Email configuration
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
@@ -160,12 +162,13 @@ else:
     EMAIL_HOST = 'smtp.resend.com'
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'resend')
-    EMAIL_HOST_PASSWORD = os.environ.get('RESEND_API_KEY')
-    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'SSC Cooperative <noreply@ssc.coop>')
+    EMAIL_HOST_USER = 'resend'
+    EMAIL_HOST_PASSWORD = RESEND_API_KEY
+    DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='SSC Cooperative <noreply@solacestaffcooperative.com.ng>')
 
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
+FRONTEND_URL = config('FRONTEND_URL', default='https://solacestaffcooperative.com.ng')
 
+# JWT
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(
         minutes=config("ACCESS_TOKEN_LIFETIME_MINUTES", default=480, cast=int)
@@ -183,11 +186,21 @@ SIMPLE_JWT = {
     "TOKEN_OBTAIN_SERIALIZER": "apps.accounts.serializers.SSCTokenObtainPairSerializer",
 }
 
-CORS_ALLOWED_ORIGINS_STRING = config(
-    "CORS_ALLOWED_ORIGINS",
-    default="http://localhost:5173,http://localhost:3000,https://ssc-cooperative-system.vercel.app"
-)
-CORS_ALLOWED_ORIGINS = [o.strip() for o in CORS_ALLOWED_ORIGINS_STRING.split(",")]
+# CORS
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://ssc-cooperative-system.vercel.app",
+    "https://solacestaffcooperative.com.ng",
+    "https://www.solacestaffcooperative.com.ng",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "authorization",
+    "content-type",
+]
 
 # INTERNATIONALISATION
 LANGUAGE_CODE = "en-us"
@@ -200,34 +213,11 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# DEFAULT PRIMARY KEY
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# PRODUCTION SECURITY HARDENING
-if ENVIRONMENT == "production":
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = "DENY"
-    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    SECURE_SSL_REDIRECT = True
-
-# CELERY — Async task queue
-CELERY_BROKER_URL = config(
-    "CELERY_BROKER_URL",
-    default="redis://localhost:6379/0"
-)
-CELERY_RESULT_BACKEND = config(
-    "CELERY_RESULT_BACKEND",
-    default="redis://localhost:6379/0"
-)
+# CELERY
+CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"

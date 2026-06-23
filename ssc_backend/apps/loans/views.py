@@ -471,7 +471,7 @@ class LoanRepaymentExportView(APIView):
         ])
         for entry in repayments:
             writer.writerow([
-                entry.hijri_display,
+                entry.hijri_display, 
                 str(entry.amount),
                 str(entry.balance_before),
                 str(entry.balance_after),
@@ -493,8 +493,8 @@ class LoanDetailView(generics.RetrieveAPIView):
 
 
 class HandleDefaultView(APIView):
-    permission_classes = [IsAdmin]
 
+    permission_classes = [IsAdmin]
     def post(self, request, pk):
         try:
             loan = LoanApplication.objects.get(pk=pk, status=LoanStatus.ACTIVE)
