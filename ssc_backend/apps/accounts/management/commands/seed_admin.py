@@ -51,9 +51,11 @@ class Command(BaseCommand):
 
         if user_exists and force:
             self.stdout.write(self.style.WARNING(f"--force: removing existing user '{staff_id}'..."))
-            User.objects.filter(staff_id=staff_id).delete()
+            user = User.objects.get(staff_id=staff_id)
+            MemberProfile.objects.filter(user=user).delete()
+            user.delete()
             StaffIDRegistry.objects.filter(staff_id=staff_id).delete()
-
+        
         # 2. StaffIDRegistry
         registry, created = StaffIDRegistry.objects.get_or_create(
             staff_id=staff_id,
