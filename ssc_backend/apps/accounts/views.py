@@ -91,6 +91,7 @@ def send_reset_email(email, reset_link):
     response.raise_for_status()
     return response.json()
 
+
 class SSCTokenObtainPairView(TokenObtainPairView):
     throttle_classes = [LoginRateThrottle]
     serializer_class = SSCTokenObtainPairSerializer
@@ -688,7 +689,6 @@ class PasswordResetRequestView(APIView):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         reset_link = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}/"
 
-        # Render the banking-style HTML email template
         html_message = render_to_string('emails/password_reset.html', {
             'reset_link': reset_link,
             'email': email,
@@ -696,15 +696,11 @@ class PasswordResetRequestView(APIView):
             'title': 'Reset Your SSC Cooperative Password'
         })
 
-        # Send the email with HTML content
         try:
             send_reset_email(email, reset_link)
         except Exception as e:
-            # Log the error (will appear in Render logs)
-            print(f"Email sending failed: {e}")
-            # Still return success to avoid exposing user existence
+            print(f"Email error: {e}")
             return Response({'message': 'If an account exists, a reset link has been sent.'}, status=200)
-        
         return Response({'message': 'Password reset link sent to your email.'}, status=200)
 
 class PasswordResetConfirmView(APIView):
