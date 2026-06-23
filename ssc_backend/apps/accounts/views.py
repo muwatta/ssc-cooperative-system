@@ -591,19 +591,31 @@ class ChangePasswordView(APIView):
         new = request.data.get("new_password")
         confirm = request.data.get("confirm_password")
 
+        # 1. Ensure all fields are present
+        if not all([current, new, confirm]):
+            return Response(
+                {"error": "current_password, new_password, and confirm_password are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 2. Check current password
         if not user.check_password(current):
             return Response({"error": "Current password is incorrect."}, status=400)
 
+        # 3. Check new password match
         if new != confirm:
             return Response({"error": "New passwords do not match."}, status=400)
 
+        # 4. Validate password strength
         try:
             validate_password(new, user)
         except ValidationError as e:
             return Response({"error": e.messages}, status=400)
 
+        # 5. Change password
         user.set_password(new)
         user.save()
+        # Keep user logged in after password change
         update_session_auth_hash(request, user)
 
         log_action(
@@ -617,7 +629,6 @@ class ChangePasswordView(APIView):
         )
 
         return Response({"message": "Password changed successfully."})
-
 
 class ToggleSpecialSaverView(APIView):
     permission_classes = [IsAdmin]
