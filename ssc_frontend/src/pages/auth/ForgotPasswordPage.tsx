@@ -37,11 +37,11 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4 sm:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4 sm:p-6 antialiased">
       <div className="w-full max-w-md sm:max-w-lg md:max-w-xl">
         {/* Logo / Header */}
         <div className="text-center mb-6 sm:mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 backdrop-blur mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 mb-4">
             <span className="text-3xl sm:text-4xl font-black text-white">
               S
             </span>
@@ -146,7 +146,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         <p className="text-center text-primary-300 text-xs mt-4">
-          SMS Cooperative Management System v1.2
+          SSC Cooperative Management System v1.2
         </p>
       </div>
     </div>

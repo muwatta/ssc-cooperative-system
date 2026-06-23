@@ -334,7 +334,7 @@ export default function DashboardPage() {
             <CompactStatCard
               label="Member File"
               value={user?.file_number ?? "Not assigned"}
-              sub="SMS membership record"
+              sub="SSC membership record"
               color="warning"
             />
           </div>
@@ -747,7 +747,7 @@ export default function DashboardPage() {
 
       <div className="card p-5 bg-primary-50 border border-primary-100">
         <p className="text-sm font-medium text-primary-800">
-          🕌 SMS uses the Islamic (Hijri) calendar as its primary calendar.
+          🕌 SSC uses the Islamic (Hijri) calendar as its primary calendar.
         </p>
         <p className="text-xs text-primary-600 mt-1">
           All savings entries, loan records, and dues are recorded by Islamic

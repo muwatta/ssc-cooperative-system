@@ -553,7 +553,7 @@ export default function MyLoansPage() {
         )}
 
         <div className="mt-8 text-center text-xs text-gray-400 dark:text-gray-500">
-          <p>🏦 SMS Cooperative — Islamic (Hijri) Calendar based system</p>
+          <p>🏦 SSC Cooperative — Islamic (Hijri) Calendar based system</p>
         </div>
       </div>
     </div>

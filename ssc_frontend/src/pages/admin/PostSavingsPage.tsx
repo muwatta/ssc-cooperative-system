@@ -537,7 +537,7 @@ export default function PostSavingsPage() {
     );
   });
 
-  const succeSMSount = Object.values(postStates).filter(
+  const succeSSCount = Object.values(postStates).filter(
     (s) => s.status === "success",
   ).length;
   const pendingCount = Object.values(postStates).filter(
@@ -604,12 +604,12 @@ export default function PostSavingsPage() {
             >
               ⚡ Run Monthly Deductions
             </button>
-            {succeSMSount > 0 && (
+            {succeSSCount > 0 && (
               <button
                 onClick={resetSuccessful}
                 className="btn-secondary text-sm"
               >
-                Clear {succeSMSount} posted
+                Clear {succeSSCount} posted
               </button>
             )}
             <button

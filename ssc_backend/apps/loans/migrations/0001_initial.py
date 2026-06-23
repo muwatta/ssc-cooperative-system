@@ -55,7 +55,7 @@ class Migration(migrations.Migration):
                 ('hos_approved_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='hos_approved_loans', to=settings.AUTH_USER_MODEL)),
             ],
             options={
-                'db_table': 'SMS_loan_applications',
+                'db_table': 'SSC_loan_applications',
                 'ordering': ['-created_at'],
             },
         ),
@@ -76,7 +76,7 @@ class Migration(migrations.Migration):
                 ('posted_by', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to=settings.AUTH_USER_MODEL)),
             ],
             options={
-                'db_table': 'SMS_loan_repayment_ledger',
+                'db_table': 'SSC_loan_repayment_ledger',
                 'ordering': ['hijri_year', 'hijri_month'],
             },
         ),

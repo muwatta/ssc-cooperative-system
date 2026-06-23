@@ -1,4 +1,4 @@
-"""SMS Cooperative — Notifications (in-app only)"""
+"""SSC Cooperative — Notifications (in-app only)"""
 
 from django.db import models
 
@@ -29,7 +29,7 @@ class Notification(models.Model):
     created_at   = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = "SMS_notifications"
+        db_table = "SSC_notifications"
         ordering = ["-created_at"]
 
     def __str__(self):

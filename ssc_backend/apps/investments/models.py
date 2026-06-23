@@ -1,4 +1,4 @@
-"""SMS Cooperative — Investments App (Models + Views + URLs in one file for brevity)"""
+"""SSC Cooperative — Investments App (Models + Views + URLs in one file for brevity)"""
 
 # ── models.py content ─────────────────────────────────────────────
 from django.db import models
@@ -16,7 +16,7 @@ class Investment(models.Model):
     created_at  = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = "SMS_investments"
+        db_table = "SSC_investments"
         ordering = ["-hijri_year", "-hijri_month"]
 
     def __str__(self):
@@ -37,7 +37,7 @@ class ProfitDistribution(models.Model):
     created_at      = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = "SMS_profit_distributions"
+        db_table = "SSC_profit_distributions"
         ordering = ["-hijri_year"]
 
     def __str__(self):

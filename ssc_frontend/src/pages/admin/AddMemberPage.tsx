@@ -204,7 +204,7 @@ export default function AddMemberPage() {
     <div className="max-w-2xl mx-auto">
       <PageHeader
         title="Add Member"
-        subtitle="Complete all sections to register a new SMS member."
+        subtitle="Complete all sections to register a new SSC member."
         back={{ to: "/members", label: "Back to Members" }}
       />
 
@@ -385,7 +385,7 @@ export default function AddMemberPage() {
                           Legacy member import
                         </p>
                         <p className="text-xs text-gray-400">
-                          Member has an existing SMS file number from physical
+                          Member has an existing SSC file number from physical
                           records.
                         </p>
                       </div>

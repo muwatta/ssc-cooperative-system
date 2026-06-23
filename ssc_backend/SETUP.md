@@ -1,9 +1,9 @@
-# SMS Cooperative — Phase 1 Setup Guide
+# SSC Cooperative — Phase 1 Setup Guide
 
 ## 1. Python Environment
 
 ```bash
-cd SMS_backend
+cd SSC_backend
 python -m venv venv
 source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt

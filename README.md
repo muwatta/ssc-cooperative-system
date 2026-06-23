@@ -1,10 +1,10 @@
-# Solace Staff Cooperative Management System (SMS)
+# Solace Staff Cooperative Management System (SSC)
 
 A modern, enterprise ready cooperative management platform designed to digitize and streamline the operations of the Solace Staff Cooperative Society.
 
-SMS provides a centralized system for managing members, savings, loans, sureties, investments, notifications, reporting, and administrative workflows. The platform replaces manual record keeping with a secure, transparent, and scalable solution that improves operational efficiency, accountability, and financial visibility.
+SSC provides a centralized system for managing members, savings, loans, sureties, investments, notifications, reporting, and administrative workflows. The platform replaces manual record keeping with a secure, transparent, and scalable solution that improves operational efficiency, accountability, and financial visibility.
 
-Built with React, TypeScript, Django REST Framework, and PostgreSQL, SMS supports role based workflows, automated business rules, comprehensive audit trails, and real time financial reporting.
+Built with React, TypeScript, Django REST Framework, and PostgreSQL, SSC supports role based workflows, automated business rules, comprehensive audit trails, and real time financial reporting.
 
 ---
 
@@ -12,7 +12,7 @@ Built with React, TypeScript, Django REST Framework, and PostgreSQL, SMS support
 
 Traditional cooperative management often relies on spreadsheets, paper records, and manual approval processes. These approaches introduce operational inefficiencies, increase the risk of errors, and make auditing difficult.
 
-SMS addresses these challenges by providing:
+SSC addresses these challenges by providing:
 
 - Centralized member management
 - Automated savings and loan processing
@@ -283,7 +283,7 @@ Environment specific configuration is managed securely through environment varia
 
 ## Production Ready
 
-SMS is actively designed for real world cooperative operations and includes comprehensive support for member management, savings administration, loan processing, surety management, reporting, auditing, and financial tracking.
+SSC is actively designed for real world cooperative operations and includes comprehensive support for member management, savings administration, loan processing, surety management, reporting, auditing, and financial tracking.
 
 ---
 
@@ -297,4 +297,4 @@ Building practical digital solutions that empower organizations through technolo
 
 ---
 
-© Solace Staff Cooperative Management System (SMS)
+© Solace Staff Cooperative Management System (SSC)

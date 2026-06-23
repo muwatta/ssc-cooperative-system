@@ -51,7 +51,7 @@ export default function SetPasswordPage() {
             Set your password
           </h1>
           <p className="text-sm text-gray-500 mb-6">
-            Welcome to SMS. Choose a secure password to continue.
+            Welcome to SSC. Choose a secure password to continue.
           </p>
 
           {serverError && (

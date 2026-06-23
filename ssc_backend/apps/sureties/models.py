@@ -43,7 +43,7 @@ class SuretyRecord(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "SMS_surety_records"
+        db_table = "SSC_surety_records"
         unique_together = [("loan", "surety")]
         ordering = ["layer"]
 

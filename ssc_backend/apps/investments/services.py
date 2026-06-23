@@ -1,4 +1,4 @@
-"""SMS Cooperative — Investments Serializers, Views, URLs"""
+"""SSC Cooperative — Investments Serializers, Views, URLs"""
 
 from rest_framework import serializers, generics, status
 from rest_framework.views import APIView

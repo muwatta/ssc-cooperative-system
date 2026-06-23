@@ -48,7 +48,7 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
             ],
             options={
-                "db_table": "SMS_loan_configuration",
+                "db_table": "SSC_loan_configuration",
             },
         ),
         migrations.RunPython(create_default_loan_configuration),

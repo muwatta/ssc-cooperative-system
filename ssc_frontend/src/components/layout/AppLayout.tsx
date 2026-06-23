@@ -124,7 +124,7 @@ export default function AppLayout() {
           {sidebarOpen && (
             <div className="overflow-hidden">
               <p className="font-bold text-sm text-gray-900 dark:text-white truncate">
-                SMS
+                SSC
               </p>
               <p className="text-xs text-gray-400 truncate">Cooperative</p>
             </div>
@@ -263,7 +263,7 @@ export default function AppLayout() {
 
                 <div className="flex flex-col gap-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                    SMS Cooperative
+                    SSC Cooperative
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     Quick access to your dashboard and reports
@@ -338,7 +338,7 @@ export default function AppLayout() {
             </div>
             <div>
               <p className="font-bold text-sm text-gray-900 dark:text-white">
-                SMS
+                SSC
               </p>
               <p className="text-xs text-gray-400">Cooperative</p>
             </div>

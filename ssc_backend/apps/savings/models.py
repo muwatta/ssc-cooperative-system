@@ -56,7 +56,7 @@ class SavingsLedger(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = "SMS_savings_ledger"
+        db_table = "SSC_savings_ledger"
         ordering = ["hijri_year", "hijri_month", "created_at"]
         verbose_name = "Savings Ledger Entry"
 
@@ -77,7 +77,7 @@ class MemberBalance(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "SMS_member_balances"
+        db_table = "SSC_member_balances"
 
     def __str__(self):
         return (
@@ -131,7 +131,7 @@ class SavingsChangeRequest(models.Model):
     approved_at      = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        db_table = "SMS_savings_change_requests"
+        db_table = "SSC_savings_change_requests"
         ordering = ["-submitted_at"]
 
     def __str__(self):
@@ -161,7 +161,7 @@ class TermlyDuesCycle(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = "SMS_termly_dues_cycles"
+        db_table = "SSC_termly_dues_cycles"
         ordering = ["-hijri_year", "-hijri_month"]
 
     def __str__(self):

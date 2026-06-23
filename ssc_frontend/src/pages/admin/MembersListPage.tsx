@@ -21,7 +21,7 @@ export default function MembersListPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
-  const successMsg = (location.state as { success?: string })?.success;
+  const succesSSCg = (location.state as { success?: string })?.success;
 
   const [skeletonVisible, setSkeletonVisible] = useState(true);
   const loadStartRef = useRef<number>(Date.now());
@@ -99,9 +99,9 @@ export default function MembersListPage() {
         </div>
       </div>
 
-      {successMsg && (
+      {succesSSCg && (
         <div className="rounded-lg border border-green-200 bg-success-50 px-3 py-2 text-xs text-success-700 dark:border-green-800/50 dark:bg-success-900/30 dark:text-success-300">
-          ✅ {successMsg}
+          ✅ {succesSSCg}
         </div>
       )}
 

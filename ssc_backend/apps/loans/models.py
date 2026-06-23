@@ -102,7 +102,7 @@ class LoanConfiguration(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "SMS_loan_configuration"
+        db_table = "SSC_loan_configuration"
 
     def __str__(self):
         return "Loan settings"
@@ -194,7 +194,7 @@ class LoanApplication(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "SMS_loan_applications"
+        db_table = "SSC_loan_applications"
         ordering = ["-created_at"]
 
     def __str__(self):
@@ -227,7 +227,7 @@ class LoanRepaymentLedger(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = "SMS_loan_repayment_ledger"
+        db_table = "SSC_loan_repayment_ledger"
         ordering = ["hijri_year", "hijri_month"]
 
     def __str__(self):
@@ -245,7 +245,7 @@ class LoanDraft(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "SMS_loan_drafts"
+        db_table = "SSC_loan_drafts"
 
     def __str__(self):
         return f"Draft for {self.applicant.file_number}"

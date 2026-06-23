@@ -267,7 +267,7 @@ export default function ResetPasswordPage() {
         </div>
 
         <p className="text-center text-primary-300 text-xs mt-4">
-          SMS Cooperative Management System v1.2
+          SSC Cooperative Management System v1.2
         </p>
       </div>
     </div>

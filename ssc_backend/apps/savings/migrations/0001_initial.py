@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
                 ('member', models.OneToOneField(on_delete=django.db.models.deletion.PROTECT, related_name='balance', to='accounts.memberprofile')),
             ],
             options={
-                'db_table': 'SMS_member_balances',
+                'db_table': 'SSC_member_balances',
             },
         ),
         migrations.CreateModel(
@@ -49,7 +49,7 @@ class Migration(migrations.Migration):
                 ('member', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='savings_change_requests', to='accounts.memberprofile')),
             ],
             options={
-                'db_table': 'SMS_savings_change_requests',
+                'db_table': 'SSC_savings_change_requests',
                 'ordering': ['-submitted_at'],
             },
         ),
@@ -74,7 +74,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'verbose_name': 'Savings Ledger Entry',
-                'db_table': 'SMS_savings_ledger',
+                'db_table': 'SSC_savings_ledger',
                 'ordering': ['hijri_year', 'hijri_month', 'created_at'],
             },
         ),
@@ -95,7 +95,7 @@ class Migration(migrations.Migration):
                 ('target_members', models.ManyToManyField(blank=True, help_text='Empty = all active members', related_name='dues_cycles', to='accounts.memberprofile')),
             ],
             options={
-                'db_table': 'SMS_termly_dues_cycles',
+                'db_table': 'SSC_termly_dues_cycles',
                 'ordering': ['-hijri_year', '-hijri_month'],
             },
         ),

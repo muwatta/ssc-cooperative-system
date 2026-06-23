@@ -7,10 +7,10 @@ import axios, {
 const BASE_URL = import.meta.env.DEV
   ? "/api/v1"
   : (import.meta.env.VITE_API_BASE_URL ??
-    "https://SMS-cooperative-system.onrender.com/api/v1");
+    "https://SSC-cooperative-system.onrender.com/api/v1");
 
-const ACCESS_KEY = "SMS_access";
-const REFRESH_KEY = "SMS_refresh";
+const ACCESS_KEY = "SSC_access";
+const REFRESH_KEY = "SSC_refresh";
 
 export const tokenStorage = {
   getAccess: () => sessionStorage.getItem(ACCESS_KEY),

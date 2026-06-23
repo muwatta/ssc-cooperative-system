@@ -6,21 +6,21 @@ CREATE TYPE school_branch AS ENUM ('primary', 'college', 'other');
 
 
 
-CREATE TABLE SMS_staff_id_registry (
+CREATE TABLE SSC_staff_id_registry (
     id          BIGSERIAL PRIMARY KEY,
     staff_id    VARCHAR(10)  NOT NULL UNIQUE,
     is_active   BOOLEAN      NOT NULL DEFAULT TRUE,
-    created_by_id BIGINT     REFERENCES SMS_users(id) ON DELETE SET NULL,
+    created_by_id BIGINT     REFERENCES SSC_users(id) ON DELETE SET NULL,
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
 
     CONSTRAINT staff_id_format CHECK (staff_id ~ '^S[0-9]{2}-[0-9]{4}$')
 );
 
-CREATE INDEX idx_staff_id_registry_staff_id ON SMS_staff_id_registry(staff_id);
+CREATE INDEX idx_staff_id_registry_staff_id ON SSC_staff_id_registry(staff_id);
 
 
-CREATE TABLE SMS_users (
+CREATE TABLE SSC_users (
     id              BIGSERIAL PRIMARY KEY,
     staff_id        VARCHAR(10)   NOT NULL UNIQUE,
     password        VARCHAR(128)  NOT NULL,
@@ -36,17 +36,17 @@ CREATE TABLE SMS_users (
     CONSTRAINT staff_id_format CHECK (staff_id ~ '^S[0-9]{2}-[0-9]{4}$')
 );
 
-CREATE INDEX idx_SMS_users_staff_id ON SMS_users(staff_id);
-CREATE INDEX idx_SMS_users_role ON SMS_users(role);
+CREATE INDEX idx_SSC_users_staff_id ON SSC_users(staff_id);
+CREATE INDEX idx_SSC_users_role ON SSC_users(role);
 
-ALTER TABLE SMS_staff_id_registry
+ALTER TABLE SSC_staff_id_registry
     ADD CONSTRAINT fk_registry_created_by
-    FOREIGN KEY (created_by_id) REFERENCES SMS_users(id) ON DELETE SET NULL;
+    FOREIGN KEY (created_by_id) REFERENCES SSC_users(id) ON DELETE SET NULL;
 
 
-CREATE TABLE SMS_member_profiles (
+CREATE TABLE SSC_member_profiles (
     id                          BIGSERIAL PRIMARY KEY,
-    user_id                     BIGINT        NOT NULL UNIQUE REFERENCES SMS_users(id) ON DELETE RESTRICT,
+    user_id                     BIGINT        NOT NULL UNIQUE REFERENCES SSC_users(id) ON DELETE RESTRICT,
     file_number                 VARCHAR(10)   NOT NULL UNIQUE,
     _file_sequence              INTEGER       NOT NULL UNIQUE,
 
@@ -104,10 +104,10 @@ CREATE TABLE SMS_member_profiles (
     CONSTRAINT min_contribution CHECK (approved_monthly_contribution >= 0)
 );
 
-CREATE INDEX idx_member_profiles_file_number ON SMS_member_profiles(file_number);
-CREATE INDEX idx_member_profiles_membership_status ON SMS_member_profiles(membership_status);
-CREATE INDEX idx_member_profiles_school_branch ON SMS_member_profiles(school_branch);
-CREATE INDEX idx_member_profiles_full_name ON SMS_member_profiles(full_name);
+CREATE INDEX idx_member_profiles_file_number ON SSC_member_profiles(file_number);
+CREATE INDEX idx_member_profiles_membership_status ON SSC_member_profiles(membership_status);
+CREATE INDEX idx_member_profiles_school_branch ON SSC_member_profiles(school_branch);
+CREATE INDEX idx_member_profiles_full_name ON SSC_member_profiles(full_name);
 
 
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -118,19 +118,19 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
-CREATE TRIGGER update_SMS_users_updated_at
-    BEFORE UPDATE ON SMS_users
+CREATE TRIGGER update_SSC_users_updated_at
+    BEFORE UPDATE ON SSC_users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_staff_id_registry_updated_at
-    BEFORE UPDATE ON SMS_staff_id_registry
+    BEFORE UPDATE ON SSC_staff_id_registry
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_member_profiles_updated_at
-    BEFORE UPDATE ON SMS_member_profiles
+    BEFORE UPDATE ON SSC_member_profiles
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 
-ALTER TABLE SMS_staff_id_registry DISABLE ROW LEVEL SECURITY;
-ALTER TABLE SMS_users DISABLE ROW LEVEL SECURITY;
-ALTER TABLE SMS_member_profiles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE SSC_staff_id_registry DISABLE ROW LEVEL SECURITY;
+ALTER TABLE SSC_users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE SSC_member_profiles DISABLE ROW LEVEL SECURITY;
