@@ -31,7 +31,7 @@ from django.contrib.auth.hashers import make_password
 
 from .models import MembershipStatus, User, StaffIDRegistry, MemberProfile
 from .serializers import (
-    SMSTokenObtainPairSerializer,
+    SSCTokenObtainPairSerializer,
     StaffIDRegistrySerializer,
     CreateUserSerializer,
     MemberProfileSerializer,
@@ -94,7 +94,7 @@ def send_reset_email(email, reset_link):
 
 class SMSTokenObtainPairView(TokenObtainPairView):
     throttle_classes = [LoginRateThrottle]
-    serializer_class = SMSTokenObtainPairSerializer
+    serializer_class = SSCTokenObtainPairSerializer
 
 
 class LogoutView(APIView):
