@@ -1,7 +1,7 @@
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.db.models import Max
 from datetime import date
-
 
 class Command(BaseCommand):
     help = "Seed the initial admin user, member profile, and staff ID registry entry."
@@ -9,13 +9,13 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             "--staff-id",
-            default="ADM-0001",
-            help="Staff ID for the admin user (default: ADM-0001)",
+            default="S43-0094",
+            help="Staff ID for the admin user (default: S43-0094)",
         )
         parser.add_argument(
             "--password",
-            default="Admin@SSC2024",
-            help="Password for the admin user (default: Admin@SSC2024)",
+            default="solace1234",
+            help="Password for the admin user (default: solace1234)",
         )
         parser.add_argument(
             "--full-name",
@@ -25,7 +25,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--force",
             action="store_true",
-            help="Re-seed even if the admin user already exists (deletes and recreates)",
+            help="Re-seed even if the admin user already exists",
         )
 
     @transaction.atomic
@@ -37,16 +37,11 @@ class Command(BaseCommand):
         full_name = options["full_name"]
         force = options["force"]
 
-        # 1. Check existing─
+        # Check existing
         user_exists = User.objects.filter(staff_id=staff_id).exists()
 
         if user_exists and not force:
-            self.stdout.write(
-                self.style.WARNING(
-                    f"Admin user '{staff_id}' already exists. "
-                    f"Use --force to recreate, or --staff-id to use a different ID."
-                )
-            )
+            self.stdout.write(self.style.WARNING(f"Admin user '{staff_id}' already exists. Use --force to recreate."))
             return
 
         if user_exists and force:
@@ -55,8 +50,8 @@ class Command(BaseCommand):
             MemberProfile.objects.filter(user=user).delete()
             user.delete()
             StaffIDRegistry.objects.filter(staff_id=staff_id).delete()
-        
-        # 2. StaffIDRegistry
+
+        # 1. Ensure StaffIDRegistry entry exists
         registry, created = StaffIDRegistry.objects.get_or_create(
             staff_id=staff_id,
             defaults={"is_active": True},
@@ -64,18 +59,20 @@ class Command(BaseCommand):
         if not created:
             registry.is_active = True
             registry.save(update_fields=["is_active"])
-
         self.stdout.write(f"  [1/3] StaffIDRegistry: {'created' if created else 'already exists, ensured active'}")
 
-        # 3. Use─
+        # 2. Create superuser
         user = User.objects.create_superuser(staff_id=staff_id, password=password)
         self.stdout.write(f"  [2/3] User '{staff_id}' created (role=admin)")
 
-        # 4. MemberProfile
+        # 3. Create MemberProfile
+        max_seq = MemberProfile.objects.aggregate(m=Max('_file_sequence'))['m'] or 0
+        next_seq = max_seq + 1
+
         MemberProfile.objects.create(
             user=user,
             file_number=staff_id,
-            _file_sequence=1,
+            _file_sequence=next_seq,
             full_name=full_name,
             phone_primary="08000000000",
             marital_status="single",
@@ -99,13 +96,8 @@ class Command(BaseCommand):
         )
         self.stdout.write(f"  [3/3] MemberProfile created for '{staff_id}'")
 
-        # 5. Summary
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS("✓ Admin seeded successfully!"))
         self.stdout.write(f"  Staff ID : {staff_id}")
         self.stdout.write(f"  Password : {password}")
         self.stdout.write(f"  Full Name: {full_name}")
-        self.stdout.write("")
-        self.stdout.write(
-            self.style.WARNING("  ⚠ Change the password after first login!")
-        )
