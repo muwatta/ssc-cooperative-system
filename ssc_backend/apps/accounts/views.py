@@ -718,18 +718,24 @@ class PasswordResetConfirmView(APIView):
         token = request.data.get('token')
         new_password = request.data.get('new_password')
 
+        print(f"Reset attempt: uid={uid}, token={token[:10]}...")
+
         if not all([uid, token, new_password]):
             return Response({'error': 'uid, token, and new_password required'}, status=400)
 
         try:
             uid_decoded = force_str(urlsafe_base64_decode(uid))
             user = User.objects.get(pk=uid_decoded)
+            print(f"User found: {user.staff_id}")
         except (TypeError, ValueError, User.DoesNotExist):
             user = None
+            print("User not found or invalid uid")
 
         if user and default_token_generator.check_token(user, token):
             user.set_password(new_password)
             user.save()
+            print(f"Password changed for {user.staff_id}")
             return Response({'message': 'Password reset successful.'}, status=200)
         else:
+            print("Invalid token or user")
             return Response({'error': 'Invalid or expired reset link.'}, status=400)
