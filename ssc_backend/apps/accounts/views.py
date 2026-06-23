@@ -657,10 +657,31 @@ class PasswordResetRequestView(APIView):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         reset_link = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}/"
 
-        print(f"RESET LINK: {reset_link}")
+        # Render the banking-style HTML email template
+        html_message = render_to_string('emails/password_reset.html', {
+            'reset_link': reset_link,
+            'email': email,
+            'year': timezone.now().year,
+            'title': 'Reset Your SSC Cooperative Password'
+        })
 
+        # Send the email with HTML content
+        try:
+            send_mail(
+                subject='Reset Your SSC Cooperative Password',
+                message=f'Click the link to reset your password: {reset_link}',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+        except Exception as e:
+            # Log error but still return success (security)
+            print(f"Email sending failed: {e}")
+            # You can still return success to not reveal issues
+            return Response({'message': 'If an account exists, a reset link has been sent.'}, status=200)
+        
         return Response({'message': 'Password reset link sent to your email.'}, status=200)
-
 class PasswordResetConfirmView(APIView):
     permission_classes = []
 
