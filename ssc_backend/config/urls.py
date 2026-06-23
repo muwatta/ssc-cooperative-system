@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse, JsonResponse
 from rest_framework_simplejwt.views import TokenRefreshView
-from apps.accounts.views import SMSTokenObtainPairView, LogoutView, ToggleSpecialSaverView
+from apps.accounts.views import SSCTokenObtainPairView, LogoutView, ToggleSpecialSaverView
 from apps.core.views import CurrentDateView, DashboardSummaryView, ResetDataView
 import csv
 import io
@@ -65,9 +65,9 @@ def health_check(request):
     return JsonResponse({"status": "ok"})
 
 urlpatterns = [
-    path("SMS-coop-admin-secret/", admin.site.urls),
+    path("ssc-coop-admin-secret/", admin.site.urls),
     path("api/v1/date/", CurrentDateView.as_view(), name="current-date"),
-    path("api/v1/auth/login/", SMSTokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/v1/auth/login/", SSCTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/v1/auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/v1/auth/logout/", LogoutView.as_view(), name="logout"),
     path("api/v1/accounts/", include("apps.accounts.urls")),

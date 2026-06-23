@@ -70,7 +70,7 @@ def send_reset_email(email, reset_link):
         'reset_link': reset_link,
         'email': email,
         'year': timezone.now().year,
-        'title': 'Reset Your SMS Cooperative Password'
+        'title': 'Reset Your SSC Cooperative Password'
     })
 
     response = requests.post(
@@ -82,7 +82,7 @@ def send_reset_email(email, reset_link):
         json={
             "from": settings.DEFAULT_FROM_EMAIL,
             "to": [email],
-            "subject": "Reset Your SMS Cooperative Password",
+            "subject": "Reset Your SSC Cooperative Password",
             "html": html_message,
             "text": f"Click the link to reset your password: {reset_link}",
         },
@@ -92,7 +92,7 @@ def send_reset_email(email, reset_link):
     return response.json()
 
 
-class SMSTokenObtainPairView(TokenObtainPairView):
+class SSCTokenObtainPairView(TokenObtainPairView):
     throttle_classes = [LoginRateThrottle]
     serializer_class = SSCTokenObtainPairSerializer
 
@@ -693,7 +693,7 @@ class PasswordResetRequestView(APIView):
             'reset_link': reset_link,
             'email': email,
             'year': timezone.now().year,
-            'title': 'Reset Your SMS Cooperative Password'
+            'title': 'Reset Your SSC Cooperative Password'
         })
 
         try:
