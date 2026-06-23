@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
             options={
                 "verbose_name": "Invitation",
                 "verbose_name_plural": "Invitations",
-                "db_table": "SMS_invitations",
+                "db_table": "SSC_invitations",
                 "ordering": ["-email_sent_at"],
             },
         ),

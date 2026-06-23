@@ -35,14 +35,14 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': 'User',
                 'verbose_name_plural': 'Users',
-                'db_table': 'SMS_users',
+                'db_table': 'SSC_users',
             },
         ),
         migrations.CreateModel(
             name='MemberProfile',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('file_number', models.CharField(help_text='SMS File Number e.g. A048. Auto-generated or imported for legacy.', max_length=10, unique=True)),
+                ('file_number', models.CharField(help_text='SSC File Number e.g. A048. Auto-generated or imported for legacy.', max_length=10, unique=True)),
                 ('_file_sequence', models.PositiveIntegerField(help_text='Internal integer for sequential generation. Do not edit.', unique=True)),
                 ('full_name', models.CharField(max_length=255)),
                 ('phone_primary', models.CharField(max_length=20)),
@@ -80,7 +80,7 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': 'Member Profile',
                 'verbose_name_plural': 'Member Profiles',
-                'db_table': 'SMS_member_profiles',
+                'db_table': 'SSC_member_profiles',
                 'ordering': ['file_number'],
             },
         ),
@@ -97,7 +97,7 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': 'Staff ID Registry',
                 'verbose_name_plural': 'Staff ID Registry',
-                'db_table': 'SMS_staff_id_registry',
+                'db_table': 'SSC_staff_id_registry',
                 'ordering': ['staff_id'],
             },
         ),
