@@ -651,36 +651,25 @@ class PasswordResetRequestView(APIView):
             profile = MemberProfile.objects.get(email_address=email)
             user = profile.user
         except MemberProfile.DoesNotExist:
-            # Security: don't reveal if email exists
             return Response({'message': 'If an account exists, a reset link has been sent.'}, status=200)
 
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         reset_link = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}/"
 
-        # Render the banking-style HTML email template
-        html_message = render_to_string('emails/password_reset.html', {
-            'reset_link': reset_link,
-            'email': email,
-            'year': timezone.now().year,
-            'title': 'Reset Your SSC Cooperative Password'
-        })
+        print(f"RESET LINK: {reset_link}")
 
-        # Send the email with HTML content
-        send_mail(
-            subject='Reset Your SSC Cooperative Password',
-            message=f'Click the link to reset your password: {reset_link}',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            html_message=html_message,
-            fail_silently=False,
-        )
-        
         return Response({'message': 'Password reset link sent to your email.'}, status=200)
-
 
 class PasswordResetConfirmView(APIView):
     permission_classes = []
+
+    def options(self, request, *args, **kwargs):
+        response = Response()
+        response['Access-Control-Allow-Origin'] = 'https://www.solacestaffcooperative.com.ng'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        response['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        return response
 
     def post(self, request):
         uid = request.data.get('uid')
