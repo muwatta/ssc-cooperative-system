@@ -15,7 +15,6 @@ from django.contrib.auth.tokens import default_token_generator
 from rest_framework import status
 from django.contrib.auth import get_user_model
 from django.template.loader import render_to_string
-from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone        
 
@@ -54,11 +53,43 @@ from django.utils.encoding import force_bytes, force_str
 from django.core.mail import send_mail
 from django.conf import settings
 
+import requests
+
 User = get_user_model()
 
 def invalidate_dashboard_cache():
     cache.delete("dashboard_summary_admin_stats")
 
+
+def send_reset_email(email, reset_link):
+    api_key = settings.RESEND_API_KEY
+    if not api_key:
+        raise ValueError("RESEND_API_KEY is not set")
+
+    html_message = render_to_string('emails/password_reset.html', {
+        'reset_link': reset_link,
+        'email': email,
+        'year': timezone.now().year,
+        'title': 'Reset Your SSC Cooperative Password'
+    })
+
+    response = requests.post(
+        "https://api.resend.com/emails",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "from": settings.DEFAULT_FROM_EMAIL,
+            "to": [email],
+            "subject": "Reset Your SSC Cooperative Password",
+            "html": html_message,
+            "text": f"Click the link to reset your password: {reset_link}",
+        },
+        timeout=10,
+    )
+    response.raise_for_status()
+    return response.json()
 
 class SSCTokenObtainPairView(TokenObtainPairView):
     throttle_classes = [LoginRateThrottle]
@@ -667,21 +698,15 @@ class PasswordResetRequestView(APIView):
 
         # Send the email with HTML content
         try:
-            send_mail(
-                subject='Reset Your SSC Cooperative Password',
-                message=f'Click the link to reset your password: {reset_link}',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-                html_message=html_message,
-                fail_silently=False,
-            )
+            send_reset_email(email, reset_link)
         except Exception as e:
-            # Log error but still return success (security)
+            # Log the error (will appear in Render logs)
             print(f"Email sending failed: {e}")
-            # You can still return success to not reveal issues
+            # Still return success to avoid exposing user existence
             return Response({'message': 'If an account exists, a reset link has been sent.'}, status=200)
         
         return Response({'message': 'Password reset link sent to your email.'}, status=200)
+
 class PasswordResetConfirmView(APIView):
     permission_classes = []
 
