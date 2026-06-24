@@ -621,7 +621,7 @@ class ChangePasswordView(APIView):
             description="User changed password",
             object_type="User",
             object_id=user.id,
-            object_name=user.get_full_name() or user.staff_id,
+            object_name=user.staff_id,
             request_ip=get_client_ip(request),
         )
 
