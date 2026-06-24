@@ -75,14 +75,18 @@ def check_loan_eligibility(member: MemberProfile) -> dict:
             "Please wait for a final decision before applying again."
         )
 
-    # 6. Reapply cooldown after rejection (24 hours)
-    last_rejected = LoanApplication.objects.filter(
-        applicant=member, status=LoanStatus.REJECTED
+     # 6. Reapply cooldown (12h default)
+    cooldown_hours = config.reapplication_cooldown_hours
+    cooldown_seconds = cooldown_hours * 3600
+    last_decision = LoanApplication.objects.filter(
+        applicant=member,
+        status__in=[LoanStatus.REJECTED, LoanStatus.WITHDRAWN]
     ).order_by('-created_at').first()
-    if last_rejected and (timezone.now() - last_rejected.created_at).total_seconds() < 86400:
-        hours_left = 24 - int((timezone.now() - last_rejected.created_at).total_seconds() / 3600)
+
+    if last_decision and (timezone.now() - last_decision.created_at).total_seconds() < cooldown_seconds:
+        hours_left = cooldown_hours - int((timezone.now() - last_decision.created_at).total_seconds() / 3600)
         reasons.append(
-            f"You cannot reapply yet. Please wait {hours_left} hours after your last rejection."
+            f"You cannot reapply yet. Please wait {hours_left} hours after your last {last_decision.get_status_display()}."
         )
 
     return {"eligible": len(reasons) == 0, "reasons": reasons}

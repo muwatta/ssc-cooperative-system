@@ -13,6 +13,38 @@ class LoanRepaymentLedgerAdmin(admin.ModelAdmin):
     list_display  = ["loan", "hijri_display", "amount", "balance_after"]
     readonly_fields = ["created_at"]
 
+
 @admin.register(LoanConfiguration)
 class LoanConfigurationAdmin(admin.ModelAdmin):
-    list_display = ('id', 'self_surety_ratio', 'max_borrowable_ratio', 'external_surety_max_ratio')
+    list_display = [
+        'consecutive_savings_months_required',
+        'max_loans_per_year',
+        'max_repayment_months',
+        'self_surety_ratio',
+        'max_borrowable_ratio',
+        'external_surety_max_ratio',
+        'max_sureties',
+        'min_loan_amount',
+        'max_loan_amount',
+        'require_no_active_loan',
+        'require_no_surety_liabilities',
+        'reapplication_cooldown_hours',  
+    ]
+    fieldsets = (
+        (None, {
+            'fields': (
+                'consecutive_savings_months_required',
+                'max_loans_per_year',
+                'max_repayment_months',
+                'self_surety_ratio',
+                'max_borrowable_ratio',
+                'external_surety_max_ratio',
+                'max_sureties',
+                'min_loan_amount',
+                'max_loan_amount',
+                'require_no_active_loan',
+                'require_no_surety_liabilities',
+                'reapplication_cooldown_hours', 
+            )
+        }),
+    )

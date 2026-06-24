@@ -14,6 +14,8 @@ class LoanStatus(models.TextChoices):
     COMPLETED      = "completed",     "Completed"
     REJECTED       = "rejected",      "Rejected"
     DEFAULTED      = "defaulted",     "Defaulted"
+    WITHDRAWN = "withdrawn", "Withdrawn"
+
 
 
 class LoanConfiguration(models.Model):
@@ -98,6 +100,10 @@ class LoanConfiguration(models.Model):
     require_no_surety_liabilities = models.BooleanField(
         default=True,
         help_text="Require members to have no active surety liabilities before applying.",
+    )
+    reapplication_cooldown_hours = models.PositiveIntegerField(
+    default=12,
+    help_text="Hours a member must wait after a rejection or withdrawal before reapplying."
     )
     updated_at = models.DateTimeField(auto_now=True)
 
