@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.db import transaction
-from .models import User, StaffIDRegistry, MemberProfile, Role, generate_file_number
+from .models import User, StaffIDRegistry, SchoolBranch, MemberProfile, Role, generate_file_number
 
 
 class SSCTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -259,9 +259,14 @@ class CreateMemberSerializer(serializers.Serializer):
     gender = serializers.ChoiceField(choices=[("male", "Male"), ("female", "Female")])
     date_of_birth = serializers.DateField()
     place_of_birth = serializers.CharField(max_length=255)
-    school_branch = serializers.ChoiceField(choices=[
-        ("primary", "Primary"), ("college", "College"), ("other", "Other")
-    ])
+    school_branch = serializers.ChoiceField(
+    choices=SchoolBranch.choices,
+    required=True,
+    error_messages={
+        "required": "Please select a school branch.",
+        "invalid_choice": "Please choose a valid school branch from the list."
+    }
+    )
     designation = serializers.CharField(max_length=255)
     date_joined_school = serializers.DateField()
     monthly_income = serializers.DecimalField(max_digits=12, decimal_places=2)

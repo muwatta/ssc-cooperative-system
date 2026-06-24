@@ -35,6 +35,8 @@ class MembershipStatus(models.TextChoices):
 class SchoolBranch(models.TextChoices):
     PRIMARY = "primary", "Primary"
     COLLEGE = "college", "College"
+    RIYADH_ELEMENTARY = "riyaad_elementary", "Riyaad Elementary"
+    RIYADH_COLLEGE = "riyaad_college", "Riyaad College"
     OTHER = "other", "Other"
 
 

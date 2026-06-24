@@ -95,7 +95,7 @@ export default function MyProfilePage() {
         gender: data.gender,
         date_of_birth: data.date_of_birth,
         place_of_birth: data.place_of_birth,
-        school_branch: data.school_branch,
+        school_branch: data.school_branch || "",
         designation: data.designation,
         date_joined_school: data.date_joined_school,
         monthly_income: data.monthly_income,
@@ -175,13 +175,36 @@ export default function MyProfilePage() {
       setIsError(false);
     } catch (err: any) {
       const d = err?.response?.data;
-      const msg =
-        d?.approved_monthly_contribution?.[0] ||
-        d?.detail ||
-        (Object.values(d || {}).flat()[0] as string) ||
-        (profileMissing
-          ? "Failed to create profile. Please check your details."
-          : "Failed to update profile. Please check your details.");
+      let msg = "";
+
+      if (d && typeof d === "object") {
+        const fieldErrors = [];
+        for (const [field, value] of Object.entries(d)) {
+          const fieldName = field.replace(/_/g, " ").toUpperCase();
+          if (Array.isArray(value)) {
+            fieldErrors.push(`${fieldName}: ${value.join("; ")}`);
+          } else if (typeof value === "string") {
+            fieldErrors.push(`${fieldName}: ${value}`);
+          } else if (value && typeof value === "object") {
+            for (const [subField, subValue] of Object.entries(value)) {
+              if (Array.isArray(subValue)) {
+                fieldErrors.push(`${subField}: ${subValue.join("; ")}`);
+              }
+            }
+          }
+        }
+        if (fieldErrors.length > 0) {
+          msg = fieldErrors.join(". ");
+        } else {
+          msg =
+            d.detail || d.message || "Please check your details and try again.";
+        }
+      } else if (typeof d === "string") {
+        msg = d;
+      } else {
+        msg = "Unable to save profile. Please try again later.";
+      }
+
       setServerMessage(msg);
       setIsError(true);
     }
@@ -431,12 +454,23 @@ export default function MyProfilePage() {
           </div>
           <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-2">
             <div>
-              <label className="label">School Branch</label>
-              <select {...register("school_branch")} className="input">
+              <label className="label">School Branch *</label>
+              <select
+                {...register("school_branch", {
+                  required: "Please select a school branch.",
+                })}
+                className={`input ${errors.school_branch ? "input-error" : ""}`}
+              >
+                <option value="">— Select a branch —</option>
                 <option value="primary">Primary</option>
                 <option value="college">College</option>
                 <option value="other">Other</option>
+                <option value="riyadh_college">Riyadh College</option>
+                <option value="riyadh_elementary">Riyadh Elementary</option>
               </select>
+              {errors.school_branch && (
+                <p className="field-error">{errors.school_branch.message}</p>
+              )}
             </div>
             <div>
               <label className="label">Designation</label>
