@@ -214,6 +214,18 @@ export default function LoanSettingsPage() {
             unit="months"
             onChange={(v) => update("consecutive_savings_months_required", v)}
           />
+
+          <SliderField
+            label="Reapplication cooldown"
+            description="Hours a member must wait after a rejection or withdrawal before reapplying."
+            value={form.reapplication_cooldown_hours}
+            min={1}
+            max={72}
+            step={1}
+            unit="hours"
+            onChange={(v) => update("reapplication_cooldown_hours", v)}
+          />
+
           <SliderField
             label="Max active loans per member"
             description="How many active loans can a member have at once?"
@@ -224,18 +236,21 @@ export default function LoanSettingsPage() {
             unit="loans"
             onChange={(v) => update("max_active_loans", v)}
           />
+
           <ToggleField
             label="Require no active loan"
             description="Prevent members with an existing active loan from applying."
             checked={form.require_no_active_loan}
             onChange={(v) => update("require_no_active_loan", v)}
           />
+
           <ToggleField
             label="Require no surety liabilities"
             description="Block members who are currently guaranteeing another loan."
             checked={form.require_no_surety_liabilities}
             onChange={(v) => update("require_no_surety_liabilities", v)}
           />
+
           <SliderField
             label="Max loans per year"
             description="How many approved loans can a member have in one calendar year?"

@@ -318,6 +318,8 @@ class LoanSettingsSerializer(serializers.ModelSerializer):
             "default_termly_dues",
             "late_repayment_fee",
             "repayment_grace_days",
+            "reapplication_cooldown_hours",
+            
         ]
 
     def validate_self_surety_ratio(self, value):

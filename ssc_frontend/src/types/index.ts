@@ -296,6 +296,7 @@ export interface LoanSettings {
   default_termly_dues: number;
   late_repayment_fee: number;
   repayment_grace_days: number;
+  reapplication_cooldown_hours: number;
 }
 export interface LoanEligibilityResponse {
   eligible: boolean;
