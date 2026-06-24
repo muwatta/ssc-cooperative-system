@@ -226,7 +226,7 @@ function CommitteeDecisionModal({
   );
 }
 
-// ---------- Admin Final Approval Modal ----------
+// Admin Final Approval Modal
 function AdminFinalApprovalModal({
   loan,
   onClose,
@@ -322,7 +322,7 @@ function AdminFinalApprovalModal({
   );
 }
 
-// ---------- Status Badge ----------
+// Status Badge
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { color: string; label: string }> = {
     submitted: {
@@ -381,7 +381,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ---------- Main Page ----------
+// Main Page
 export default function LoanQueuePage() {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
@@ -398,12 +398,6 @@ export default function LoanQueuePage() {
     queryFn: async () => {
       const status = activeFilter === "all" ? undefined : activeFilter;
       const res = await loansApi.list({ status });
-      if (res.data.results) {
-        res.data.results.sort(
-          (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-        );
-      }
       return res.data;
     },
     staleTime: 1000 * 30,
