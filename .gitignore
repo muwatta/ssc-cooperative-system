@@ -95,4 +95,4 @@ backend/supabase_schema_phase1.sql
 # Frontend specific
 frontend/dist/
 frontend/.vite/
-.docs/
+.docs/apps/accounts/management/commands/seed_test_members.py
