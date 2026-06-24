@@ -27,7 +27,6 @@ export default function LoginPage() {
     try {
       const result = await login(data);
 
-      // Store user object from decoded token
       const token = localStorage.getItem("SSC_access");
       if (token) {
         const payload = token.split(".")[1];
@@ -69,49 +68,45 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-md sm:max-w-lg md:max-w-xl">
+    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4">
+      <div className="w-full max-w-sm">
         {/* Logo / Header */}
-        <div className="text-center mb-6 sm:mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 backdrop-blur mb-4">
-            <span className="text-3xl sm:text-4xl font-black text-white">
-              S
-            </span>
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur mb-3">
+            <span className="text-3xl font-black text-white">S</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-white leading-tight">
             Solace Staff Cooperative
           </h1>
-          <p className="text-primary-200 text-sm sm:text-base mt-1">
-            Management System
-          </p>
+          <p className="text-primary-200 text-sm mt-1">Management System</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 md:p-10 transition-all duration-300">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
-            Sign in
-          </h2>
-          <p className="text-sm sm:text-base text-gray-500 mb-6">
+        <div className="bg-white rounded-2xl shadow-2xl p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-1">Sign in</h2>
+          <p className="text-sm text-gray-500 mb-5">
             Use your school Staff ID to access the system.
           </p>
 
           {serverError && (
-            <div className="bg-danger-50 border border-danger-200 text-danger-700 text-sm rounded-xl px-4 py-3 mb-4 flex items-start gap-2">
-              <span className="text-danger-500 text-lg leading-none">⚠</span>
-              <span>{serverError}</span>
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-4 flex items-start gap-2">
+              <span className="text-red-500 text-base leading-tight mt-0.5">
+                ⚠
+              </span>
+              <span className="leading-snug">{serverError}</span>
             </div>
           )}
 
           <form
             onSubmit={handleSubmit(onSubmit)}
             noValidate
-            className="space-y-5"
+            className="space-y-4"
           >
             {/* Staff ID */}
             <div>
               <label
                 htmlFor="staff_id"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-semibold text-gray-700 mb-1.5"
               >
                 Staff ID
               </label>
@@ -121,20 +116,32 @@ export default function LoginPage() {
                   required: "Staff ID is required",
                   pattern: {
                     value: /^S\d{2}-\d{4}$/,
-                    message: "Format must be S{YY}-{NNNN} e.g. S43-0094",
+                    message: "Format: S43-0094",
                   },
                 })}
-                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-200 text-base uppercase ${errors.staff_id ? "border-danger-500 ring-danger-500" : "border-gray-300"}`}
+                className={[
+                  "w-full px-4 border rounded-xl",
+                  "text-base font-mono tracking-wider text-gray-900",
+                  "placeholder-gray-400",
+                  "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent",
+                  "transition duration-150",
+                  errors.staff_id
+                    ? "border-red-400 bg-red-50"
+                    : "border-gray-300 bg-white",
+                ].join(" ")}
+                style={{ fontSize: "16px", padding: "14px 16px" }}
                 placeholder="S43-0094"
-                autoFocus
+                autoCapitalize="characters"
+                autoCorrect="off"
                 autoComplete="username"
+                inputMode="text"
                 onChange={(e) => {
                   e.target.value = e.target.value.toUpperCase();
                 }}
               />
               {errors.staff_id && (
-                <p className="mt-1 text-sm text-danger-600">
-                  {errors.staff_id.message}
+                <p className="mt-1.5 text-sm text-red-600">
+                  ⚠ {errors.staff_id.message}
                 </p>
               )}
             </div>
@@ -143,7 +150,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-semibold text-gray-700 mb-1.5"
               >
                 Password
               </label>
@@ -154,51 +161,64 @@ export default function LoginPage() {
                     required: "Password is required",
                   })}
                   type={showPassword ? "text" : "password"}
-                  className={`w-full px-4 py-3 pr-12 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-200 text-base ${errors.password ? "border-danger-500 ring-danger-500" : "border-gray-300"}`}
+                  className={[
+                    "w-full pr-14 border rounded-xl",
+                    "text-base text-gray-900",
+                    "placeholder-gray-400",
+                    "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent",
+                    "transition duration-150",
+                    errors.password
+                      ? "border-red-400 bg-red-50"
+                      : "border-gray-300 bg-white",
+                  ].join(" ")}
+                  style={{ fontSize: "16px", padding: "14px 56px 14px 16px" }}
                   placeholder="Enter your password"
                   autoComplete="current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition"
+                  className="absolute inset-y-0 right-0 w-14 flex items-center justify-center text-gray-400 hover:text-gray-600 transition"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? "🙈" : "👁"}
+                  <span className="text-xl">{showPassword ? "🙈" : "👁"}</span>
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-danger-600">
-                  {errors.password.message}
+                <p className="mt-1.5 text-sm text-red-600">
+                  ⚠ {errors.password.message}
                 </p>
               )}
             </div>
 
+            {/* Submit */}
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-xl transition duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base"
+              className="w-full bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold rounded-xl transition duration-150 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+              style={{ fontSize: "16px", padding: "16px" }}
             >
               {isSubmitting ? (
                 <>
                   <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Signing in...
+                  Signing in…
                 </>
               ) : (
                 "Sign in"
               )}
             </button>
 
-            <div className="text-center">
+            <div className="text-center pt-1">
               <Link
                 to="/forgot-password"
-                className="text-sm text-primary-600 hover:text-primary-800 font-medium transition duration-150"
+                className="text-sm text-primary-600 hover:text-primary-800 font-medium"
               >
                 Forgot your password?
               </Link>
             </div>
           </form>
 
-          <p className="text-center text-xs text-gray-400 mt-6">
+          <p className="text-center text-xs text-gray-400 mt-5 leading-relaxed">
             First time? Your Admin will provide your Staff ID.
           </p>
         </div>

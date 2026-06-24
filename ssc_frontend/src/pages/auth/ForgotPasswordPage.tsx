@@ -37,40 +37,33 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4 sm:p-6 antialiased">
-      <div className="w-full max-w-md sm:max-w-lg md:max-w-xl">
+    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4">
+      <div className="w-full max-w-sm">
         {/* Logo / Header */}
-        <div className="text-center mb-6 sm:mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 mb-4">
-            <span className="text-3xl sm:text-4xl font-black text-white">
-              S
-            </span>
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur mb-3">
+            <span className="text-3xl font-black text-white">S</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-white leading-tight">
             Solace Staff Cooperative
           </h1>
-          <p className="text-primary-200 text-sm sm:text-base mt-1">
-            Management System
-          </p>
+          <p className="text-primary-200 text-sm mt-1">Management System</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 md:p-10 transition-all duration-300">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
-              Reset Password
-            </h2>
-            <p className="text-sm sm:text-base text-gray-600 mt-1">
-              Enter your email address and we'll send you a link to reset your
-              password.
+        <div className="bg-white rounded-2xl shadow-2xl p-6">
+          <div className="mb-5">
+            <h2 className="text-xl font-bold text-gray-900">Reset Password</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Enter your email address and we'll send you a reset link.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-semibold text-gray-700 mb-1.5"
               >
                 Email Address
               </label>
@@ -81,29 +74,36 @@ export default function ForgotPasswordPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-200 text-base"
+                className="w-full border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-150"
+                style={{ fontSize: "16px", padding: "14px 16px" }}
                 autoComplete="email"
+                inputMode="email"
               />
             </div>
 
             {message && (
               <div className="bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 text-sm flex items-start gap-2">
-                <span className="text-green-500 text-lg leading-none">✓</span>
-                <span>{message}</span>
+                <span className="text-green-500 text-base leading-tight mt-0.5">
+                  ✓
+                </span>
+                <span className="leading-snug">{message}</span>
               </div>
             )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm flex items-start gap-2">
-                <span className="text-red-500 text-lg leading-none">⚠</span>
-                <span>{error}</span>
+                <span className="text-red-500 text-base leading-tight mt-0.5">
+                  ⚠
+                </span>
+                <span className="leading-snug">{error}</span>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-xl transition duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base"
+              className="w-full bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold rounded-xl transition duration-150 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              style={{ fontSize: "16px", padding: "16px" }}
             >
               {loading ? (
                 <>
@@ -127,17 +127,17 @@ export default function ForgotPasswordPage() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  Sending...
+                  Sending…
                 </>
               ) : (
                 "Send Reset Link"
               )}
             </button>
 
-            <div className="text-center text-sm">
+            <div className="text-center pt-1">
               <a
                 href="/login"
-                className="text-primary-600 hover:text-primary-800 font-medium transition duration-150"
+                className="text-sm text-primary-600 hover:text-primary-800 font-medium transition duration-150"
               >
                 ← Back to Sign In
               </a>

@@ -54,58 +54,55 @@ export default function ResetPasswordPage() {
     }
   };
 
-  // Password strength indicator
   const getPasswordStrength = (password: string) => {
-    if (!password) return { label: "", color: "" };
+    if (!password) return { label: "", color: "", width: "0%" };
     const score =
       (password.length >= 8 ? 1 : 0) +
       (/[a-z]/.test(password) ? 1 : 0) +
       (/[A-Z]/.test(password) ? 1 : 0) +
       (/[0-9]/.test(password) ? 1 : 0) +
       (/[^a-zA-Z0-9]/.test(password) ? 1 : 0);
-    if (score <= 2) return { label: "Weak", color: "bg-red-500" };
-    if (score <= 3) return { label: "Fair", color: "bg-yellow-500" };
-    if (score <= 4) return { label: "Good", color: "bg-blue-500" };
-    return { label: "Strong", color: "bg-green-500" };
+    if (score <= 2) return { label: "Weak", color: "bg-red-500", width: "20%" };
+    if (score <= 3)
+      return { label: "Fair", color: "bg-yellow-500", width: "50%" };
+    if (score <= 4)
+      return { label: "Good", color: "bg-blue-500", width: "75%" };
+    return { label: "Strong", color: "bg-green-500", width: "100%" };
   };
 
   const strength = getPasswordStrength(newPassword);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-md sm:max-w-lg md:max-w-xl">
-        {/* Logo / Header */}
-        <div className="text-center mb-6 sm:mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 backdrop-blur mb-4">
-            <span className="text-3xl sm:text-4xl font-black text-white">
-              S
-            </span>
+    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4">
+      <div className="w-full max-w-sm">
+        {/* Header */}
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur mb-3">
+            <span className="text-3xl font-black text-white">S</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-white leading-tight">
             Solace Staff Cooperative
           </h1>
-          <p className="text-primary-200 text-sm sm:text-base mt-1">
-            Management System
-          </p>
+          <p className="text-primary-200 text-sm mt-1">Management System</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 md:p-10 transition-all duration-300">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
+        <div className="bg-white rounded-2xl shadow-2xl p-6">
+          <div className="mb-5">
+            <h2 className="text-xl font-bold text-gray-900">
               Create New Password
             </h2>
-            <p className="text-sm sm:text-base text-gray-600 mt-1">
+            <p className="text-sm text-gray-500 mt-1">
               Enter your new password below.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* New Password */}
             <div>
               <label
                 htmlFor="newPassword"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-semibold text-gray-700 mb-1.5"
               >
                 New Password
               </label>
@@ -117,48 +114,36 @@ export default function ResetPasswordPage() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Enter your new password"
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-200 text-base"
+                  className="w-full border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-150"
+                  style={{ fontSize: "16px", padding: "14px 56px 14px 16px" }}
                   autoComplete="new-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition"
+                  className="absolute inset-y-0 right-0 w-14 flex items-center justify-center text-gray-400 hover:text-gray-600 transition"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? "🙈" : "👁"}
+                  <span className="text-xl">{showPassword ? "🙈" : "👁"}</span>
                 </button>
               </div>
 
-              {/* Password strength indicator */}
+              {/* Strength indicator */}
               {newPassword && (
                 <div className="mt-2">
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                       <div
                         className={`h-full transition-all duration-300 ${strength.color}`}
-                        style={{
-                          width: newPassword
-                            ? `${Math.min(
-                                strength.label === "Weak"
-                                  ? 20
-                                  : strength.label === "Fair"
-                                    ? 40
-                                    : strength.label === "Good"
-                                      ? 70
-                                      : 100,
-                                100,
-                              )}%`
-                            : "0%",
-                        }}
+                        style={{ width: strength.width }}
                       />
                     </div>
-                    <span className="text-xs font-medium text-gray-500 w-12">
+                    <span className="text-xs font-medium text-gray-500 w-12 text-right">
                       {strength.label}
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 mt-1">
-                    Minimum 8 characters with mix of letters, numbers, and
-                    symbols.
+                    Min. 8 characters — mix letters, numbers, symbols.
                   </p>
                 </div>
               )}
@@ -168,7 +153,7 @@ export default function ResetPasswordPage() {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-semibold text-gray-700 mb-1.5"
               >
                 Confirm New Password
               </label>
@@ -180,28 +165,34 @@ export default function ResetPasswordPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirm your new password"
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-200 text-base"
+                  className="w-full border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-150"
+                  style={{ fontSize: "16px", padding: "14px 56px 14px 16px" }}
                   autoComplete="new-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition"
+                  className="absolute inset-y-0 right-0 w-14 flex items-center justify-center text-gray-400 hover:text-gray-600 transition"
+                  aria-label={
+                    showConfirmPassword ? "Hide password" : "Show password"
+                  }
                 >
-                  {showConfirmPassword ? "🙈" : "👁"}
+                  <span className="text-xl">
+                    {showConfirmPassword ? "🙈" : "👁"}
+                  </span>
                 </button>
               </div>
               {newPassword &&
                 confirmPassword &&
                 newPassword !== confirmPassword && (
-                  <p className="mt-1 text-sm text-red-600">
-                    Passwords do not match
+                  <p className="mt-1.5 text-sm text-red-600">
+                    ⚠ Passwords do not match
                   </p>
                 )}
               {newPassword &&
                 confirmPassword &&
                 newPassword === confirmPassword && (
-                  <p className="mt-1 text-sm text-green-600">
+                  <p className="mt-1.5 text-sm text-green-600">
                     ✓ Passwords match
                   </p>
                 )}
@@ -209,22 +200,29 @@ export default function ResetPasswordPage() {
 
             {message && (
               <div className="bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 text-sm flex items-start gap-2">
-                <span className="text-green-500 text-lg leading-none">✓</span>
-                <span>{message} Redirecting to login...</span>
+                <span className="text-green-500 text-base leading-tight mt-0.5">
+                  ✓
+                </span>
+                <span className="leading-snug">
+                  {message} Redirecting to login…
+                </span>
               </div>
             )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm flex items-start gap-2">
-                <span className="text-red-500 text-lg leading-none">⚠</span>
-                <span>{error}</span>
+                <span className="text-red-500 text-base leading-tight mt-0.5">
+                  ⚠
+                </span>
+                <span className="leading-snug">{error}</span>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-xl transition duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base"
+              className="w-full bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold rounded-xl transition duration-150 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+              style={{ fontSize: "16px", padding: "16px" }}
             >
               {loading ? (
                 <>
@@ -248,17 +246,17 @@ export default function ResetPasswordPage() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  Resetting...
+                  Resetting…
                 </>
               ) : (
                 "Reset Password"
               )}
             </button>
 
-            <div className="text-center text-sm">
+            <div className="text-center pt-1">
               <a
                 href="/login"
-                className="text-primary-600 hover:text-primary-800 font-medium transition duration-150"
+                className="text-sm text-primary-600 hover:text-primary-800 font-medium transition duration-150"
               >
                 ← Back to Sign In
               </a>
