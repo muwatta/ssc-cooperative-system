@@ -81,16 +81,18 @@ export default function LoginPage() {
           <p className="text-primary-200 text-sm mt-1">Management System</p>
         </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-1">Sign in</h2>
-          <p className="text-sm text-gray-500 mb-5">
+        {/* Card – dark mode added */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+            Sign in
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
             Use your school Staff ID to access the system.
           </p>
 
           {serverError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-4 flex items-start gap-2">
-              <span className="text-red-500 text-base leading-tight mt-0.5">
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm rounded-xl px-4 py-3 mb-4 flex items-start gap-2">
+              <span className="text-red-500 dark:text-red-400 text-base leading-tight mt-0.5">
                 ⚠
               </span>
               <span className="leading-snug">{serverError}</span>
@@ -106,7 +108,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="staff_id"
-                className="block text-sm font-semibold text-gray-700 mb-1.5"
+                className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5"
               >
                 Staff ID
               </label>
@@ -121,13 +123,13 @@ export default function LoginPage() {
                 })}
                 className={[
                   "w-full px-4 border rounded-xl",
-                  "text-base font-mono tracking-wider text-gray-900",
-                  "placeholder-gray-400",
+                  "text-base font-mono tracking-wider",
+                  "placeholder-gray-400 dark:placeholder-gray-500",
                   "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent",
                   "transition duration-150",
                   errors.staff_id
-                    ? "border-red-400 bg-red-50"
-                    : "border-gray-300 bg-white",
+                    ? "border-red-400 dark:border-red-500 bg-red-50 dark:bg-red-900/20 text-red-900 dark:text-red-200"
+                    : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white",
                 ].join(" ")}
                 style={{ fontSize: "16px", padding: "14px 16px" }}
                 placeholder="S43-0094"
@@ -140,7 +142,7 @@ export default function LoginPage() {
                 }}
               />
               {errors.staff_id && (
-                <p className="mt-1.5 text-sm text-red-600">
+                <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
                   ⚠ {errors.staff_id.message}
                 </p>
               )}
@@ -150,7 +152,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-semibold text-gray-700 mb-1.5"
+                className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5"
               >
                 Password
               </label>
@@ -163,13 +165,13 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   className={[
                     "w-full pr-14 border rounded-xl",
-                    "text-base text-gray-900",
-                    "placeholder-gray-400",
+                    "text-base",
+                    "placeholder-gray-400 dark:placeholder-gray-500",
                     "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent",
                     "transition duration-150",
                     errors.password
-                      ? "border-red-400 bg-red-50"
-                      : "border-gray-300 bg-white",
+                      ? "border-red-400 dark:border-red-500 bg-red-50 dark:bg-red-900/20 text-red-900 dark:text-red-200"
+                      : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white",
                   ].join(" ")}
                   style={{ fontSize: "16px", padding: "14px 56px 14px 16px" }}
                   placeholder="Enter your password"
@@ -178,14 +180,14 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 w-14 flex items-center justify-center text-gray-400 hover:text-gray-600 transition"
+                  className="absolute inset-y-0 right-0 w-14 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   <span className="text-xl">{showPassword ? "🙈" : "👁"}</span>
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1.5 text-sm text-red-600">
+                <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
                   ⚠ {errors.password.message}
                 </p>
               )}
@@ -211,19 +213,19 @@ export default function LoginPage() {
             <div className="text-center pt-1">
               <Link
                 to="/forgot-password"
-                className="text-sm text-primary-600 hover:text-primary-800 font-medium"
+                className="text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
               >
                 Forgot your password?
               </Link>
             </div>
           </form>
 
-          <p className="text-center text-xs text-gray-400 mt-5 leading-relaxed">
+          <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-5 leading-relaxed">
             First time? Your Admin will provide your Staff ID.
           </p>
         </div>
 
-        <p className="text-center text-primary-300 text-xs mt-4">
+        <p className="text-center text-primary-300 dark:text-primary-400 text-xs mt-4">
           SSC Cooperative Management System v1.2
         </p>
       </div>
