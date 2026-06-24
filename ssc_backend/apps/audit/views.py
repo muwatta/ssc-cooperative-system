@@ -13,6 +13,7 @@ import csv, io
 
 
 class AuditLogListView(generics.ListAPIView):
+    queryset = AuditLog.objects.all().select_related("user")
     serializer_class = AuditLogSerializer
     permission_classes = [IsAdminOrCommittee]
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
