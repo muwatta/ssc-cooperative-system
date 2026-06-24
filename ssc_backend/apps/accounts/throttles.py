@@ -1,13 +1,13 @@
 from rest_framework.throttling import UserRateThrottle
 
 class LoginRateThrottle(UserRateThrottle):
-    rate = "5/minute"
+    scope = "login"
 
 class InviteRateThrottle(UserRateThrottle):
-    rate = "20/hour"
+    scope = "invite"
 
 class ImportRateThrottle(UserRateThrottle):
-    rate = "10/hour"
+    scope = "import"
 
 class PasswordChangeRateThrottle(UserRateThrottle):
-    rate = "3/minute"
+    scope = "password_change"
