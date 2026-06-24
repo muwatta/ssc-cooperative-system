@@ -122,7 +122,8 @@ class LoanApplicationListView(generics.ListAPIView):
     serializer_class = LoanApplicationSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["status"]
-    ordering = ["created_at"]
+    ordering_fields = ["created_at", "status"]
+    ordering = ["-created_at"]
 
     def get_permissions(self):
         return [IsAdminOrCommitteeOrHOS()]
