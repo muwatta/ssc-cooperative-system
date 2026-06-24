@@ -79,7 +79,7 @@ class Command(BaseCommand):
             gender="male",
             date_of_birth=date(1990, 1, 1),
             place_of_birth="Abuja",
-            school_branch="HQ",
+            school_branch="primary",
             designation="System Administrator",
             date_joined_school=date(2020, 1, 1),
             monthly_income=0,
