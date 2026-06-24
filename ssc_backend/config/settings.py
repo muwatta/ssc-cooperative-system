@@ -147,7 +147,7 @@ REST_FRAMEWORK = {
         "login": "5/minute",
         "invite": "20/hour",
         "import": "10/hour",
-        "password_change": "3/minute",
+        "password_change": "10/minute",
     },
 }
 REST_FRAMEWORK["EXCEPTION_HANDLER"] = "apps.core.exceptions.custom_exception_handler"
