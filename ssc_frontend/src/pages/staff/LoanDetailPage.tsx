@@ -478,10 +478,8 @@ export default function LoanDetailPage() {
           </div>
         </div>
 
-        {/* Approval Details (if any) */}
-        {(loan.committee_decision_note ||
-          loan.admin_final_approval_note ||
-          loan.status === "hos_approved") && (
+        {/* Approval Details */}
+        {(loan.committee_decision_note || loan.admin_final_approval_note) && (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
             <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
               <h2 className="font-semibold text-gray-800 dark:text-white">
@@ -502,13 +500,6 @@ export default function LoanDetailPage() {
                   <p className="text-sm">
                     <strong>Admin Approval:</strong>{" "}
                     {loan.admin_final_approval_note}
-                  </p>
-                </div>
-              )}
-              {loan.status === "hos_approved" && (
-                <div className="border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20 px-4 py-2 rounded-r">
-                  <p className="text-sm">
-                    <strong>HOS Approval:</strong> Final Head of School sign-off
                   </p>
                 </div>
               )}
@@ -654,11 +645,6 @@ export default function LoanDetailPage() {
             <p className="text-sm font-medium">Secretary / Admin</p>
             <p className="text-xs text-gray-500">Date: ________________</p>
           </div>
-          <div className="signature-item">
-            <div className="signature-line"></div>
-            <p className="text-sm font-medium">Head of School</p>
-            <p className="text-xs text-gray-500">Date: ________________</p>
-          </div>
         </div>
 
         <div className="footer no-print hidden print:block">
@@ -712,6 +698,7 @@ export default function LoanDetailPage() {
               loanId={loanId!}
               onApprove={handleAdminApprove}
               onReject={handleAdminReject}
+              onClose={() => setShowApprovalPreview(false)}
               isProcessing={approvalProcessing}
             />
           </div>
