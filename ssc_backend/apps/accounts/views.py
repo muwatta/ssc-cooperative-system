@@ -550,7 +550,6 @@ class ChangeMemberRoleView(APIView):
             )
 
         new_role = request.data.get("role", "").strip()
-        # using Role.values from model (TextChoices)
         if new_role not in Role.values:
             return Response(
                 {"error": f"Invalid role. Must be one of: {', '.join(Role.values)}"},
@@ -615,8 +614,6 @@ class ChangePasswordView(APIView):
         # 5. Change password
         user.set_password(new)
         user.save()
-        # Keep user logged in after password change
-        update_session_auth_hash(request, user)
 
         log_action(
             user=request.user,
@@ -629,7 +626,7 @@ class ChangePasswordView(APIView):
         )
 
         return Response({"message": "Password changed successfully."})
-
+    
 class ToggleSpecialSaverView(APIView):
     permission_classes = [IsAdmin]
 
