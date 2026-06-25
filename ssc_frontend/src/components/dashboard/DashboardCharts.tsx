@@ -11,6 +11,21 @@ import {
   Legend,
 } from "recharts";
 
+// Detect dark mode for chart colors
+function useChartColors() {
+  const isDark = typeof window !== "undefined" &&
+    document.documentElement.classList.contains("dark");
+  return {
+    text: isDark ? "#9ca3af" : "#6b7280",
+    tooltip: {
+      backgroundColor: isDark ? "#1f2937" : "#ffffff",
+      border: isDark ? "1px solid #374151" : "1px solid #e5e7eb",
+      color: isDark ? "#f9fafb" : "#111827",
+    },
+    legend: isDark ? "#9ca3af" : "#374151",
+  };
+}
+
 // Membership Donu
 interface MembershipData {
   active: number;
@@ -18,6 +33,7 @@ interface MembershipData {
   inactive: number;
   exited: number;
 }
+const colors = useChartColors();
 
 const MEMBERSHIP_COLORS = ["#16a34a", "#d97706", "#dc2626", "#6b7280"];
 
@@ -232,13 +248,13 @@ export function FinancialBarChart({ data }: { data: FinancialMember[] }) {
         >
           <XAxis
             dataKey="name"
-            tick={{ fontSize: 10, fill: "var(--tw-text-color, #111827)" }}
+            tick={{ fontSize: 10, fill: colors.text }}
             tickLine={false}
             axisLine={false}
           />
           <YAxis
             tickFormatter={formatNairaShort}
-            tick={{ fontSize: 10, fill: "var(--tw-text-color, #111827)" }}
+            tick={{ fontSize: 10, fill: colors.text }}
             tickLine={false}
             axisLine={false}
             width={52}
@@ -334,14 +350,14 @@ export function CoopTotalsChart({ data }: { data: CoopTotals }) {
           <XAxis
             type="number"
             tickFormatter={formatNairaShort}
-            tick={{ fontSize: 10, fill: "var(--tw-text-color, #111827)" }}
+            tick={{ fontSize: 10, fill: colors.text }}
             tickLine={false}
             axisLine={false}
           />
           <YAxis
             type="category"
             dataKey="name"
-            tick={{ fontSize: 11, fill: "var(--tw-text-color, #111827)" }}
+            tick={{ fontSize: 11, fill: colors.text }}
             tickLine={false}
             axisLine={false}
             width={100}
