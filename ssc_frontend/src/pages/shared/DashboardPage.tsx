@@ -12,8 +12,8 @@ import {
   CoopTotalsChart,
 } from "@/components/dashboard/DashboardCharts";
 
+// ─── Stat Cards ────────────────────────────────────────────
 
-// StatCard (used in At a Glance, Membership Summary)
 function StatCard({
   label,
   value,
@@ -34,18 +34,23 @@ function StatCard({
 
   return (
     <div
-      className={`card p-4 border ${colorMap[color]} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
+      className={`card p-3 sm:p-4 border ${colorMap[color]} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
     >
-      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] opacity-70">
+      <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.2em] opacity-70">
         {label}
       </p>
-      <p className="text-1xl font-bold mt-2">{value}</p>
-      {sub && <p className="text-xs mt-1 opacity-60">{sub}</p>}
+      <p className="text-lg sm:text-xl font-bold mt-1 sm:mt-2">{value}</p>
+      {sub && (
+        <p className="text-[10px] sm:text-xs mt-0.5 sm:mt-1 opacity-60">
+          {sub}
+        </p>
+      )}
     </div>
   );
 }
 
-// CompactStatCard (used in the 4‑column leadership grid)
+// ─── Compact Stat Card ────────────────────────────────────
+
 function CompactStatCard({
   label,
   value,
@@ -66,13 +71,17 @@ function CompactStatCard({
 
   return (
     <div
-      className={`card p-1 border ${colorMap[color]} min-w-0 overflow-hidden transition-all`}
+      className={`card p-2 sm:p-3 border ${colorMap[color]} min-w-0 overflow-hidden transition-all`}
     >
-      <p className="text-[9px] font-semibold uppercase tracking-[0.2em] opacity-70 truncate">
+      <p className="text-[8px] sm:text-[9px] font-semibold uppercase tracking-[0.2em] opacity-70 truncate">
         {label}
       </p>
-      <p className="text-sm font-bold mt-0.5 truncate">{value}</p>
-      {sub && <p className="text-[9px] mt-0.5 opacity-60 truncate">{sub}</p>}
+      <p className="text-xs sm:text-sm font-bold mt-0.5 truncate">{value}</p>
+      {sub && (
+        <p className="text-[8px] sm:text-[9px] mt-0.5 opacity-60 truncate">
+          {sub}
+        </p>
+      )}
     </div>
   );
 }
@@ -114,7 +123,7 @@ export default function DashboardPage() {
     refetchOnWindowFocus: true,
   });
 
-  // Optimised member stats – single API call instead of five
+  // Member stats
   const memberStatsQuery = useQuery<DashboardStats>({
     queryKey: ["dashboard", "member-stats"],
     queryFn: async () => {
@@ -165,7 +174,6 @@ export default function DashboardPage() {
     refetchInterval: false,
   });
 
-  // Fetch the member's active loans to compute outstanding balance
   const { data: myLoans } = useQuery({
     queryKey: ["dashboard", "my-loans"],
     queryFn: async () => {
@@ -208,7 +216,6 @@ export default function DashboardPage() {
     return value;
   };
 
-  // Compute effective max borrowable: min(75% of total savings, available balance) but never negative
   const totalSavings = memberBalance?.total_savings
     ? Number(memberBalance.total_savings)
     : 0;
@@ -220,7 +227,6 @@ export default function DashboardPage() {
     Math.min(totalSavings * 0.75, availableBalance),
   );
 
-  // Compute outstanding loan from active loans
   const outstandingLoan =
     myLoans
       ?.filter((l: any) => l.status === "active")
@@ -229,7 +235,6 @@ export default function DashboardPage() {
         0,
       ) || 0;
 
-  // Extract loan summary from new endpoint
   const pendingAdmin = dashSummary?.pending_admin ?? 0;
   const activeLoans = dashSummary?.active_loans ?? 0;
   const totalOutstanding = dashSummary?.total_outstanding
@@ -238,28 +243,32 @@ export default function DashboardPage() {
   const totalSavingsCoop = dashSummary?.total_savings
     ? `₦${Number(dashSummary.total_savings).toLocaleString()}`
     : "₦0.00";
-
   const totalSpecialSavings = dashSummary?.total_special_savings
     ? `₦${Number(dashSummary.total_special_savings).toLocaleString()}`
     : "₦0.00";
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="mb-6">
-        <h1 className="page-title">Dashboard</h1>
-        <p className="page-subtitle">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in px-2 sm:px-0">
+      {/* Header */}
+      <div className="mb-4 sm:mb-6">
+        <h1 className="page-title text-xl sm:text-2xl">Dashboard</h1>
+        <p className="page-subtitle text-sm sm:text-base">
           👋 Welcome back,{" "}
-          <span className="font-medium text-gray-700">{displayName}</span>
+          <span className="font-medium text-gray-700 dark:text-gray-300">
+            {displayName}
+          </span>
         </p>
       </div>
 
-      {/* Loan & Approval snapshot (leadership only) */}
+      {/* At a Glance (leadership only) */}
       {isLeadership && dashSummary && (
-        <div className="card-panel mb-6 bg-white border p-2 border-gray-200">
-          <h2 className="text-lg font-semibold text-center">At a Glance</h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="card-panel mb-4 sm:mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+          <h2 className="text-base sm:text-lg font-semibold text-center">
+            At a Glance
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <StatCard
-              label="Pending Admin Approval"
+              label="Pending Admin"
               value={pendingAdmin}
               color="warning"
             />
@@ -281,7 +290,7 @@ export default function DashboardPage() {
                   color="success"
                 />
                 <StatCard
-                  label="🔒 Total Special Savings Locked"
+                  label="🔒 Special Savings"
                   value={totalSpecialSavings}
                   color="primary"
                 />
@@ -290,86 +299,120 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-      {/* Upcoming Repayments (leadership) */}
+
+      {/* Upcoming Repayments (leadership) - already responsive */}
       {isLeadership && dashSummary?.upcoming_repayments?.length > 0 && (
-        <div className="card-panel mb-6 bg-white border border-gray-200">
-          <h2 className="text-lg font-semibold text-center mt-1">
-            Upcoming Repayments (next month)
-          </h2>
-          <div className="text-sm space-y-1 max-h-48 overflow-y-auto m-3">
-            {dashSummary.upcoming_repayments.map((r: any) => (
+        <div className="card-panel mb-4 sm:mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 sm:mb-3">
+            <h2 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-200">
+              Upcoming Repayments
+            </h2>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Next {Math.min(dashSummary.upcoming_repayments.length, 5)} of{" "}
+              {dashSummary.upcoming_repayments.length}
+            </span>
+          </div>
+
+          <div className="space-y-1.5 sm:space-y-2">
+            {dashSummary.upcoming_repayments.slice(0, 5).map((r: any) => (
               <div
                 key={r.loan_id}
-                className="flex justify-between py-1 border-b border-red-100"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-1.5 sm:py-2 px-2 sm:px-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-600 transition hover:bg-gray-100 dark:hover:bg-gray-700"
               >
-                <span>
-                  {r.applicant} (Loan #{r.loan_id})
-                </span>
-                <span className="font-medium">
-                  ₦{Number(r.amount).toLocaleString()}
-                </span>
+                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                  <span className="text-[10px] sm:text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap">
+                    Loan #{r.loan_id}
+                  </span>
+                  <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 truncate max-w-[100px] sm:max-w-[200px]">
+                    {r.applicant}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 mt-0.5 sm:mt-0">
+                  <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">
+                    ₦{Number(r.amount).toLocaleString()}
+                  </span>
+                  <span className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500">
+                    {r.due_date
+                      ? new Date(r.due_date).toLocaleDateString()
+                      : "Soon"}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
+
+          {dashSummary.upcoming_repayments.length > 5 && (
+            <div className="mt-2 sm:mt-3 text-center">
+              <button
+                className="text-xs text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition"
+                onClick={() => {
+                  /* navigate to repayments page if exists */
+                }}
+              >
+                View all {dashSummary.upcoming_repayments.length} repayments →
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Leadership profile section – uses CompactStatCard for 4‑column layout */}
+      {/* Leadership profile – responsive 4‑column layout */}
       {isLeadership && (
-        <div className="card-panel mb-6 bg-primary-50 border-primary-100">
+        <div className="card-panel mb-4 sm:mb-6 bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 p-3 sm:p-4">
           <div className="flex items-center justify-center">
-            <span className="badge badge-primary m-2">Leadership</span>
+            <span className="badge badge-primary m-1 sm:m-2">Leadership</span>
           </div>
-          <div className="grid gap-2 p-2 grid-cols-4 min-w-0">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <CompactStatCard
               label="Your Role"
               value={user ? user.role.replace(/_/g, " ").toUpperCase() : "N/A"}
-              sub="Access level assigned by Admin"
+              sub="Access level"
             />
             <CompactStatCard
               label="Full Name"
               value={displayName}
-              sub="Your registered name"
+              sub="Registered name"
               color="primary"
             />
             <CompactStatCard
               label="Staff ID"
               value={user?.staff_id ?? "—"}
-              sub="Your login identity"
+              sub="Login identity"
               color="success"
             />
             <CompactStatCard
               label="Member File"
               value={user?.file_number ?? "Not assigned"}
-              sub="SSC membership record"
+              sub="SSC record"
               color="warning"
             />
           </div>
         </div>
       )}
 
+      {/* Member view */}
       {!isLeadership && (
-        <div className="card-panel mb-6">
-          <div className="flex items-center justify-between mb-3">
+        <div className="card-panel mb-4 sm:mb-6 p-3 sm:p-4">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
             <h3 className="sr-only">Quick Info</h3>
             <span className="badge badge-gray">Member</span>
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <StatCard
               label="Your Role"
               value={user ? user.role.replace(/_/g, " ").toUpperCase() : "N/A"}
-              sub="Staff access level"
+              sub="Staff access"
             />
             <StatCard
               label="Full Name"
               value={displayName}
-              sub="Your registered name"
+              sub="Registered name"
               color="primary"
             />
             <StatCard
               label="Staff ID"
               value={user?.staff_id ?? "—"}
-              sub="Used for login"
+              sub="Login ID"
               color="success"
             />
             <StatCard
@@ -382,95 +425,89 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Membership Summary */}
+      {/* Membership Summary (leadership) */}
       {isLeadership && (
-        <div className="card-panel p-2 text-sm:flex-row sm:items-center sm:justify-between mb-6">
-          <div className="flex flex-col gap-2">
+        <div className="card-panel p-3 sm:p-4 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold m-3">Membership Summary</h2>
-              <p className="text-sm text-gray-500 m-2">
+              <h2 className="text-base sm:text-lg font-semibold m-2 sm:m-3">
+                Membership Summary
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-500 m-2 sm:m-3">
                 Live member counts for your role.
               </p>
             </div>
             {loading && (
-              <div className="text-sm text-gray-500 m-2">
-                Loading membership stats...
+              <div className="text-xs sm:text-sm text-gray-500 m-2">
+                Loading...
               </div>
             )}
           </div>
 
           {error && (
-            <div className="mt-4 rounded-3xl border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700">
+            <div className="mt-3 rounded-lg border border-danger-200 bg-danger-50 p-3 text-sm text-danger-700">
               {error}
             </div>
           )}
 
           {stats && !loading && !error && (
-            <div className="mt-4 grid gap-3 grid-cols-3">
-              <div className="card-panel-light">
-                <p className="text-xs m-3 uppercase tracking-[0.24em] text-gray-500">
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              <div className="card-panel-light p-3">
+                <p className="text-[10px] uppercase tracking-[0.24em] text-gray-500">
                   Total Members
                 </p>
-                <p className="mt-3 text-1xl m-3 font-semibold text-gray-900">
+                <p className="mt-1 text-lg font-semibold text-gray-900">
                   {stats.totalMembers}
                 </p>
-                <p className="text-sm m-3 text-gray-500 mt-2">
-                  All registrations
-                </p>
+                <p className="text-[10px] text-gray-500">All registrations</p>
               </div>
-              <div className="card-panel-light">
-                <p className="text-xs m-3 uppercase tracking-[0.24em] text-gray-500">
-                  Active Members
+              <div className="card-panel-light p-3">
+                <p className="text-[10px] uppercase tracking-[0.24em] text-gray-500">
+                  Active
                 </p>
-                <p className="mt-3 m-3 text-1xl font-semibold text-green-700">
+                <p className="mt-1 text-lg font-semibold text-green-700">
                   {stats.activeMembers}
                 </p>
-                <p className="text-sm m-3 text-gray-500 mt-2">
-                  Currently active
-                </p>
+                <p className="text-[10px] text-gray-500">Currently active</p>
               </div>
-              <div className="card-panel-light">
-                <p className="text-xs m-3 uppercase tracking-[0.24em] text-gray-500">
-                  Pending Members
+              <div className="card-panel-light p-3">
+                <p className="text-[10px] uppercase tracking-[0.24em] text-gray-500">
+                  Pending
                 </p>
-                <p className="mt-3 m-3 text-1xl font-semibold text-amber-700">
+                <p className="mt-1 text-lg font-semibold text-amber-700">
                   {stats.pendingMembers}
                 </p>
-                <p className="text-sm m-3 text-gray-500 mt-2">
-                  Awaiting approval
-                </p>
+                <p className="text-[10px] text-gray-500">Awaiting approval</p>
               </div>
-              <div className="card-panel-light">
-                <p className="text-xs m-3 uppercase tracking-[0.24em] text-gray-500">
-                  Inactive Members
+              <div className="card-panel-light p-3">
+                <p className="text-[10px] uppercase tracking-[0.24em] text-gray-500">
+                  Inactive
                 </p>
-                <p className="mt-3 text-1xl m-3 font-semibold text-red-700">
+                <p className="mt-1 text-lg font-semibold text-red-700">
                   {stats.inactiveMembers}
                 </p>
-                <p className="text-sm m-3 text-gray-500 mt-2">
+                <p className="text-[10px] text-gray-500">
                   Temporarily inactive
                 </p>
               </div>
-              <div className="card-panel-light">
-                <p className="text-xs m-3 uppercase tracking-[0.24em] text-gray-500">
-                  Exited Members
+              <div className="card-panel-light p-3">
+                <p className="text-[10px] uppercase tracking-[0.24em] text-gray-500">
+                  Exited
                 </p>
-                <p className="mt-3 m-3 text-1xl font-semibold text-primary-700">
+                <p className="mt-1 text-lg font-semibold text-primary-700">
                   {stats.exitedMembers}
                 </p>
-                <p className="text-sm m-3 text-gray-500 mt-2">
-                  Left the cooperative
-                </p>
+                <p className="text-[10px] text-gray-500">Left cooperative</p>
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Analytics Charts — Admin only */}
+      {/* Analytics Charts (Admin only) */}
       {isAdmin && stats && (
-        <div className="space-y-4 mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+        <div className="space-y-4 mb-4 sm:mb-6">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white">
             📊 Analytics
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -509,31 +546,31 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Simplified Balance Overview – Only four key numbers */}
-      <div className="card-panel mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+      {/* Balance Overview */}
+      <div className="card-panel mb-4 sm:mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 sm:pb-3 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white">
             💰 Your Balance
           </h2>
           <button
             onClick={toggleBalances}
-            className="text-primary-600 hover:text-primary-800 transition-colors text-sm"
+            className="text-primary-600 hover:text-primary-800 transition-colors text-xs sm:text-sm mt-1 sm:mt-0"
           >
             {showBalances ? "Hide" : "Show"} amounts
           </button>
         </div>
 
         {balanceError ? (
-          <div className="p-4 text-red-600">{balanceError}</div>
+          <div className="p-3 text-red-600 text-sm">{balanceError}</div>
         ) : (
-          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Available Balance – main number */}
+          <div className="p-2 sm:p-4 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+            {/* Available Balance */}
             <div className="col-span-1 md:col-span-2">
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Your Available Balance
               </p>
               <p
-                className={`text-3xl font-bold ${
+                className={`text-2xl sm:text-3xl font-bold ${
                   availableBalance < 0
                     ? "text-red-600 dark:text-red-400"
                     : "text-green-600 dark:text-green-400"
@@ -543,7 +580,7 @@ export default function DashboardPage() {
                   ? maskIfNeeded(formatNaira(availableBalance))
                   : "—"}
               </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500">
+              <p className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500">
                 {availableBalance < 0
                   ? "You currently owe more than you have"
                   : "What you can use right now"}
@@ -555,7 +592,7 @@ export default function DashboardPage() {
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Locked as Surety
               </p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white">
+              <p className="text-base sm:text-xl font-bold text-gray-900 dark:text-white">
                 {hasMemberBalance
                   ? maskIfNeeded(
                       formatNaira(memberBalance!.suretyship_committed),
@@ -572,7 +609,7 @@ export default function DashboardPage() {
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Outstanding Loan
               </p>
-              <p className="text-xl font-bold text-red-600 dark:text-red-400">
+              <p className="text-base sm:text-xl font-bold text-red-600 dark:text-red-400">
                 {hasMemberBalance
                   ? maskIfNeeded(formatNaira(outstandingLoan))
                   : "—"}
@@ -582,13 +619,13 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            {/* Maximum New Loan */}
-            <div className="col-span-1 md:col-span-2 bg-primary-50 dark:bg-primary-900/20 p-3 rounded-lg mt-2">
-              <p className="text-sm font-medium text-primary-800 dark:text-primary-200">
+            {/* Max Borrowable */}
+            <div className="col-span-1 md:col-span-2 bg-primary-50 dark:bg-primary-900/20 p-3 rounded-lg mt-1">
+              <p className="text-xs sm:text-sm font-medium text-primary-800 dark:text-primary-200">
                 Maximum New Loan You Can Apply For
               </p>
               <p
-                className={`text-2xl font-bold ${
+                className={`text-xl sm:text-2xl font-bold ${
                   maxBorrowable > 0
                     ? "text-primary-700 dark:text-primary-300"
                     : "text-gray-500 dark:text-gray-400"
@@ -608,7 +645,8 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className="mt-4 text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
+      {/* Surety Details Link */}
+      <div className="mt-3 text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
         <Link
           to="/my-loans?tab=sureties"
           className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 inline-flex items-center gap-1"
@@ -630,33 +668,45 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {/* Financial Snapshot – Admin only */}
+      {/* Financial Snapshot Table (Admin only) */}
       {isAdmin && financialSnapshot && financialSnapshot.length > 0 && (
-        <div className="card-panel mb-6">
-          <div className="flex items-center justify-between m-4">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+        <div className="card-panel mb-4 sm:mb-6 p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between m-2 sm:m-4">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white">
               📊 Financial Snapshot
             </h2>
-            <p className="text-xs m-4 text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               Active members only
             </p>
           </div>
           <div className="overflow-x-auto">
-            <table className="table w-full text-sm">
+            <table className="table w-full text-xs sm:text-sm">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300">
-                  <th className="px-3 py-2 text-left">File</th>
-                  <th className="px-3 py-2 text-left">Name</th>
-                  <th className="px-3 py-2 text-right">Available</th>
-                  <th className="px-3 py-2 text-right">Surety</th>
-                  <th className="px-3 py-2 text-right">Outstanding</th>
-                  <th className="px-3 py-2 text-right">Special</th>
+                  <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left">
+                    File
+                  </th>
+                  <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left">
+                    Name
+                  </th>
+                  <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-right">
+                    Available
+                  </th>
+                  <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-right">
+                    Surety
+                  </th>
+                  <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-right">
+                    Outstanding
+                  </th>
+                  <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-right">
+                    Special
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {snapshotLoading ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-4 text-gray-500">
+                    <td colSpan={6} className="text-center py-3 text-gray-500">
                       Loading snapshot…
                     </td>
                   </tr>
@@ -666,26 +716,26 @@ export default function DashboardPage() {
                       key={member.file_number}
                       className="border-t border-gray-100 dark:border-gray-700"
                     >
-                      <td className="px-3 py-2 font-mono text-primary-700 dark:text-primary-400">
+                      <td className="px-2 sm:px-3 py-1.5 sm:py-2 font-mono text-primary-700 dark:text-primary-400">
                         {member.file_number}
                       </td>
-                      <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">
+                      <td className="px-2 sm:px-3 py-1.5 sm:py-2 font-medium text-gray-900 dark:text-white">
                         {member.full_name}
                       </td>
-                      <td className="px-3 py-2 text-right font-medium text-emerald-700 dark:text-emerald-400">
+                      <td className="px-2 sm:px-3 py-1.5 sm:py-2 text-right font-medium text-emerald-700 dark:text-emerald-400">
                         {formatNaira(member.available_balance)}
                       </td>
-                      <td className="px-3 py-2 text-right font-medium text-amber-600 dark:text-amber-400">
+                      <td className="px-2 sm:px-3 py-1.5 sm:py-2 text-right font-medium text-amber-600 dark:text-amber-400">
                         {member.surety_committed !== "0.00"
                           ? formatNaira(member.surety_committed)
                           : "—"}
                       </td>
-                      <td className="px-3 py-2 text-right font-medium text-danger-700 dark:text-danger-400">
+                      <td className="px-2 sm:px-3 py-1.5 sm:py-2 text-right font-medium text-danger-700 dark:text-danger-400">
                         {member.outstanding_loan !== "0.00"
                           ? formatNaira(member.outstanding_loan)
                           : "—"}
                       </td>
-                      <td className="px-3 py-2 text-right font-medium text-purple-700 dark:text-purple-400">
+                      <td className="px-2 sm:px-3 py-1.5 sm:py-2 text-right font-medium text-purple-700 dark:text-purple-400">
                         {member.special_savings !== "0.00"
                           ? formatNaira(member.special_savings)
                           : "—"}
@@ -699,30 +749,33 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Staff view message */}
       {!isAdmin && !isCommittee && !isHOS && (
-        <div className="card-panel mb-6 bg-primary-50 border-primary-100">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="card-panel mb-4 sm:mb-6 bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 p-3 sm:p-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold m-3">
+              <h2 className="text-base sm:text-lg font-semibold">
                 Your personal dashboard
               </h2>
-              <p className="text-sm text-gray-500 mt-2 m-3">
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
                 This page highlights your account access and membership status.
                 For full cooperative reports, contact an administrator.
               </p>
             </div>
-            <span className="badge badge-gray">Staff view</span>
+            <span className="badge badge-gray self-start sm:self-center">
+              Staff view
+            </span>
           </div>
-          <div className="mt-6 grid grid-cols-4 gap-4">
-            <div className="card-panel-light">
-              <p className="text-sm text-gray-500">Profile</p>
-              <p className="mt-2 text-lg m-3 font-semibold">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="card-panel-light p-3">
+              <p className="text-xs sm:text-sm text-gray-500">Profile</p>
+              <p className="mt-1 text-sm sm:text-base font-semibold">
                 View and update your details anytime.
               </p>
             </div>
-            <div className="card-panel-light">
-              <p className="text-sm text-gray-500">Savings</p>
-              <p className="mt-2 m-3 text-lg font-semibold">
+            <div className="card-panel-light p-3">
+              <p className="text-xs sm:text-sm text-gray-500">Savings</p>
+              <p className="mt-1 text-sm sm:text-base font-semibold">
                 Track your contribution records in the savings section.
               </p>
             </div>
@@ -730,24 +783,24 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Pilot Reset Section – Admin Only with Modal */}
+      {/* Reset Section (Admin only) */}
       {isAdmin && (
-        <div className="card-panel mb-6 bg-red-50 border border-red-200">
-          <div className="flex items-center justify-between">
+        <div className="card-panel mb-4 sm:mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h2 className="text-lg m-3 font-semibold text-red-800">
+              <h2 className="text-base sm:text-lg font-semibold text-red-800 dark:text-red-300">
                 Pilot Reset
               </h2>
-              <p className="text-sm m-3 text-red-600 mt-1">
+              <p className="text-xs sm:text-sm text-red-600 dark:text-red-400 mt-1">
                 Remove all test data and start fresh with only the admin
                 account.
               </p>
             </div>
             <button
               onClick={() => setShowResetModal(true)}
-              className="bg-red-600 m-3 text-white px-4 py-2 rounded hover:bg-red-700 text-sm font-medium"
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-medium transition self-start sm:self-center"
             >
-              🔄 Reset All Data (Pilot)
+              🔄 Reset All Data
             </button>
           </div>
         </div>
@@ -756,20 +809,20 @@ export default function DashboardPage() {
       {/* Confirmation Modal */}
       {showResetModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-2">
               ⚠️ Reset All Data?
             </h3>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">
               This will <strong>permanently delete</strong> all members, loans,
               savings, sureties, and notifications. Only your admin account
               (S45‑0001) will remain with zero balances. This action cannot be
               undone.
             </p>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => setShowResetModal(false)}
-                className="flex-1 btn-secondary py-2"
+                className="flex-1 btn-secondary py-2 text-sm"
               >
                 Cancel
               </button>
@@ -785,7 +838,7 @@ export default function DashboardPage() {
                     );
                   }
                 }}
-                className="flex-1 bg-red-600 text-white py-2 rounded hover:bg-red-700 font-medium"
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded font-medium text-sm"
               >
                 Yes, Reset Everything
               </button>
@@ -794,11 +847,12 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="card p-5 bg-primary-50 border border-primary-100">
-        <p className="text-sm font-medium text-primary-800">
+      {/* Hijri Calendar Notice */}
+      <div className="card p-3 sm:p-5 bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800">
+        <p className="text-xs sm:text-sm font-medium text-primary-800 dark:text-primary-200">
           🕌 SSC uses the Islamic (Hijri) calendar as its primary calendar.
         </p>
-        <p className="text-xs text-primary-600 mt-1">
+        <p className="text-[10px] sm:text-xs text-primary-600 dark:text-primary-400 mt-1">
           All savings entries, loan records, and dues are recorded by Islamic
           month and year.
         </p>

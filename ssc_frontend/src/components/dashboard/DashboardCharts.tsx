@@ -11,7 +11,7 @@ import {
   Legend,
 } from "recharts";
 
-// ─── Membership Donut ────────────────────────────────────
+// Membership Donu
 interface MembershipData {
   active: number;
   pending: number;
@@ -61,17 +61,23 @@ export function MembershipDonut({ data }: { data: MembershipData }) {
               name,
             ]}
             contentStyle={{
-              backgroundColor: "var(--color-background-secondary, #f9fafb)",
-              border: "1px solid #e5e7eb",
+              backgroundColor: "var(--tw-bg-opacity, white)",
+              border: "1px solid var(--tw-border-color, #e5e7eb)",
               borderRadius: "8px",
               fontSize: "12px",
+              color: "var(--tw-text-color, #111827)",
             }}
           />
           <Legend
             iconType="circle"
             iconSize={8}
             formatter={(value) => (
-              <span style={{ fontSize: "12px", color: "inherit" }}>
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "var(--tw-text-color, #111827)",
+                }}
+              >
                 {value}
               </span>
             )}
@@ -85,7 +91,7 @@ export function MembershipDonut({ data }: { data: MembershipData }) {
   );
 }
 
-// ─── Loan Status Donut ───────────────────────────────────
+// Loan Status Donu──
 interface LoanStatusData {
   submitted: number;
   under_review: number;
@@ -153,17 +159,23 @@ export function LoanStatusDonut({ data }: { data: LoanStatusData }) {
               name,
             ]}
             contentStyle={{
-              backgroundColor: "var(--color-background-secondary, #f9fafb)",
-              border: "1px solid #e5e7eb",
+              backgroundColor: "var(--tw-bg-opacity, white)",
+              border: "1px solid var(--tw-border-color, #e5e7eb)",
               borderRadius: "8px",
               fontSize: "12px",
+              color: "var(--tw-text-color, #111827)",
             }}
           />
           <Legend
             iconType="circle"
             iconSize={8}
             formatter={(value) => (
-              <span style={{ fontSize: "12px", color: "inherit" }}>
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "var(--tw-text-color, #111827)",
+                }}
+              >
                 {value}
               </span>
             )}
@@ -177,7 +189,7 @@ export function LoanStatusDonut({ data }: { data: LoanStatusData }) {
   );
 }
 
-// ─── Financial Bar Chart ─────────────────────────────────
+// Financial Bar Char
 interface FinancialMember {
   file_number: string;
   full_name: string;
@@ -220,13 +232,13 @@ export function FinancialBarChart({ data }: { data: FinancialMember[] }) {
         >
           <XAxis
             dataKey="name"
-            tick={{ fontSize: 10 }}
+            tick={{ fontSize: 10, fill: "var(--tw-text-color, #111827)" }}
             tickLine={false}
             axisLine={false}
           />
           <YAxis
             tickFormatter={formatNairaShort}
-            tick={{ fontSize: 10 }}
+            tick={{ fontSize: 10, fill: "var(--tw-text-color, #111827)" }}
             tickLine={false}
             axisLine={false}
             width={52}
@@ -245,17 +257,23 @@ export function FinancialBarChart({ data }: { data: FinancialMember[] }) {
               return item ? `${item.fullName} (${label})` : label;
             }}
             contentStyle={{
-              backgroundColor: "var(--color-background-secondary, #f9fafb)",
-              border: "1px solid #e5e7eb",
+              backgroundColor: "var(--tw-bg-opacity, white)",
+              border: "1px solid var(--tw-border-color, #e5e7eb)",
               borderRadius: "8px",
               fontSize: "12px",
+              color: "var(--tw-text-color, #111827)",
             }}
           />
           <Legend
             iconType="square"
             iconSize={8}
             formatter={(value) => (
-              <span style={{ fontSize: "11px" }}>
+              <span
+                style={{
+                  fontSize: "11px",
+                  color: "var(--tw-text-color, #111827)",
+                }}
+              >
                 {value === "available"
                   ? "Available"
                   : value === "outstanding"
@@ -273,7 +291,7 @@ export function FinancialBarChart({ data }: { data: FinancialMember[] }) {
   );
 }
 
-// ─── Cooperative Totals Bar ──────────────────────────────
+// Cooperative Totals Bar
 interface CoopTotals {
   total_savings: string;
   total_outstanding: string;
@@ -316,14 +334,14 @@ export function CoopTotalsChart({ data }: { data: CoopTotals }) {
           <XAxis
             type="number"
             tickFormatter={formatNairaShort}
-            tick={{ fontSize: 10 }}
+            tick={{ fontSize: 10, fill: "var(--tw-text-color, #111827)" }}
             tickLine={false}
             axisLine={false}
           />
           <YAxis
             type="category"
             dataKey="name"
-            tick={{ fontSize: 11 }}
+            tick={{ fontSize: 11, fill: "var(--tw-text-color, #111827)" }}
             tickLine={false}
             axisLine={false}
             width={100}
@@ -334,10 +352,11 @@ export function CoopTotalsChart({ data }: { data: CoopTotals }) {
               "Amount",
             ]}
             contentStyle={{
-              backgroundColor: "var(--color-background-secondary, #f9fafb)",
-              border: "1px solid #e5e7eb",
+              backgroundColor: "var(--tw-bg-opacity, white)",
+              border: "1px solid var(--tw-border-color, #e5e7eb)",
               borderRadius: "8px",
               fontSize: "12px",
+              color: "var(--tw-text-color, #111827)",
             }}
           />
           <Bar dataKey="value" radius={[0, 4, 4, 0]}>
