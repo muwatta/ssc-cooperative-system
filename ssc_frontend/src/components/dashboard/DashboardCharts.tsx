@@ -26,7 +26,7 @@ function useChartColors() {
   };
 }
 
-// Membership Donu
+// Membership
 interface MembershipData {
   active: number;
   pending: number;

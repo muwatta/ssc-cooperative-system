@@ -85,19 +85,19 @@ export default function ChangePasswordPage() {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white">
-            SMS Cooperative
+            SSC Cooperative
           </h1>
           <p className="text-primary-200 text-sm sm:text-base mt-1">
             Management System
           </p>
         </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 md:p-10 transition-all duration-300">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+        {/* Card – dark mode support */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 md:p-10 transition-all duration-300">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
             Change Password
           </h2>
-          <p className="text-sm sm:text-base text-gray-500 mb-6">
+          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mb-6">
             Update your password regularly to keep your account secure.
           </p>
 
@@ -105,8 +105,8 @@ export default function ChangePasswordPage() {
             <div
               className={`mb-4 rounded-xl px-4 py-3 text-sm flex items-start gap-2 ${
                 message.type === "success"
-                  ? "bg-green-50 border border-green-200 text-green-700"
-                  : "bg-red-50 border border-red-200 text-red-700"
+                  ? "bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300"
+                  : "bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300"
               }`}
             >
               <span className="text-lg leading-none">
@@ -121,7 +121,7 @@ export default function ChangePasswordPage() {
             <div>
               <label
                 htmlFor="current"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
                 Current Password
               </label>
@@ -133,12 +133,12 @@ export default function ChangePasswordPage() {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="Enter your current password"
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-200 text-base"
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-200 text-base"
                 />
                 <button
                   type="button"
                   onClick={() => setShowCurrent(!showCurrent)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition"
                 >
                   {showCurrent ? "🙈" : "👁"}
                 </button>
@@ -149,7 +149,7 @@ export default function ChangePasswordPage() {
             <div>
               <label
                 htmlFor="new"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
                 New Password
               </label>
@@ -161,17 +161,17 @@ export default function ChangePasswordPage() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Enter your new password"
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-200 text-base"
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-200 text-base"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNew(!showNew)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition"
                 >
                   {showNew ? "🙈" : "👁"}
                 </button>
               </div>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                 Minimum 8 characters, mix of letters, numbers, and symbols.
               </p>
             </div>
@@ -180,7 +180,7 @@ export default function ChangePasswordPage() {
             <div>
               <label
                 htmlFor="confirm"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
                 Confirm New Password
               </label>
@@ -192,12 +192,12 @@ export default function ChangePasswordPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirm your new password"
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-200 text-base"
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-200 text-base"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition"
                 >
                   {showConfirm ? "🙈" : "👁"}
                 </button>
@@ -205,14 +205,14 @@ export default function ChangePasswordPage() {
               {newPassword &&
                 confirmPassword &&
                 newPassword !== confirmPassword && (
-                  <p className="mt-1 text-sm text-red-600">
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
                     Passwords do not match
                   </p>
                 )}
               {newPassword &&
                 confirmPassword &&
                 newPassword === confirmPassword && (
-                  <p className="mt-1 text-sm text-green-600">
+                  <p className="mt-1 text-sm text-green-600 dark:text-green-400">
                     ✓ Passwords match
                   </p>
                 )}
@@ -235,8 +235,8 @@ export default function ChangePasswordPage() {
           </form>
         </div>
 
-        <p className="text-center text-primary-300 text-xs mt-4">
-          SMS Cooperative Management System v1.2
+        <p className="text-center text-primary-300 dark:text-primary-400 text-xs mt-4">
+          SSC Cooperative Management System v1.2
         </p>
       </div>
     </div>
