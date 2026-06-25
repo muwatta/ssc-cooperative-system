@@ -5,6 +5,13 @@ import api from "@/api/client";
 import { membersApi, savingsApi, loansApi } from "@/api/services";
 import type { MemberProfile, SavingsSummary } from "@/types";
 import { Link } from "react-router-dom";
+import {
+  MembershipDonut,
+  LoanStatusDonut,
+  FinancialBarChart,
+  CoopTotalsChart,
+} from "@/components/dashboard/DashboardCharts";
+
 
 // StatCard (used in At a Glance, Membership Summary)
 function StatCard({
@@ -456,6 +463,48 @@ export default function DashboardPage() {
                 </p>
               </div>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Analytics Charts — Admin only */}
+      {isAdmin && stats && (
+        <div className="space-y-4 mb-6">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+            📊 Analytics
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <MembershipDonut
+              data={{
+                active: stats.activeMembers,
+                pending: stats.pendingMembers,
+                inactive: stats.inactiveMembers,
+                exited: stats.exitedMembers,
+              }}
+            />
+            <LoanStatusDonut
+              data={{
+                submitted: dashSummary?.submitted ?? 0,
+                under_review: dashSummary?.under_review ?? 0,
+                pending_admin: dashSummary?.pending_admin ?? 0,
+                active: dashSummary?.active_loans ?? 0,
+                completed: 0,
+                rejected: 0,
+                defaulted: 0,
+              }}
+            />
+          </div>
+          {dashSummary && (
+            <CoopTotalsChart
+              data={{
+                total_savings: dashSummary.total_savings ?? "0",
+                total_outstanding: dashSummary.total_outstanding ?? "0",
+                total_special_savings: dashSummary.total_special_savings ?? "0",
+              }}
+            />
+          )}
+          {financialSnapshot && financialSnapshot.length > 0 && (
+            <FinancialBarChart data={financialSnapshot} />
           )}
         </div>
       )}
