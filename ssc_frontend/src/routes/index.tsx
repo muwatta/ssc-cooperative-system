@@ -50,7 +50,6 @@ const MyLoansPage = lazy(() => import("@/pages/staff/MyLoansPage"));
 const LoanDetailPage = lazy(() => import("@/pages/staff/LoanDetailPage"));
 const LoanSuccessPage = lazy(() => import("@/pages/staff/LoanSuccessPage"));
 
-const ComingSoonPage = lazy(() => import("@/pages/shared/ComingSoonPage"));
 
 // Loading fallback
 const PageFallback = () => (
@@ -124,7 +123,7 @@ export default function AppRouter() {
 
               {/* Head of School */}
               <Route element={<RequireRole roles={["head_of_school"]} />}>
-                <Route path="/loan-approvals" element={<ComingSoonPage />} />
+                <Route path="/loan-approvals" element={<Navigate to="/loans/queue" replace />} />
               </Route>
             </Route>
           </Route>
