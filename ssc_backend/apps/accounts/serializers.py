@@ -16,7 +16,12 @@ class SSCTokenObtainPairSerializer(TokenObtainPairSerializer):
                 {"staff_id": "This Staff ID is not recognised or has been deactivated."}
             )
 
-        data = super().validate(attrs)
+        try:
+            data = super().validate(attrs)
+        except Exception:
+            raise serializers.ValidationError(
+                {"detail": "Invalid Staff ID or password."}
+            )
         user = self.user
 
         data["role"] = user.role
