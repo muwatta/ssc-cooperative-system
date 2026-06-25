@@ -56,7 +56,7 @@ export function MembershipDonut({ data }: { data: MembershipData }) {
             ))}
           </Pie>
           <Tooltip
-            formatter={(value: number, name: string) => [
+            formatter={(value: any, name: any) => [
               `${value} (${Math.round((value / total) * 100)}%)`,
               name,
             ]}
@@ -148,7 +148,7 @@ export function LoanStatusDonut({ data }: { data: LoanStatusData }) {
             ))}
           </Pie>
           <Tooltip
-            formatter={(value: number, name: string) => [
+            formatter={(value: any, name: any) => [
               `${value} (${Math.round((value / total) * 100)}%)`,
               name,
             ]}
@@ -232,7 +232,7 @@ export function FinancialBarChart({ data }: { data: FinancialMember[] }) {
             width={52}
           />
           <Tooltip
-            formatter={(value: number, name: string) => [
+            formatter={(value: any, name: any) => [
               `₦${Number(value).toLocaleString("en-NG")}`,
               name === "available"
                 ? "Available"
@@ -240,7 +240,7 @@ export function FinancialBarChart({ data }: { data: FinancialMember[] }) {
                   ? "Outstanding Loan"
                   : "Special Savings",
             ]}
-            labelFormatter={(label, payload) => {
+            labelFormatter={(label: any, payload: any) => {
               const item = payload?.[0]?.payload;
               return item ? `${item.fullName} (${label})` : label;
             }}
@@ -329,7 +329,7 @@ export function CoopTotalsChart({ data }: { data: CoopTotals }) {
             width={100}
           />
           <Tooltip
-            formatter={(value: number) => [
+            formatter={(value: any) => [
               `₦${Number(value).toLocaleString("en-NG")}`,
               "Amount",
             ]}
