@@ -273,6 +273,8 @@ export const loansApi = {
     api.post<LoanApplication>(`/loans/${id}/committee-decision/`, data),
   adminApprove: (id: number, data: Record<string, unknown> = {}) =>
     api.post<LoanApplication>(`/loans/${id}/admin-approve/`, data),
+  markDefault: (id: number) =>
+    api.post<{ message: string; detail: { transferred: { file_number: string; amount: string }[]; errors: { file_number: string; error: string }[] } }>(`/loans/${id}/default/`),
   hosApprove: (id: number) =>
     api.post<LoanApplication>(`/loans/${id}/hos-approve/`),
   get: (id: number) => api.get<LoanApplication>(`/loans/${id}/`),

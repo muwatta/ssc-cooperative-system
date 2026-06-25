@@ -12,6 +12,7 @@ import {
   ErrorAlert,
 } from "@/components/common";
 import RepaymentModal from "@/components/loans/RepaymentModal";
+import LoanDefaultModal from "@/components/loans/LoanDefaultModal";
 import { useAuth } from "@/context/AuthContext";
 import { HIJRI_MONTHS } from "@/types";
 import type { LoanApplication, PaginatedResponse } from "@/types";
@@ -388,9 +389,8 @@ export default function LoanQueuePage() {
   const [selectedLoan, setSelectedLoan] = useState<LoanApplication | null>(
     null,
   );
-  const [modalType, setModalType] = useState<
-    "committee" | "admin" | "repayment" | null
-  >(null);
+  const [modalType, setModalType] = useState; 
+  "committee" | "admin" | "repayment" | "default" | (null > null);
   const [activeFilter, setActiveFilter] = useState<string>("all");
 
   const { data, isLoading } = useQuery<PaginatedResponse<LoanApplication>>({
@@ -587,6 +587,17 @@ export default function LoanQueuePage() {
                       Post Repayment
                     </button>
                   )}
+                  {isAdmin && loan.status === "active" && (
+                    <button
+                      onClick={() => {
+                        setSelectedLoan(loan);
+                        setModalType("default");
+                      }}
+                      className="btn-danger text-xs px-3 py-1.5"
+                    >
+                      Mark Defaulted
+                    </button>
+                  )}
                   <button
                     onClick={() => navigate(`/loans/${loan.id}`)}
                     className="text-xs text-primary-600 dark:text-primary-400 hover:underline"
@@ -656,6 +667,24 @@ export default function LoanQueuePage() {
               selectedLoan.repayment_start_hijri_year ||
               new Date().getFullYear()
             }
+            onClose={() => {
+              setSelectedLoan(null);
+              setModalType(null);
+            }}
+          />
+        )}
+      </Modal>
+      <Modal
+        open={!!selectedLoan && modalType === "default"}
+        title="Mark Loan as Defaulted"
+        onClose={() => {
+          setSelectedLoan(null);
+          setModalType(null);
+        }}
+      >
+        {selectedLoan && (
+          <LoanDefaultModal
+            loan={selectedLoan}
             onClose={() => {
               setSelectedLoan(null);
               setModalType(null);

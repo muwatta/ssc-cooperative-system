@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
+import LoanDefaultModal from "@/components/loans/LoanDefaultModal";
 import { loansApi } from "@/api/services";
 import { useAuth } from "@/context/AuthContext";
 import AdminApprovalPreview from "@/components/admin/AdminApprovalPreview";
@@ -42,6 +43,7 @@ export default function LoanDetailPage() {
   const qc = useQueryClient();
   const { isAdmin, isCommittee } = useAuth();
   const loanId = id ? Number(id) : null;
+  const [showDefault, setShowDefault] = useState(false);
 
   const [showRepayment, setShowRepayment] = useState(false);
   const [page, setPage] = useState(1);
@@ -275,6 +277,14 @@ export default function LoanDetailPage() {
                 className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
               >
                 🔍 Review & Approve
+              </button>
+            )}
+            {isAdmin && loan.status === "active" && (
+              <button
+                onClick={() => setShowDefault(true)}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
+              >
+                ⚠️ Mark Defaulted
               </button>
             )}
           </div>
@@ -704,6 +714,11 @@ export default function LoanDetailPage() {
           </div>
         )}
       </div>
+      {showDefault && loan && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 no-print p-4">
+          <LoanDefaultModal loan={loan} onClose={() => setShowDefault(false)} />
+        </div>
+      )}
     </>
   );
 }
