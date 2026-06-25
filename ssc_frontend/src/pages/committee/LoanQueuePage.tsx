@@ -389,8 +389,9 @@ export default function LoanQueuePage() {
   const [selectedLoan, setSelectedLoan] = useState<LoanApplication | null>(
     null,
   );
-  const [modalType, setModalType] = useState; 
-  "committee" | "admin" | "repayment" | "default" | (null > null);
+  const [modalType, setModalType] = useState<
+    "committee" | "admin" | "repayment" | "default" | null
+  >(null);
   const [activeFilter, setActiveFilter] = useState<string>("all");
 
   const { data, isLoading } = useQuery<PaginatedResponse<LoanApplication>>({
