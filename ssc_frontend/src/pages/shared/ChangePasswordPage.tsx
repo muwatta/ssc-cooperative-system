@@ -1,5 +1,5 @@
 import { useState } from "react";
-import api from "@/api/client"; // ✅ default import
+import api from "@/api/client";
 
 export default function ChangePasswordPage() {
   const [currentPassword, setCurrentPassword] = useState("");
