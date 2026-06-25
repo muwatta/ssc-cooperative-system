@@ -5,7 +5,7 @@ interface DeveloperContactModalProps {
   onClose: () => void;
 }
 
-// ─── Variants ──────────────────────────────────────────────
+// Variant
 const backdropVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1 },
@@ -86,7 +86,7 @@ export default function DeveloperContactModal({
               initial="initial"
               animate="animate"
             >
-              {/* Floating decorative shapes – smaller on mobile */}
+              {/* Floating decorative shapes */}
               <motion.div
                 className="absolute -top-12 -right-12 h-40 w-40 sm:h-48 sm:w-48 rounded-full bg-gradient-to-br from-purple-400/20 to-pink-400/20 blur-2xl"
                 animate={{ rotate: 360 }}
@@ -157,10 +157,20 @@ export default function DeveloperContactModal({
                     </motion.p>
                   </div>
                 </div>
+                {/* SNOWBALL BADGE */}
                 <motion.div
-                  className="relative z-10 mt-3 inline-block rounded-full bg-white/20 px-3 py-0.5 text-[10px] sm:text-xs font-medium text-white/90 backdrop-blur-sm"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  className="relative z-10 mt-3 inline-block rounded-full bg-white/20 px-3 py-0.5 text-[10px] sm:text-xs font-medium text-white/90 backdrop-blur-sm shadow-lg"
+                  animate={{
+                    y: [0, -8, 0, -8, 0],
+                    scale: [1, 1.08, 1, 1.08, 1],
+                  }}
+                  transition={{
+                    duration: 1.2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  whileHover={{ scale: 1.15 }}
+                  whileTap={{ scale: 0.9 }}
                 >
                   ✨ Available for hire
                 </motion.div>
