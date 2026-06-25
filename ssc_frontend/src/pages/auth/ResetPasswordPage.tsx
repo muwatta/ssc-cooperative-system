@@ -86,13 +86,13 @@ export default function ResetPasswordPage() {
           <p className="text-primary-200 text-sm mt-1">Management System</p>
         </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6">
+        {/* Card – dark mode added */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6">
           <div className="mb-5">
-            <h2 className="text-xl font-bold text-gray-900">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
               Create New Password
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Enter your new password below.
             </p>
           </div>
@@ -102,7 +102,7 @@ export default function ResetPasswordPage() {
             <div>
               <label
                 htmlFor="newPassword"
-                className="block text-sm font-semibold text-gray-700 mb-1.5"
+                className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5"
               >
                 New Password
               </label>
@@ -114,14 +114,14 @@ export default function ResetPasswordPage() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Enter your new password"
-                  className="w-full border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-150"
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-150"
                   style={{ fontSize: "16px", padding: "14px 56px 14px 16px" }}
                   autoComplete="new-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 w-14 flex items-center justify-center text-gray-400 hover:text-gray-600 transition"
+                  className="absolute inset-y-0 right-0 w-14 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   <span className="text-xl">{showPassword ? "🙈" : "👁"}</span>
@@ -132,17 +132,17 @@ export default function ResetPasswordPage() {
               {newPassword && (
                 <div className="mt-2">
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
                       <div
                         className={`h-full transition-all duration-300 ${strength.color}`}
                         style={{ width: strength.width }}
                       />
                     </div>
-                    <span className="text-xs font-medium text-gray-500 w-12 text-right">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-12 text-right">
                       {strength.label}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                     Min. 8 characters — mix letters, numbers, symbols.
                   </p>
                 </div>
@@ -153,7 +153,7 @@ export default function ResetPasswordPage() {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="block text-sm font-semibold text-gray-700 mb-1.5"
+                className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5"
               >
                 Confirm New Password
               </label>
@@ -165,14 +165,14 @@ export default function ResetPasswordPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirm your new password"
-                  className="w-full border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-150"
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-150"
                   style={{ fontSize: "16px", padding: "14px 56px 14px 16px" }}
                   autoComplete="new-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute inset-y-0 right-0 w-14 flex items-center justify-center text-gray-400 hover:text-gray-600 transition"
+                  className="absolute inset-y-0 right-0 w-14 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition"
                   aria-label={
                     showConfirmPassword ? "Hide password" : "Show password"
                   }
@@ -185,22 +185,22 @@ export default function ResetPasswordPage() {
               {newPassword &&
                 confirmPassword &&
                 newPassword !== confirmPassword && (
-                  <p className="mt-1.5 text-sm text-red-600">
+                  <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
                     ⚠ Passwords do not match
                   </p>
                 )}
               {newPassword &&
                 confirmPassword &&
                 newPassword === confirmPassword && (
-                  <p className="mt-1.5 text-sm text-green-600">
+                  <p className="mt-1.5 text-sm text-green-600 dark:text-green-400">
                     ✓ Passwords match
                   </p>
                 )}
             </div>
 
             {message && (
-              <div className="bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 text-sm flex items-start gap-2">
-                <span className="text-green-500 text-base leading-tight mt-0.5">
+              <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 rounded-xl px-4 py-3 text-sm flex items-start gap-2">
+                <span className="text-green-500 dark:text-green-400 text-base leading-tight mt-0.5">
                   ✓
                 </span>
                 <span className="leading-snug">
@@ -210,8 +210,8 @@ export default function ResetPasswordPage() {
             )}
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm flex items-start gap-2">
-                <span className="text-red-500 text-base leading-tight mt-0.5">
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl px-4 py-3 text-sm flex items-start gap-2">
+                <span className="text-red-500 dark:text-red-400 text-base leading-tight mt-0.5">
                   ⚠
                 </span>
                 <span className="leading-snug">{error}</span>
@@ -256,7 +256,7 @@ export default function ResetPasswordPage() {
             <div className="text-center pt-1">
               <a
                 href="/login"
-                className="text-sm text-primary-600 hover:text-primary-800 font-medium transition duration-150"
+                className="text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition duration-150"
               >
                 ← Back to Sign In
               </a>
@@ -264,7 +264,7 @@ export default function ResetPasswordPage() {
           </form>
         </div>
 
-        <p className="text-center text-primary-300 text-xs mt-4">
+        <p className="text-center text-primary-300 dark:text-primary-400 text-xs mt-4">
           SSC Cooperative Management System v1.2
         </p>
       </div>
