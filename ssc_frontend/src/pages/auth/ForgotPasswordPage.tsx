@@ -50,11 +50,13 @@ export default function ForgotPasswordPage() {
           <p className="text-primary-200 text-sm mt-1">Management System</p>
         </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6">
+        {/* Card – dark mode added */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6">
           <div className="mb-5">
-            <h2 className="text-xl font-bold text-gray-900">Reset Password</h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+              Reset Password
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Enter your email address and we'll send you a reset link.
             </p>
           </div>
@@ -63,7 +65,7 @@ export default function ForgotPasswordPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-semibold text-gray-700 mb-1.5"
+                className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5"
               >
                 Email Address
               </label>
@@ -74,7 +76,7 @@ export default function ForgotPasswordPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-150"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-150"
                 style={{ fontSize: "16px", padding: "14px 16px" }}
                 autoComplete="email"
                 inputMode="email"
@@ -82,8 +84,8 @@ export default function ForgotPasswordPage() {
             </div>
 
             {message && (
-              <div className="bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 text-sm flex items-start gap-2">
-                <span className="text-green-500 text-base leading-tight mt-0.5">
+              <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 rounded-xl px-4 py-3 text-sm flex items-start gap-2">
+                <span className="text-green-500 dark:text-green-400 text-base leading-tight mt-0.5">
                   ✓
                 </span>
                 <span className="leading-snug">{message}</span>
@@ -91,8 +93,8 @@ export default function ForgotPasswordPage() {
             )}
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm flex items-start gap-2">
-                <span className="text-red-500 text-base leading-tight mt-0.5">
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl px-4 py-3 text-sm flex items-start gap-2">
+                <span className="text-red-500 dark:text-red-400 text-base leading-tight mt-0.5">
                   ⚠
                 </span>
                 <span className="leading-snug">{error}</span>
@@ -137,7 +139,7 @@ export default function ForgotPasswordPage() {
             <div className="text-center pt-1">
               <a
                 href="/login"
-                className="text-sm text-primary-600 hover:text-primary-800 font-medium transition duration-150"
+                className="text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition duration-150"
               >
                 ← Back to Sign In
               </a>
@@ -145,7 +147,7 @@ export default function ForgotPasswordPage() {
           </form>
         </div>
 
-        <p className="text-center text-primary-300 text-xs mt-4">
+        <p className="text-center text-primary-300 dark:text-primary-400 text-xs mt-4">
           SSC Cooperative Management System v1.2
         </p>
       </div>
