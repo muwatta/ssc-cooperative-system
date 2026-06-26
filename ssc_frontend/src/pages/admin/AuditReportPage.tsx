@@ -3,12 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/api/client";
 import { PageHeader, PageLoader, EmptyState } from "@/components/common";
 
+// ─── Page size from Django pagination (PAGE_SIZE = 50) ──
+const PAGE_SIZE = 50;
+
 export default function AuditReportPage() {
   const [userId, setUserId] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
-  const [exporting, setExporting] = useState(false);
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["audit-report", userId, dateFrom, dateTo, page],
@@ -25,34 +27,35 @@ export default function AuditReportPage() {
         .then((r) => r.data),
   });
 
-  const handleExportCSV = async () => {
-    setExporting(true);
-    try {
-      const response = await api.get("/audit/report/", {
-        params: {
-          format: "csv",
-          user_id: userId,
-          date_from: dateFrom,
-          date_to: dateTo,
-        },
-        responseType: "blob",
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "audit-report.csv";
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Export failed", err);
-    } finally {
-      setExporting(false);
-    }
-  };
-
   const handleApplyFilters = () => {
     setPage(1);
   };
+
+  const handleClearFilters = () => {
+    setUserId("");
+    setDateFrom("");
+    setDateTo("");
+    setPage(1);
+  };
+
+  const formatDate = (isoString: string) => {
+    if (!isoString) return "—";
+    try {
+      return new Date(isoString).toLocaleString("en-NG", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+    } catch {
+      return "Invalid Date";
+    }
+  };
+
+  // ─── Sequential row number ──────────────────────────────
+  const startIndex = (page - 1) * PAGE_SIZE + 1;
 
   return (
     <div className="space-y-6">
@@ -61,11 +64,14 @@ export default function AuditReportPage() {
         subtitle="View all administrative actions"
       />
 
-      {/* Enhanced Filter Bar with gradient and icons */}
+      {/* Filter Bar */}
       <div className="card-panel p-6 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border border-gray-100 dark:border-gray-700 shadow-md">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <div>
-            <label className="label text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-2">
+            <label
+              htmlFor="userId"
+              className="label text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-2"
+            >
               <svg
                 className="w-4 h-4"
                 fill="none"
@@ -82,6 +88,7 @@ export default function AuditReportPage() {
               User ID
             </label>
             <input
+              id="userId"
               type="text"
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
@@ -90,7 +97,10 @@ export default function AuditReportPage() {
             />
           </div>
           <div>
-            <label className="label text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-2">
+            <label
+              htmlFor="dateFrom"
+              className="label text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-2"
+            >
               <svg
                 className="w-4 h-4"
                 fill="none"
@@ -107,15 +117,19 @@ export default function AuditReportPage() {
               From (Date)
             </label>
             <input
+              id="dateFrom"
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
               className="input"
-              title="Filter logs from this date" 
+              title="Filter logs from this date"
             />
           </div>
           <div>
-            <label className="label text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-2">
+            <label
+              htmlFor="dateTo"
+              className="label text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-2"
+            >
               <svg
                 className="w-4 h-4"
                 fill="none"
@@ -132,6 +146,7 @@ export default function AuditReportPage() {
               To (Date)
             </label>
             <input
+              id="dateTo"
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
@@ -147,11 +162,10 @@ export default function AuditReportPage() {
               Apply Filters
             </button>
             <button
-              onClick={handleExportCSV}
-              disabled={exporting}
+              onClick={handleClearFilters}
               className="btn-secondary flex-1 shadow-sm hover:shadow-md transition-all"
             >
-              {exporting ? "Exporting..." : "Export CSV"}
+              Clear
             </button>
           </div>
         </div>
@@ -161,12 +175,11 @@ export default function AuditReportPage() {
         <PageLoader />
       ) : data?.results?.length ? (
         <>
-          {/* Enhanced Table Container */}
           <div className="table-container rounded-xl overflow-hidden shadow-md">
             <table className="table w-full">
               <thead className="bg-primary-50 dark:bg-primary-900/30 text-gray-700 dark:text-gray-200 text-xs font-semibold uppercase tracking-wider">
                 <tr>
-                  <th className="px-5 py-4">ID</th>
+                  <th className="px-5 py-4">#</th>
                   <th className="px-5 py-4">User</th>
                   <th className="px-5 py-4">Action</th>
                   <th className="px-5 py-4">Object Type</th>
@@ -186,7 +199,7 @@ export default function AuditReportPage() {
                     }`}
                   >
                     <td className="px-5 py-3 font-mono text-xs text-gray-500 dark:text-gray-400">
-                      {log.id}
+                      {startIndex + idx}
                     </td>
                     <td className="px-5 py-3 font-medium text-gray-800 dark:text-gray-200">
                       {log.user_name || "System"}
@@ -206,7 +219,7 @@ export default function AuditReportPage() {
                       {log.description}
                     </td>
                     <td className="px-5 py-3 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(log.timestamp).toLocaleString()}
+                      {formatDate(log.created_at)}
                     </td>
                   </tr>
                 ))}
@@ -214,7 +227,7 @@ export default function AuditReportPage() {
             </table>
           </div>
 
-          {/* Pagination with better styling */}
+          {/* Pagination */}
           {data.count > (data.results?.length || 0) && (
             <div className="flex flex-wrap items-center justify-between gap-3 mt-6">
               <button
