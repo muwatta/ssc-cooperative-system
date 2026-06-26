@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/api/client";
 import { PageHeader, PageLoader, EmptyState } from "@/components/common";
 
-// ─── Page size from Django pagination (PAGE_SIZE = 50) ──
+
 const PAGE_SIZE = 50;
 
 export default function AuditReportPage() {
@@ -54,7 +54,7 @@ export default function AuditReportPage() {
     }
   };
 
-  // ─── Sequential row number ──────────────────────────────
+  // Sequential row number
   const startIndex = (page - 1) * PAGE_SIZE + 1;
 
   return (
