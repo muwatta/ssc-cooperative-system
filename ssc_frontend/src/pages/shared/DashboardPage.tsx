@@ -783,7 +783,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Reset Section (Admin only) */}
+      {/* Reset Section (Admin only)
       {isAdmin && (
         <div className="card-panel mb-4 sm:mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 sm:p-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -804,7 +804,7 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Confirmation Modal */}
       {showResetModal && (
