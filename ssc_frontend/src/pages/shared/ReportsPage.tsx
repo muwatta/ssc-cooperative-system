@@ -4,7 +4,6 @@ import { membersApi, savingsApi } from "@/api/services";
 import { AnimatedCard } from "@/components/common";
 import api from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
-
 import type {
   MemberProfile,
   PaginatedResponse,
@@ -14,6 +13,7 @@ import type {
 } from "@/types";
 import { HIJRI_MONTHS } from "@/types";
 
+// Utilities
 function formatNaira(value: string | number) {
   const amount = Number(value);
   return Number.isNaN(amount)
@@ -24,12 +24,276 @@ function formatNaira(value: string | number) {
       })}`;
 }
 
+// Member Statement Component (inline)
+function MemberStatementSection() {
+  const [search, setSearch] = useState("");
+  const [selectedMember, setSelectedMember] = useState<any>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [previewData, setPreviewData] = useState<any[] | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const { data: searchResults } = useQuery({
+    queryKey: ["member-search-statement", search],
+    queryFn: () => membersApi.summary(search).then((r) => r.data.results ?? []),
+    enabled: search.length > 1,
+    staleTime: 10000,
+  });
+
+  const loadPreview = async (member: any) => {
+    setPreviewLoading(true);
+    setPreviewData(null);
+    try {
+      const res = await api.get(`/savings/ledger/${member.id}/`, {
+        params: { page_size: 20 },
+      });
+      setPreviewData(res.data.results ?? []);
+    } catch {
+      setPreviewData([]);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const selectMember = (member: any) => {
+    setSelectedMember(member);
+    setSearch(`${member.file_number} — ${member.full_name}`);
+    setShowDropdown(false);
+    loadPreview(member);
+  };
+
+  const downloadStatement = async (format: "csv" | "pdf") => {
+    if (!selectedMember) return;
+    setDownloading(true);
+    try {
+      const res = await api.get(
+        `/reports/member-statement/${selectedMember.id}/`,
+        {
+          params: { format },
+          responseType: "blob",
+        },
+      );
+      const mime = format === "pdf" ? "application/pdf" : "text/csv";
+      const blob = new Blob([res.data], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `statement_${selectedMember.file_number}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("Failed to download statement. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const entryTypeLabel = (type: string) =>
+    type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+  const entryTypeColor = (type: string) => {
+    switch (type) {
+      case "ordinary_savings":
+        return "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300";
+      case "loan_repayment":
+        return "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300";
+      case "loan_disbursement":
+        return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300";
+      case "special_savings":
+        return "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300";
+      case "profit_share":
+        return "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300";
+      default:
+        return "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300";
+    }
+  };
+
+  return (
+    <div className="card-panel p-5">
+      <h2 className="text-base font-semibold text-gray-800 dark:text-white mb-1">
+        Member Statement
+      </h2>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+        Search for a member, preview their savings history, then download as CSV
+        or PDF.
+      </p>
+
+      {/* Search */}
+      <div className="relative mb-4">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setShowDropdown(true);
+            if (!e.target.value) {
+              setSelectedMember(null);
+              setPreviewData(null);
+            }
+          }}
+          onFocus={() => setShowDropdown(true)}
+          placeholder="Search member by name or file number…"
+          className="input w-full"
+          aria-label="Search member"
+        />
+        {showDropdown &&
+          searchResults &&
+          searchResults.length > 0 &&
+          !selectedMember && (
+            <div className="absolute top-full left-0 right-0 z-20 mt-1 max-h-48 overflow-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+              {searchResults.slice(0, 8).map((m: any) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => selectMember(m)}
+                  className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center gap-3"
+                >
+                  <span className="font-mono text-primary-600 dark:text-primary-400 text-xs">
+                    {m.file_number}
+                  </span>
+                  <span className="text-gray-800 dark:text-white">
+                    {m.full_name}
+                  </span>
+                  <span className="ml-auto text-xs text-gray-400 capitalize">
+                    {m.school_branch}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+      </div>
+
+      {/* Selected member + download */}
+      {selectedMember && (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-xl border border-primary-100 dark:border-primary-800">
+            <div>
+              <p className="font-semibold text-primary-800 dark:text-primary-200">
+                {selectedMember.full_name}
+              </p>
+              <p className="text-xs text-primary-600 dark:text-primary-400">
+                {selectedMember.file_number} · {selectedMember.school_branch}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => downloadStatement("csv")}
+                disabled={downloading}
+                className="btn-secondary text-sm px-4 py-2 flex items-center gap-1"
+              >
+                📥 CSV
+              </button>
+              <button
+                onClick={() => downloadStatement("pdf")}
+                disabled={downloading}
+                className="btn-primary text-sm px-4 py-2 flex items-center gap-1"
+              >
+                📄 PDF
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedMember(null);
+                  setSearch("");
+                  setPreviewData(null);
+                }}
+                className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 px-2"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          {/* Preview table */}
+          {previewLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+              <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
+                Loading preview…
+              </span>
+            </div>
+          ) : previewData && previewData.length > 0 ? (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                Showing last {previewData.length} entries — download for full
+                statement
+              </p>
+              <div className="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-700">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 dark:bg-gray-700/50">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">
+                        Date
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">
+                        Type
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">
+                        Details
+                      </th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 dark:text-gray-400">
+                        Debit
+                      </th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 dark:text-gray-400">
+                        Credit
+                      </th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 dark:text-gray-400">
+                        Balance
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewData.map((entry) => (
+                      <tr
+                        key={entry.id}
+                        className="border-t border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/30"
+                      >
+                        <td className="px-3 py-2 font-mono text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                          {entry.hijri_display}
+                        </td>
+                        <td className="px-3 py-2">
+                          <span
+                            className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${entryTypeColor(entry.entry_type)}`}
+                          >
+                            {entryTypeLabel(entry.entry_type)}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-xs text-gray-600 dark:text-gray-400 max-w-[180px] truncate">
+                          {entry.details || "—"}
+                        </td>
+                        <td className="px-3 py-2 text-right text-xs font-medium text-red-600 dark:text-red-400">
+                          {entry.debit ? formatNaira(entry.debit) : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-right text-xs font-medium text-green-600 dark:text-green-400">
+                          {entry.credit ? formatNaira(entry.credit) : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-right text-xs font-semibold text-gray-800 dark:text-white">
+                          {formatNaira(entry.balance)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : previewData && previewData.length === 0 ? (
+            <div className="py-8 text-center text-sm text-gray-400 dark:text-gray-500">
+              No savings entries found for this member.
+            </div>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
+}
+
+// Main ReportsPage
 export default function ReportsPage() {
   const [searchTerm, setSearchTerm] = useState("");
-
-  // Monthly deduction report state
   const [deductionMonth, setDeductionMonth] = useState(1);
   const [deductionYear, setDeductionYear] = useState(1446);
+  const { isAdmin } = useAuth();
 
   // Fetch current Hijri date to pre‑fill the deduction month/year
   const { data: currentDate } = useQuery({
@@ -81,7 +345,6 @@ export default function ReportsPage() {
   const activeMemberCount = membersPage?.count ?? 0;
   const error = membersError || poolError ? "Unable to load report data." : "";
   const totalSavingsPool = savingsSummary?.cooperative?.total_savings ?? null;
-  const { isAdmin } = useAuth();
 
   // Filter members by search term for the table only
   const filteredMembers = useMemo(() => {
@@ -238,6 +501,9 @@ export default function ReportsPage() {
         </p>
       </div>
 
+      {/* Member Statement Section */}
+      <MemberStatementSection />
+
       {isLoading ? (
         <div className="flex h-48 items-center justify-center rounded-lg bg-white dark:bg-gray-800 shadow">
           <div className="text-gray-500 dark:text-gray-400">
@@ -344,6 +610,7 @@ export default function ReportsPage() {
               </div>
             </AnimatedCard>
           </div>
+
           {/* Member Table with Search */}
           <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-md">
             <div className="border-b border-gray-100 dark:border-gray-700 p-5">
